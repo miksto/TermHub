@@ -6,30 +6,40 @@ struct SidebarView: View {
 
     var body: some View {
         @Bindable var state = appState
-        List(selection: $state.selectedSessionID) {
-            ForEach(appState.folders) { folder in
-                FolderSectionView(
-                    folder: folder,
-                    onRequestRemoveFolder: {
-                        folderToRemove = folder
-                    }
-                )
-            }
-        }
-        .listStyle(.sidebar)
-        .navigationTitle("MuxManager")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    appState.showingAddFolder = true
-                } label: {
-                    Label("Add Folder", systemImage: "folder.badge.plus")
+        VStack(spacing: 0) {
+            List(selection: $state.selectedSessionID) {
+                ForEach(appState.folders) { folder in
+                    FolderSectionView(
+                        folder: folder,
+                        onRequestRemoveFolder: {
+                            folderToRemove = folder
+                        }
+                    )
                 }
             }
+            .listStyle(.sidebar)
+
+            Divider()
+
+            Button {
+                let panel = NSOpenPanel()
+                panel.title = "Choose a folder"
+                panel.canChooseFiles = false
+                panel.canChooseDirectories = true
+                panel.allowsMultipleSelection = false
+                if panel.runModal() == .OK, let url = panel.url {
+                    appState.addFolder(path: url.path)
+                }
+            } label: {
+                Label("Add Folder", systemImage: "folder.badge.plus")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
-        .sheet(isPresented: $state.showingAddFolder) {
-            AddFolderSheet()
-        }
+        .navigationTitle("MuxManager")
         .sheet(
             isPresented: Binding(
                 get: { appState.pendingWorktreeFolder != nil },

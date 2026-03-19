@@ -18,7 +18,7 @@ struct MuxManagerApp: App {
                 .disabled(appState.selectedSession == nil)
 
                 Button("Add Folder...") {
-                    appState.showingAddFolder = true
+                    openFolderPanel()
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
@@ -42,6 +42,17 @@ struct MuxManagerApp: App {
                 }
                 .keyboardShortcut(.downArrow, modifiers: [.command, .option])
             }
+        }
+    }
+
+    private func openFolderPanel() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose a folder"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK, let url = panel.url {
+            appState.addFolder(path: url.path)
         }
     }
 
