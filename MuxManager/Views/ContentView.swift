@@ -29,9 +29,6 @@ struct ContentView: View {
                 }
             }
         }
-        // Keyboard shortcuts via hidden buttons
-        .background(keyboardShortcutButtons)
-        // Error alert
         .alert(
             "Error",
             isPresented: Binding(
@@ -71,50 +68,5 @@ struct ContentView: View {
                 Text("This will close the tmux session \"\(session.tmuxSessionName)\".")
             }
         }
-    }
-
-    @ViewBuilder
-    private var keyboardShortcutButtons: some View {
-        // Cmd+T: New shell in currently selected folder
-        Button("") {
-            guard let session = appState.selectedSession,
-                  let folder = appState.folders.first(where: { $0.id == session.folderID }) else { return }
-            appState.addSession(
-                folderID: folder.id,
-                title: "\(folder.name) – Shell",
-                cwd: folder.path
-            )
-        }
-        .keyboardShortcut("t", modifiers: .command)
-        .hidden()
-
-        // Cmd+W: Close current session (with confirmation)
-        Button("") {
-            guard let session = appState.selectedSession else { return }
-            appState.pendingCloseSessionID = session.id
-        }
-        .keyboardShortcut("w", modifiers: .command)
-        .hidden()
-
-        // Cmd+N: Add folder
-        Button("") {
-            appState.showingAddFolder = true
-        }
-        .keyboardShortcut("n", modifiers: .command)
-        .hidden()
-
-        // Cmd+Option+Up: Previous session
-        Button("") {
-            appState.selectPreviousSession()
-        }
-        .keyboardShortcut(.upArrow, modifiers: [.command, .option])
-        .hidden()
-
-        // Cmd+Option+Down: Next session
-        Button("") {
-            appState.selectNextSession()
-        }
-        .keyboardShortcut(.downArrow, modifiers: [.command, .option])
-        .hidden()
     }
 }
