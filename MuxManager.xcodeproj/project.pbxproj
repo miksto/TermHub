@@ -7,16 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		004C93602FE4EA7CEB3B4D3B /* ManagedFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88FC43A9B65E095063C4625 /* ManagedFolderTests.swift */; };
 		02C289D1B7C9215F6436ACB8 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84854E969FECAA404F47876C /* PersistenceService.swift */; };
 		0B3844D1F0FAF661C352621F /* TerminalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD540C5E9EDBA18484DCD96 /* TerminalDetailView.swift */; };
+		1031E8AC9CEB5BFC12CADC8E /* TerminalSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A4C4600FFA4E527B486932 /* TerminalSessionTests.swift */; };
 		11975D6BE18BD572697BF0F6 /* TerminalNSViewWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 151B220D0E2D63D5F998DE3C /* TerminalNSViewWrapper.swift */; };
 		134CAC4E628F14597D413899 /* FolderSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F118FC7C821C00FEA57FA25 /* FolderSectionView.swift */; };
 		14DC1383D13DA06DBC0A4FC6 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1533AE0B275BE5F439160A8 /* GitService.swift */; };
 		31DCE1ED1E746870AC8FFA93 /* BranchPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9E7BBD5E6F4D044C3734F8C /* BranchPickerSheet.swift */; };
 		46149E3BA1A06B10E745A3FC /* ManagedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0C72223B0031BBD8F5599A /* ManagedFolder.swift */; };
 		53D5A83A415D534E81EB6E1A /* NewBranchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79CA862DA01D85599085349D /* NewBranchSheet.swift */; };
+		552091E3A27F946302DE1568 /* PersistenceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E31AE9AE944B25346DBB47E6 /* PersistenceServiceTests.swift */; };
 		552DBC44FA2880DDDE19D243 /* AddFolderSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300D82CEFF706993F6CBEB0A /* AddFolderSheet.swift */; };
 		56C5FE3EE040F3EAD4032931 /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1AB78AE0534EC06E4713CD7 /* SessionRowView.swift */; };
+		7750157BEC6A759039F97F75 /* GitServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010F0753E62A8926C3BF7684 /* GitServiceTests.swift */; };
 		82A519ED2A0BA14D452ADB2C /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A359FEF4518BB59EC90571 /* SidebarView.swift */; };
 		8C39C42416FC31909B2AA2E9 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 40CBB2BAAF748DC456A23B59 /* SwiftTerm */; };
 		92EBEAB457B058CA7932EB55 /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831FEA1AE11DC8DE585D2893 /* ShellEnvironment.swift */; };
@@ -28,7 +32,18 @@
 		EBF6D973ECBDFCD7D1FCDAB8 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED8E6D2ACB804C922173C87 /* AppState.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		2DB38F7DCBEDB13ADA2AEE2E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 841406C9A801A3533A9DB1AC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AE2D8D6559A3B08D6AE067;
+			remoteInfo = MuxManager;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		010F0753E62A8926C3BF7684 /* GitServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitServiceTests.swift; sourceTree = "<group>"; };
 		13E708320A01E0B8E836ED55 /* TerminalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSession.swift; sourceTree = "<group>"; };
 		151B220D0E2D63D5F998DE3C /* TerminalNSViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalNSViewWrapper.swift; sourceTree = "<group>"; };
 		2F540A6D86497A744216B560 /* MuxManager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuxManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -45,9 +60,13 @@
 		84854E969FECAA404F47876C /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		8F118FC7C821C00FEA57FA25 /* FolderSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSectionView.swift; sourceTree = "<group>"; };
 		91594191D55FB123C24F552A /* MuxManagerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuxManagerApp.swift; sourceTree = "<group>"; };
+		9ED82C16782098DA34C35092 /* MuxManagerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MuxManagerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1533AE0B275BE5F439160A8 /* GitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitService.swift; sourceTree = "<group>"; };
 		A1AB78AE0534EC06E4713CD7 /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
 		B74CD03723E2271497569AE5 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		D7A4C4600FFA4E527B486932 /* TerminalSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionTests.swift; sourceTree = "<group>"; };
+		E31AE9AE944B25346DBB47E6 /* PersistenceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceServiceTests.swift; sourceTree = "<group>"; };
+		F88FC43A9B65E095063C4625 /* ManagedFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolderTests.swift; sourceTree = "<group>"; };
 		F9E7BBD5E6F4D044C3734F8C /* BranchPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchPickerSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -75,6 +94,7 @@
 			isa = PBXGroup;
 			children = (
 				40FBE3D258C610333483A240 /* MuxManager */,
+				AFCB5A040B8AADA016D3C151 /* MuxManagerTests */,
 				CA1F974657D5038B764508FA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -148,6 +168,17 @@
 			path = Sheets;
 			sourceTree = "<group>";
 		};
+		AFCB5A040B8AADA016D3C151 /* MuxManagerTests */ = {
+			isa = PBXGroup;
+			children = (
+				010F0753E62A8926C3BF7684 /* GitServiceTests.swift */,
+				F88FC43A9B65E095063C4625 /* ManagedFolderTests.swift */,
+				E31AE9AE944B25346DBB47E6 /* PersistenceServiceTests.swift */,
+				D7A4C4600FFA4E527B486932 /* TerminalSessionTests.swift */,
+			);
+			path = MuxManagerTests;
+			sourceTree = "<group>";
+		};
 		B67F870B9A22EB8386281DD0 /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -173,6 +204,7 @@
 			isa = PBXGroup;
 			children = (
 				2F540A6D86497A744216B560 /* MuxManager.app */,
+				9ED82C16782098DA34C35092 /* MuxManagerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -180,6 +212,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		1479FADE93F8C233E2A243BA /* MuxManagerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8EA37DAD4C4E83F9CAE3B61B /* Build configuration list for PBXNativeTarget "MuxManagerTests" */;
+			buildPhases = (
+				6184F1854B725673BEA01C7F /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B59CE6EEB466DBCCDA3B6B18 /* PBXTargetDependency */,
+			);
+			name = MuxManagerTests;
+			packageProductDependencies = (
+			);
+			productName = MuxManagerTests;
+			productReference = 9ED82C16782098DA34C35092 /* MuxManagerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		D2AE2D8D6559A3B08D6AE067 /* MuxManager */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = BD765211139A14C0B169CEB0 /* Build configuration list for PBXNativeTarget "MuxManager" */;
@@ -228,11 +278,23 @@
 			projectRoot = "";
 			targets = (
 				D2AE2D8D6559A3B08D6AE067 /* MuxManager */,
+				1479FADE93F8C233E2A243BA /* MuxManagerTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		6184F1854B725673BEA01C7F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7750157BEC6A759039F97F75 /* GitServiceTests.swift in Sources */,
+				004C93602FE4EA7CEB3B4D3B /* ManagedFolderTests.swift in Sources */,
+				552091E3A27F946302DE1568 /* PersistenceServiceTests.swift in Sources */,
+				1031E8AC9CEB5BFC12CADC8E /* TerminalSessionTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		63EF4861BF5D842BAF5C25D3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -260,6 +322,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		B59CE6EEB466DBCCDA3B6B18 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D2AE2D8D6559A3B08D6AE067 /* MuxManager */;
+			targetProxy = 2DB38F7DCBEDB13ADA2AEE2E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		0204D1000910F7CEDC92A57D /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -282,6 +352,26 @@
 				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
+		};
+		02D8C4069334CF90698B250A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.muxmanager.tests;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MuxManager.app/Contents/MacOS/MuxManager";
+			};
+			name = Release;
 		};
 		43141E80C70E783711B027B9 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -368,6 +458,26 @@
 			};
 			name = Debug;
 		};
+		73BA1211C696102470316DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.muxmanager.tests;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MuxManager.app/Contents/MacOS/MuxManager";
+			};
+			name = Debug;
+		};
 		935F79495D262998E3F042D6 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -432,6 +542,15 @@
 			buildConfigurations = (
 				6135014EB7B2673A2CBC364E /* Debug */,
 				935F79495D262998E3F042D6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8EA37DAD4C4E83F9CAE3B61B /* Build configuration list for PBXNativeTarget "MuxManagerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				73BA1211C696102470316DB9 /* Debug */,
+				02D8C4069334CF90698B250A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
