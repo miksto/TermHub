@@ -30,3 +30,17 @@ targets:
         SWIFT_STRICT_CONCURRENCY: complete
     dependencies:
       - package: SwiftTerm
+  MuxManagerTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - MuxManagerTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.muxmanager.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+    dependencies:
+      - target: MuxManager
