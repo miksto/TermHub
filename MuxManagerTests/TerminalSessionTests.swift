@@ -17,31 +17,34 @@ struct TerminalSessionTests {
         #expect(session.tmuxSessionName == "mux-my-repo-\(shortID)")
     }
 
-    @Test("worktree tmuxSessionName includes sanitized branch and UUID suffix")
+    @Test("worktree tmuxSessionName uses folder name, not worktree path")
     func worktreeTmuxName() {
         let id = UUID()
         let session = TerminalSession(
             id: id,
             folderID: UUID(),
             title: "feature branch",
-            workingDirectory: "/Users/dev/my-repo",
+            workingDirectory: "/Users/dev/my-repo-feature-login",
             worktreePath: "/Users/dev/my-repo-feature-login",
-            branchName: "feature/login"
+            branchName: "feature/login",
+            folderName: "my-repo"
         )
         let shortID = String(id.uuidString.prefix(4)).lowercased()
+        // Should be mux-my-repo-feature-login, NOT mux-my-repo-feature-login-feature-login
         #expect(session.tmuxSessionName == "mux-my-repo-feature-login-\(shortID)")
     }
 
-    @Test("worktree tmuxSessionName with nested slashes")
+    @Test("worktree tmuxSessionName with nested slashes uses folder name")
     func worktreeNestedSlashes() {
         let id = UUID()
         let session = TerminalSession(
             id: id,
             folderID: UUID(),
             title: "nested branch",
-            workingDirectory: "/Users/dev/project",
+            workingDirectory: "/Users/dev/project-fix-ui-button",
             worktreePath: "/Users/dev/project-fix-ui-button",
-            branchName: "fix/ui/button"
+            branchName: "fix/ui/button",
+            folderName: "project"
         )
         let shortID = String(id.uuidString.prefix(4)).lowercased()
         #expect(session.tmuxSessionName == "mux-project-fix-ui-button-\(shortID)")
@@ -64,14 +67,14 @@ struct TerminalSessionTests {
         let shortID = String(id.uuidString.prefix(4)).lowercased()
 
         let plain = TerminalSession.generateTmuxSessionName(
-            workingDirectory: "/Users/dev/app",
+            folderName: "app",
             branchName: nil,
             id: id
         )
         #expect(plain == "mux-app-\(shortID)")
 
         let worktree = TerminalSession.generateTmuxSessionName(
-            workingDirectory: "/Users/dev/app",
+            folderName: "app",
             branchName: "release/v2.0",
             id: id
         )
@@ -123,7 +126,7 @@ struct TerminalSessionTests {
         let shortID = String(id.uuidString.prefix(4)).lowercased()
         // Empty string branch is non-nil, so it goes through the branch path
         let name = TerminalSession.generateTmuxSessionName(
-            workingDirectory: "/Users/dev/app",
+            folderName: "app",
             branchName: "",
             id: id
         )
@@ -135,7 +138,7 @@ struct TerminalSessionTests {
         let id = UUID()
         let shortID = String(id.uuidString.prefix(4)).lowercased()
         let name = TerminalSession.generateTmuxSessionName(
-            workingDirectory: "/Users/dev/repo",
+            folderName: "repo",
             branchName: "feat/JIRA-123/add-login",
             id: id
         )
@@ -147,7 +150,7 @@ struct TerminalSessionTests {
         let id = UUID()
         let shortID = String(id.uuidString.prefix(4)).lowercased()
         let name = TerminalSession.generateTmuxSessionName(
-            workingDirectory: "/Users/dev/My Project",
+            folderName: "My Project",
             branchName: nil,
             id: id
         )
@@ -159,7 +162,7 @@ struct TerminalSessionTests {
         let id = UUID()
         let shortID = String(id.uuidString.prefix(4)).lowercased()
         let name = TerminalSession.generateTmuxSessionName(
-            workingDirectory: "repo",
+            folderName: "repo",
             branchName: nil,
             id: id
         )

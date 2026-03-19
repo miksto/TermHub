@@ -16,7 +16,8 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         workingDirectory: String,
         worktreePath: String? = nil,
         branchName: String? = nil,
-        tmuxSessionName: String? = nil
+        tmuxSessionName: String? = nil,
+        folderName: String? = nil
     ) {
         self.id = id
         self.folderID = folderID
@@ -25,7 +26,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         self.worktreePath = worktreePath
         self.branchName = branchName
         self.tmuxSessionName = tmuxSessionName ?? Self.generateTmuxSessionName(
-            workingDirectory: workingDirectory,
+            folderName: folderName ?? (workingDirectory as NSString).lastPathComponent,
             branchName: branchName,
             id: id
         )
@@ -34,8 +35,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
     /// Generates a tmux session name following the convention:
     /// - Plain shell: `mux-<foldername>-<uuid4>` (first 4 chars of UUID for uniqueness)
     /// - Worktree: `mux-<foldername>-<branch>-<uuid4>` with slashes replaced by dashes
-    static func generateTmuxSessionName(workingDirectory: String, branchName: String?, id: UUID = UUID()) -> String {
-        let folderName = (workingDirectory as NSString).lastPathComponent
+    static func generateTmuxSessionName(folderName: String, branchName: String?, id: UUID = UUID()) -> String {
         let shortID = String(id.uuidString.prefix(4)).lowercased()
         if let branch = branchName {
             let sanitizedBranch = branch.replacingOccurrences(of: "/", with: "-")

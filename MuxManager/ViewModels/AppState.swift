@@ -90,12 +90,14 @@ final class AppState {
         worktreePath: String? = nil,
         branchName: String? = nil
     ) {
+        let folderName = folders.first(where: { $0.id == folderID })?.name
         let session = TerminalSession(
             folderID: folderID,
             title: title,
             workingDirectory: cwd,
             worktreePath: worktreePath,
-            branchName: branchName
+            branchName: branchName,
+            folderName: folderName
         )
 
         // Create the tmux session immediately so the terminal is ready
