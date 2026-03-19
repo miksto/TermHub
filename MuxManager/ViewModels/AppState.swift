@@ -8,12 +8,15 @@ final class AppState {
     var sessions: [TerminalSession] = []
     var selectedSessionID: UUID?
     var tmuxAvailable: Bool = false
+    var pendingWorktreeFolder: ManagedFolder?
+    var pendingNewBranchFolder: ManagedFolder?
 
     let terminalManager = TerminalSessionManager()
 
     init() {
         tmuxAvailable = TmuxService.isAvailable()
         loadState()
+        restoreTmuxSessions()
     }
 
     var selectedSession: TerminalSession? {
@@ -61,15 +64,22 @@ final class AppState {
         title: String,
         cwd: String,
         worktreePath: String? = nil,
-        branchName: String? = nil
+        branchName: String? = nil,
+        tmuxSessionName: String? = nil
     ) {
         let session = TerminalSession(
             folderID: folderID,
             title: title,
             workingDirectory: cwd,
             worktreePath: worktreePath,
-            branchName: branchName
+            branchName: branchName,
+            tmuxSessionName: tmuxSessionName
         )
+
+        // Create the tmux session immediately so the terminal is ready
+        if tmuxAvailable, !TmuxService.sessionExists(name: session.tmuxSessionName) {
+            try? TmuxService.createSession(name: session.tmuxSessionName, cwd: cwd)
+        }
         sessions.append(session)
 
         if let folderIndex = folders.firstIndex(where: { $0.id == folderID }) {
@@ -93,6 +103,17 @@ final class AppState {
         }
 
         if save { saveState() }
+    }
+
+    /// Re-create tmux sessions that were killed externally while the app was not running.
+    private func restoreTmuxSessions() {
+        guard tmuxAvailable else { return }
+        for session in sessions {
+            let cwd = session.worktreePath ?? session.workingDirectory
+            if !TmuxService.sessionExists(name: session.tmuxSessionName) {
+                try? TmuxService.createSession(name: session.tmuxSessionName, cwd: cwd)
+            }
+        }
     }
 
     private func loadState() {

@@ -17,13 +17,13 @@ enum PersistenceError: Error, LocalizedError {
     }
 }
 
-private struct PersistedState: Codable {
+struct PersistedState: Codable {
     var folders: [ManagedFolder]
     var sessions: [TerminalSession]
 }
 
 enum PersistenceService {
-    private static var stateFileURL: URL {
+    static var defaultStateFileURL: URL {
         let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
@@ -32,8 +32,13 @@ enum PersistenceService {
         return appDir.appendingPathComponent("state.json")
     }
 
-    static func save(folders: [ManagedFolder], sessions: [TerminalSession]) throws {
-        let dir = stateFileURL.deletingLastPathComponent()
+    static func save(
+        folders: [ManagedFolder],
+        sessions: [TerminalSession],
+        to url: URL? = nil
+    ) throws {
+        let fileURL = url ?? defaultStateFileURL
+        let dir = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
         let state = PersistedState(folders: folders, sessions: sessions)
@@ -44,19 +49,21 @@ enum PersistenceService {
             throw PersistenceError.encodingFailed
         }
         do {
-            try data.write(to: stateFileURL, options: .atomic)
+            try data.write(to: fileURL, options: .atomic)
         } catch {
             throw PersistenceError.fileSystemError(error)
         }
     }
 
-    static func load() throws -> (folders: [ManagedFolder], sessions: [TerminalSession]) {
-        let url = stateFileURL
-        guard FileManager.default.fileExists(atPath: url.path) else {
+    static func load(
+        from url: URL? = nil
+    ) throws -> (folders: [ManagedFolder], sessions: [TerminalSession]) {
+        let fileURL = url ?? defaultStateFileURL
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
             return (folders: [], sessions: [])
         }
         do {
-            let data = try Data(contentsOf: url)
+            let data = try Data(contentsOf: fileURL)
             let state = try JSONDecoder().decode(PersistedState.self, from: data)
             return (folders: state.folders, sessions: state.sessions)
         } catch {

@@ -24,6 +24,21 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         self.workingDirectory = workingDirectory
         self.worktreePath = worktreePath
         self.branchName = branchName
-        self.tmuxSessionName = tmuxSessionName ?? "mux-\(id.uuidString.prefix(8).lowercased())"
+        self.tmuxSessionName = tmuxSessionName ?? Self.generateTmuxSessionName(
+            workingDirectory: workingDirectory,
+            branchName: branchName
+        )
+    }
+
+    /// Generates a tmux session name following the convention:
+    /// - Plain shell: `mux-<foldername>`
+    /// - Worktree: `mux-<foldername>-<branch>` with slashes replaced by dashes
+    static func generateTmuxSessionName(workingDirectory: String, branchName: String?) -> String {
+        let folderName = (workingDirectory as NSString).lastPathComponent
+        if let branch = branchName {
+            let sanitizedBranch = branch.replacingOccurrences(of: "/", with: "-")
+            return "mux-\(folderName)-\(sanitizedBranch)"
+        }
+        return "mux-\(folderName)"
     }
 }

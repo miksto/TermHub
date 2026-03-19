@@ -60,27 +60,32 @@ enum GitService {
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }
     }
 
-    static func addWorktree(repoPath: String, branch: String) throws -> String {
-        let sanitized = branch.replacingOccurrences(of: "/", with: "-")
+    /// Sanitizes a branch name by replacing slashes with dashes for use in file paths.
+    static func sanitizeBranchName(_ branch: String) -> String {
+        branch.replacingOccurrences(of: "/", with: "-")
+    }
+
+    /// Computes the worktree path for a given repo path and branch name.
+    static func worktreePath(repoPath: String, branch: String) -> String {
+        let sanitized = sanitizeBranchName(branch)
         let repoName = (repoPath as NSString).lastPathComponent
         let parentDir = (repoPath as NSString).deletingLastPathComponent
-        let worktreePath = (parentDir as NSString).appendingPathComponent("\(repoName)-\(sanitized)")
+        return (parentDir as NSString).appendingPathComponent("\(repoName)-\(sanitized)")
+    }
 
-        try run(["-C", repoPath, "worktree", "add", worktreePath, branch])
-        return worktreePath
+    static func addWorktree(repoPath: String, branch: String) throws -> String {
+        let path = worktreePath(repoPath: repoPath, branch: branch)
+        try run(["-C", repoPath, "worktree", "add", path, branch])
+        return path
     }
 
     static func addWorktreeNewBranch(repoPath: String, newBranch: String) throws -> String {
-        let sanitized = newBranch.replacingOccurrences(of: "/", with: "-")
-        let repoName = (repoPath as NSString).lastPathComponent
-        let parentDir = (repoPath as NSString).deletingLastPathComponent
-        let worktreePath = (parentDir as NSString).appendingPathComponent("\(repoName)-\(sanitized)")
-
-        try run(["-C", repoPath, "worktree", "add", "-b", newBranch, worktreePath])
-        return worktreePath
+        let path = worktreePath(repoPath: repoPath, branch: newBranch)
+        try run(["-C", repoPath, "worktree", "add", "-b", newBranch, path])
+        return path
     }
 
     static func removeWorktree(repoPath: String, worktreePath: String) throws {
-        try run(["-C", repoPath, "worktree", "remove", worktreePath])
+        try run(["-C", repoPath, "worktree", "remove", "--force", worktreePath])
     }
 }

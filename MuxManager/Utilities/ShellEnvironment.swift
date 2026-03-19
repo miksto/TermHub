@@ -50,6 +50,7 @@ enum ShellEnvironment {
     static var shellEnvironment: [String: String] {
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = userPath
+        env["TERM"] = "xterm-256color"
         return env
     }
 }

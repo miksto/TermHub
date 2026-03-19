@@ -35,7 +35,8 @@ final class TerminalSessionManager {
                 executable: shell,
                 args: [],
                 environment: ShellEnvironment.shellEnvironment.map { "\($0.key)=\($0.value)" },
-                execName: (shell as NSString).lastPathComponent
+                execName: (shell as NSString).lastPathComponent,
+                currentDirectory: cwd
             )
         }
 
