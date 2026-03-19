@@ -1,0 +1,470 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		02C289D1B7C9215F6436ACB8 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84854E969FECAA404F47876C /* PersistenceService.swift */; };
+		0B3844D1F0FAF661C352621F /* TerminalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD540C5E9EDBA18484DCD96 /* TerminalDetailView.swift */; };
+		11975D6BE18BD572697BF0F6 /* TerminalNSViewWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 151B220D0E2D63D5F998DE3C /* TerminalNSViewWrapper.swift */; };
+		134CAC4E628F14597D413899 /* FolderSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F118FC7C821C00FEA57FA25 /* FolderSectionView.swift */; };
+		14DC1383D13DA06DBC0A4FC6 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1533AE0B275BE5F439160A8 /* GitService.swift */; };
+		31DCE1ED1E746870AC8FFA93 /* BranchPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9E7BBD5E6F4D044C3734F8C /* BranchPickerSheet.swift */; };
+		46149E3BA1A06B10E745A3FC /* ManagedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0C72223B0031BBD8F5599A /* ManagedFolder.swift */; };
+		53D5A83A415D534E81EB6E1A /* NewBranchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79CA862DA01D85599085349D /* NewBranchSheet.swift */; };
+		552DBC44FA2880DDDE19D243 /* AddFolderSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300D82CEFF706993F6CBEB0A /* AddFolderSheet.swift */; };
+		56C5FE3EE040F3EAD4032931 /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1AB78AE0534EC06E4713CD7 /* SessionRowView.swift */; };
+		82A519ED2A0BA14D452ADB2C /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61A359FEF4518BB59EC90571 /* SidebarView.swift */; };
+		8C39C42416FC31909B2AA2E9 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 40CBB2BAAF748DC456A23B59 /* SwiftTerm */; };
+		92EBEAB457B058CA7932EB55 /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831FEA1AE11DC8DE585D2893 /* ShellEnvironment.swift */; };
+		A93D3F607F9C45E84256390B /* TerminalSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 434786B97347FE467BFFD625 /* TerminalSessionManager.swift */; };
+		B67858B4B846021DEB5C8B93 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74CD03723E2271497569AE5 /* ContentView.swift */; };
+		BB1CF82F59760930144DF09C /* TmuxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61AE952A4E405469B077B16D /* TmuxService.swift */; };
+		CA6C128BC69CF3FABA5DB6CE /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E708320A01E0B8E836ED55 /* TerminalSession.swift */; };
+		CCA58BF4B082C1082A954D96 /* MuxManagerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91594191D55FB123C24F552A /* MuxManagerApp.swift */; };
+		EBF6D973ECBDFCD7D1FCDAB8 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED8E6D2ACB804C922173C87 /* AppState.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		13E708320A01E0B8E836ED55 /* TerminalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSession.swift; sourceTree = "<group>"; };
+		151B220D0E2D63D5F998DE3C /* TerminalNSViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalNSViewWrapper.swift; sourceTree = "<group>"; };
+		2F540A6D86497A744216B560 /* MuxManager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuxManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		300D82CEFF706993F6CBEB0A /* AddFolderSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFolderSheet.swift; sourceTree = "<group>"; };
+		434786B97347FE467BFFD625 /* TerminalSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionManager.swift; sourceTree = "<group>"; };
+		45593721E89EB0DBE71C204B /* MuxManager.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MuxManager.entitlements; sourceTree = "<group>"; };
+		61A359FEF4518BB59EC90571 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		61AE952A4E405469B077B16D /* TmuxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxService.swift; sourceTree = "<group>"; };
+		6C0C72223B0031BBD8F5599A /* ManagedFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolder.swift; sourceTree = "<group>"; };
+		6FD540C5E9EDBA18484DCD96 /* TerminalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalDetailView.swift; sourceTree = "<group>"; };
+		79CA862DA01D85599085349D /* NewBranchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewBranchSheet.swift; sourceTree = "<group>"; };
+		7ED8E6D2ACB804C922173C87 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		831FEA1AE11DC8DE585D2893 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
+		84854E969FECAA404F47876C /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
+		8F118FC7C821C00FEA57FA25 /* FolderSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSectionView.swift; sourceTree = "<group>"; };
+		91594191D55FB123C24F552A /* MuxManagerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuxManagerApp.swift; sourceTree = "<group>"; };
+		A1533AE0B275BE5F439160A8 /* GitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitService.swift; sourceTree = "<group>"; };
+		A1AB78AE0534EC06E4713CD7 /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
+		B74CD03723E2271497569AE5 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		F9E7BBD5E6F4D044C3734F8C /* BranchPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchPickerSheet.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F5A798A82C481C63A2BBA234 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8C39C42416FC31909B2AA2E9 /* SwiftTerm in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		001CA112F4417EEFD155A5BC /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				831FEA1AE11DC8DE585D2893 /* ShellEnvironment.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		14D6A2E654813B44919175C8 = {
+			isa = PBXGroup;
+			children = (
+				40FBE3D258C610333483A240 /* MuxManager */,
+				CA1F974657D5038B764508FA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3B74A408CFF8B694AACAC43D /* App */ = {
+			isa = PBXGroup;
+			children = (
+				45593721E89EB0DBE71C204B /* MuxManager.entitlements */,
+				91594191D55FB123C24F552A /* MuxManagerApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		40FBE3D258C610333483A240 /* MuxManager */ = {
+			isa = PBXGroup;
+			children = (
+				3B74A408CFF8B694AACAC43D /* App */,
+				8E3FA02EEF6E4EC80F45C77B /* Models */,
+				B67F870B9A22EB8386281DD0 /* Services */,
+				001CA112F4417EEFD155A5BC /* Utilities */,
+				45703784C1BFE5675FCF8845 /* ViewModels */,
+				B9E8D25715DD5E2C0458E947 /* Views */,
+			);
+			path = MuxManager;
+			sourceTree = "<group>";
+		};
+		4413457014C0CDB027239666 /* Detail */ = {
+			isa = PBXGroup;
+			children = (
+				6FD540C5E9EDBA18484DCD96 /* TerminalDetailView.swift */,
+				151B220D0E2D63D5F998DE3C /* TerminalNSViewWrapper.swift */,
+			);
+			path = Detail;
+			sourceTree = "<group>";
+		};
+		45703784C1BFE5675FCF8845 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				7ED8E6D2ACB804C922173C87 /* AppState.swift */,
+				434786B97347FE467BFFD625 /* TerminalSessionManager.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		776E808868966074C55E48E0 /* Sidebar */ = {
+			isa = PBXGroup;
+			children = (
+				8F118FC7C821C00FEA57FA25 /* FolderSectionView.swift */,
+				A1AB78AE0534EC06E4713CD7 /* SessionRowView.swift */,
+				61A359FEF4518BB59EC90571 /* SidebarView.swift */,
+			);
+			path = Sidebar;
+			sourceTree = "<group>";
+		};
+		8E3FA02EEF6E4EC80F45C77B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				6C0C72223B0031BBD8F5599A /* ManagedFolder.swift */,
+				13E708320A01E0B8E836ED55 /* TerminalSession.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		953DB99DE480D612A6E463CE /* Sheets */ = {
+			isa = PBXGroup;
+			children = (
+				300D82CEFF706993F6CBEB0A /* AddFolderSheet.swift */,
+				F9E7BBD5E6F4D044C3734F8C /* BranchPickerSheet.swift */,
+				79CA862DA01D85599085349D /* NewBranchSheet.swift */,
+			);
+			path = Sheets;
+			sourceTree = "<group>";
+		};
+		B67F870B9A22EB8386281DD0 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A1533AE0B275BE5F439160A8 /* GitService.swift */,
+				84854E969FECAA404F47876C /* PersistenceService.swift */,
+				61AE952A4E405469B077B16D /* TmuxService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		B9E8D25715DD5E2C0458E947 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B74CD03723E2271497569AE5 /* ContentView.swift */,
+				4413457014C0CDB027239666 /* Detail */,
+				953DB99DE480D612A6E463CE /* Sheets */,
+				776E808868966074C55E48E0 /* Sidebar */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		CA1F974657D5038B764508FA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2F540A6D86497A744216B560 /* MuxManager.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D2AE2D8D6559A3B08D6AE067 /* MuxManager */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BD765211139A14C0B169CEB0 /* Build configuration list for PBXNativeTarget "MuxManager" */;
+			buildPhases = (
+				63EF4861BF5D842BAF5C25D3 /* Sources */,
+				F5A798A82C481C63A2BBA234 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MuxManager;
+			packageProductDependencies = (
+				40CBB2BAAF748DC456A23B59 /* SwiftTerm */,
+			);
+			productName = MuxManager;
+			productReference = 2F540A6D86497A744216B560 /* MuxManager.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		841406C9A801A3533A9DB1AC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 0CFC7BE3B23DD820E3A3016F /* Build configuration list for PBXProject "MuxManager" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 14D6A2E654813B44919175C8;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5545A9F67EDC822950194F70 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CA1F974657D5038B764508FA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D2AE2D8D6559A3B08D6AE067 /* MuxManager */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		63EF4861BF5D842BAF5C25D3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				552DBC44FA2880DDDE19D243 /* AddFolderSheet.swift in Sources */,
+				EBF6D973ECBDFCD7D1FCDAB8 /* AppState.swift in Sources */,
+				31DCE1ED1E746870AC8FFA93 /* BranchPickerSheet.swift in Sources */,
+				B67858B4B846021DEB5C8B93 /* ContentView.swift in Sources */,
+				134CAC4E628F14597D413899 /* FolderSectionView.swift in Sources */,
+				14DC1383D13DA06DBC0A4FC6 /* GitService.swift in Sources */,
+				46149E3BA1A06B10E745A3FC /* ManagedFolder.swift in Sources */,
+				CCA58BF4B082C1082A954D96 /* MuxManagerApp.swift in Sources */,
+				53D5A83A415D534E81EB6E1A /* NewBranchSheet.swift in Sources */,
+				02C289D1B7C9215F6436ACB8 /* PersistenceService.swift in Sources */,
+				56C5FE3EE040F3EAD4032931 /* SessionRowView.swift in Sources */,
+				92EBEAB457B058CA7932EB55 /* ShellEnvironment.swift in Sources */,
+				82A519ED2A0BA14D452ADB2C /* SidebarView.swift in Sources */,
+				0B3844D1F0FAF661C352621F /* TerminalDetailView.swift in Sources */,
+				11975D6BE18BD572697BF0F6 /* TerminalNSViewWrapper.swift in Sources */,
+				CA6C128BC69CF3FABA5DB6CE /* TerminalSession.swift in Sources */,
+				A93D3F607F9C45E84256390B /* TerminalSessionManager.swift in Sources */,
+				BB1CF82F59760930144DF09C /* TmuxService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0204D1000910F7CEDC92A57D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MuxManager/App/MuxManager.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.muxmanager.app;
+				PRODUCT_NAME = MuxManager;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		43141E80C70E783711B027B9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MuxManager/App/MuxManager.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.muxmanager.app;
+				PRODUCT_NAME = MuxManager;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		6135014EB7B2673A2CBC364E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		935F79495D262998E3F042D6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0CFC7BE3B23DD820E3A3016F /* Build configuration list for PBXProject "MuxManager" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6135014EB7B2673A2CBC364E /* Debug */,
+				935F79495D262998E3F042D6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BD765211139A14C0B169CEB0 /* Build configuration list for PBXNativeTarget "MuxManager" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0204D1000910F7CEDC92A57D /* Debug */,
+				43141E80C70E783711B027B9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5545A9F67EDC822950194F70 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		40CBB2BAAF748DC456A23B59 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5545A9F67EDC822950194F70 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 841406C9A801A3533A9DB1AC /* Project object */;
+}

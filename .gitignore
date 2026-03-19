@@ -1,0 +1,21 @@
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+build/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Xcode project internal files (keep project.pbxproj, ignore user data)
+MuxManager.xcodeproj/xcuserdata/
+MuxManager.xcodeproj/project.xcworkspace/xcuserdata/
