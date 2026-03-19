@@ -8,6 +8,7 @@ struct SessionRowView: View {
     @State private var isHovering = false
     @State private var isRenaming = false
     @State private var editedTitle = ""
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         HStack {
@@ -19,6 +20,7 @@ struct SessionRowView: View {
                         commitRename()
                     })
                     .textFieldStyle(.plain)
+                    .focused($isTextFieldFocused)
                     .onExitCommand {
                         isRenaming = false
                     }
@@ -64,6 +66,7 @@ struct SessionRowView: View {
     private func startRenaming() {
         editedTitle = session.title
         isRenaming = true
+        isTextFieldFocused = true
     }
 
     private func commitRename() {

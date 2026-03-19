@@ -30,6 +30,7 @@
 		CA6C128BC69CF3FABA5DB6CE /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E708320A01E0B8E836ED55 /* TerminalSession.swift */; };
 		CCA58BF4B082C1082A954D96 /* MuxManagerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91594191D55FB123C24F552A /* MuxManagerApp.swift */; };
 		EBF6D973ECBDFCD7D1FCDAB8 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED8E6D2ACB804C922173C87 /* AppState.swift */; };
+		FD08881D80800B11DE66D445 /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20C9F9C0177E26C56DB42D9A /* AppStateTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,6 +47,7 @@
 		010F0753E62A8926C3BF7684 /* GitServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitServiceTests.swift; sourceTree = "<group>"; };
 		13E708320A01E0B8E836ED55 /* TerminalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSession.swift; sourceTree = "<group>"; };
 		151B220D0E2D63D5F998DE3C /* TerminalNSViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalNSViewWrapper.swift; sourceTree = "<group>"; };
+		20C9F9C0177E26C56DB42D9A /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
 		2F540A6D86497A744216B560 /* MuxManager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuxManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		300D82CEFF706993F6CBEB0A /* AddFolderSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFolderSheet.swift; sourceTree = "<group>"; };
 		434786B97347FE467BFFD625 /* TerminalSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionManager.swift; sourceTree = "<group>"; };
@@ -171,6 +173,7 @@
 		AFCB5A040B8AADA016D3C151 /* MuxManagerTests */ = {
 			isa = PBXGroup;
 			children = (
+				20C9F9C0177E26C56DB42D9A /* AppStateTests.swift */,
 				010F0753E62A8926C3BF7684 /* GitServiceTests.swift */,
 				F88FC43A9B65E095063C4625 /* ManagedFolderTests.swift */,
 				E31AE9AE944B25346DBB47E6 /* PersistenceServiceTests.swift */,
@@ -288,6 +291,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FD08881D80800B11DE66D445 /* AppStateTests.swift in Sources */,
 				7750157BEC6A759039F97F75 /* GitServiceTests.swift in Sources */,
 				004C93602FE4EA7CEB3B4D3B /* ManagedFolderTests.swift in Sources */,
 				552091E3A27F946302DE1568 /* PersistenceServiceTests.swift in Sources */,

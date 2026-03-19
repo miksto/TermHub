@@ -102,5 +102,19 @@ struct ContentView: View {
         }
         .keyboardShortcut("n", modifiers: .command)
         .hidden()
+
+        // Cmd+Option+Up: Previous session
+        Button("") {
+            appState.selectPreviousSession()
+        }
+        .keyboardShortcut(.upArrow, modifiers: [.command, .option])
+        .hidden()
+
+        // Cmd+Option+Down: Next session
+        Button("") {
+            appState.selectNextSession()
+        }
+        .keyboardShortcut(.downArrow, modifiers: [.command, .option])
+        .hidden()
     }
 }
