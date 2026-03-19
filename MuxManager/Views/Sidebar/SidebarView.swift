@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SidebarView: View {
     @Environment(AppState.self) private var appState
-    @State private var showingAddFolder = false
     @State private var folderToRemove: ManagedFolder?
 
     var body: some View {
@@ -22,13 +21,13 @@ struct SidebarView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    showingAddFolder = true
+                    appState.showingAddFolder = true
                 } label: {
                     Label("Add Folder", systemImage: "folder.badge.plus")
                 }
             }
         }
-        .sheet(isPresented: $showingAddFolder) {
+        .sheet(isPresented: $state.showingAddFolder) {
             AddFolderSheet()
         }
         .sheet(
@@ -63,28 +62,17 @@ struct SidebarView: View {
                 folderToRemove = nil
             }
             Button("Remove", role: .destructive) {
-                removeFolderWithCleanup(folder)
+                appState.removeFolder(id: folder.id)
                 folderToRemove = nil
             }
         } message: { folder in
             let sessionCount = appState.sessions.filter { $0.folderID == folder.id }.count
             let worktreeCount = appState.sessions.filter { $0.folderID == folder.id && $0.worktreePath != nil }.count
             if worktreeCount > 0 {
-                Text("This will kill \(sessionCount) tmux session(s) and remove \(worktreeCount) worktree(s) for \"\(folder.name)\".")
+                Text("This will close \(sessionCount) tmux session(s) and remove \(worktreeCount) worktree(s) for \"\(folder.name)\".")
             } else {
-                Text("This will kill \(sessionCount) tmux session(s) for \"\(folder.name)\".")
+                Text("This will close \(sessionCount) tmux session(s) for \"\(folder.name)\".")
             }
         }
-    }
-
-    private func removeFolderWithCleanup(_ folder: ManagedFolder) {
-        let folderSessions = appState.sessions.filter { $0.folderID == folder.id }
-        for session in folderSessions {
-            try? TmuxService.killSession(name: session.tmuxSessionName)
-            if let worktreePath = session.worktreePath {
-                try? GitService.removeWorktree(repoPath: folder.path, worktreePath: worktreePath)
-            }
-        }
-        appState.removeFolder(id: folder.id)
     }
 }

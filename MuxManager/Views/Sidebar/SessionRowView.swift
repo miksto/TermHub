@@ -1,18 +1,34 @@
 import SwiftUI
 
 struct SessionRowView: View {
+    @Environment(AppState.self) private var appState
     let session: TerminalSession
     var onRemove: () -> Void
 
     @State private var isHovering = false
+    @State private var isRenaming = false
+    @State private var editedTitle = ""
 
     var body: some View {
         HStack {
             Image(systemName: "terminal")
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading) {
-                Text(session.title)
-                    .lineLimit(1)
+                if isRenaming {
+                    TextField("Session name", text: $editedTitle, onCommit: {
+                        commitRename()
+                    })
+                    .textFieldStyle(.plain)
+                    .onExitCommand {
+                        isRenaming = false
+                    }
+                } else {
+                    Text(session.title)
+                        .lineLimit(1)
+                        .onTapGesture(count: 2) {
+                            startRenaming()
+                        }
+                }
                 if let branch = session.branchName {
                     Text(branch)
                         .font(.caption)
@@ -20,7 +36,7 @@ struct SessionRowView: View {
                 }
             }
             Spacer()
-            if isHovering {
+            if isHovering && !isRenaming {
                 Button {
                     onRemove()
                 } label: {
@@ -34,5 +50,27 @@ struct SessionRowView: View {
         .onHover { hovering in
             isHovering = hovering
         }
+        .contextMenu {
+            Button("Rename...") {
+                startRenaming()
+            }
+            Divider()
+            Button("Close Session", role: .destructive) {
+                onRemove()
+            }
+        }
+    }
+
+    private func startRenaming() {
+        editedTitle = session.title
+        isRenaming = true
+    }
+
+    private func commitRename() {
+        let trimmed = editedTitle.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty && trimmed != session.title {
+            appState.renameSession(id: session.id, newTitle: trimmed)
+        }
+        isRenaming = false
     }
 }

@@ -11,6 +11,16 @@ packages:
     url: https://github.com/migueldeicaza/SwiftTerm.git
     from: "1.2.0"
 
+schemes:
+  MuxManager:
+    build:
+      targets:
+        MuxManager: all
+        MuxManagerTests: [test]
+    test:
+      targets:
+        - MuxManagerTests
+
 targets:
   MuxManager:
     type: application

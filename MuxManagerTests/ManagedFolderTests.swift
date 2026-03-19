@@ -28,13 +28,35 @@ struct ManagedFolderTests {
         #expect(folder.sessionIDs.isEmpty)
     }
 
+    @Test("isGitRepo can be set explicitly")
+    func explicitIsGitRepo() {
+        let folder = ManagedFolder(path: "/tmp/test", isGitRepo: true)
+        #expect(folder.isGitRepo == true)
+
+        let folder2 = ManagedFolder(path: "/tmp/test2", isGitRepo: false)
+        #expect(folder2.isGitRepo == false)
+    }
+
+    @Test("pathExists returns false for non-existent path")
+    func pathExistsNonExistent() {
+        let folder = ManagedFolder(path: "/nonexistent/path/that/does/not/exist", isGitRepo: false)
+        #expect(folder.pathExists == false)
+    }
+
+    @Test("pathExists returns true for existing path")
+    func pathExistsExistent() {
+        let folder = ManagedFolder(path: "/tmp", isGitRepo: false)
+        #expect(folder.pathExists == true)
+    }
+
     @Test("Codable round-trip preserves all fields")
     func codableRoundTrip() throws {
         let sessionID = UUID()
         let original = ManagedFolder(
             name: "Test Folder",
             path: "/Users/dev/test",
-            sessionIDs: [sessionID]
+            sessionIDs: [sessionID],
+            isGitRepo: true
         )
 
         let data = try JSONEncoder().encode(original)
@@ -44,5 +66,6 @@ struct ManagedFolderTests {
         #expect(decoded.name == original.name)
         #expect(decoded.path == original.path)
         #expect(decoded.sessionIDs == original.sessionIDs)
+        #expect(decoded.isGitRepo == original.isGitRepo)
     }
 }

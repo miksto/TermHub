@@ -107,19 +107,23 @@ struct BranchPickerSheet: View {
         do {
             let worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch)
 
-            let sanitizedBranch = branch.replacingOccurrences(of: "/", with: "-")
-            let tmuxName = "mux-\(folder.name)-\(sanitizedBranch)"
-
             appState.addSession(
                 folderID: folder.id,
                 title: "\(folder.name) [\(branch)]",
                 cwd: worktreePath,
                 worktreePath: worktreePath,
-                branchName: branch,
-                tmuxSessionName: tmuxName
+                branchName: branch
             )
 
             dismiss()
+        } catch let error as GitServiceError {
+            switch error {
+            case .commandFailed(let msg) where msg.contains("already exists"):
+                createError = "A worktree for this branch already exists. Remove it first or choose a different branch."
+            default:
+                createError = error.localizedDescription
+            }
+            isCreating = false
         } catch {
             createError = error.localizedDescription
             isCreating = false

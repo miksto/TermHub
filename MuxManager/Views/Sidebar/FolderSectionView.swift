@@ -12,32 +12,37 @@ struct FolderSectionView: View {
         appState.sessions.filter { $0.folderID == folder.id }
     }
 
-    private var isGitRepo: Bool {
-        GitService.isGitRepo(path: folder.path)
-    }
-
     var body: some View {
         Section(isExpanded: $isExpanded) {
             ForEach(folderSessions) { session in
-                SessionRowView(session: session) {
+                SessionRowView(session: session, onRemove: {
                     sessionToRemove = session
-                }
+                })
                 .tag(session.id)
             }
         } header: {
             HStack {
                 Label(folder.name, systemImage: "folder")
                     .font(.headline)
+                if !folder.pathExists {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.yellow)
+                        .help("Folder path no longer exists: \(folder.path)")
+                }
                 Spacer()
                 Menu {
                     Button("New Shell") {
+                        if !folder.pathExists {
+                            appState.errorMessage = "Cannot create session: folder path no longer exists at \(folder.path)"
+                            return
+                        }
                         appState.addSession(
                             folderID: folder.id,
                             title: "\(folder.name) – Shell",
                             cwd: folder.path
                         )
                     }
-                    if isGitRepo {
+                    if folder.isGitRepo {
                         Button("Worktree from Branch") {
                             appState.pendingWorktreeFolder = folder
                         }
@@ -50,7 +55,7 @@ struct FolderSectionView: View {
                         onRequestRemoveFolder()
                     }
                 } label: {
-                    Image(systemName: "plus.circle")
+                    Image(systemName: "ellipsis.circle")
                         .foregroundStyle(.secondary)
                 }
                 .menuStyle(.borderlessButton)
@@ -70,23 +75,15 @@ struct FolderSectionView: View {
                 sessionToRemove = nil
             }
             Button("Remove", role: .destructive) {
-                removeSessionWithCleanup(session)
+                appState.removeSession(id: session.id)
                 sessionToRemove = nil
             }
         } message: { session in
             if session.worktreePath != nil {
-                Text("This will kill the tmux session \"\(session.tmuxSessionName)\" and remove its worktree.")
+                Text("This will close the tmux session \"\(session.tmuxSessionName)\" and remove its worktree.")
             } else {
-                Text("This will kill the tmux session \"\(session.tmuxSessionName)\".")
+                Text("This will close the tmux session \"\(session.tmuxSessionName)\".")
             }
         }
-    }
-
-    private func removeSessionWithCleanup(_ session: TerminalSession) {
-        try? TmuxService.killSession(name: session.tmuxSessionName)
-        if let worktreePath = session.worktreePath {
-            try? GitService.removeWorktree(repoPath: folder.path, worktreePath: worktreePath)
-        }
-        appState.removeSession(id: session.id)
     }
 }

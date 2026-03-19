@@ -20,7 +20,7 @@ struct PersistenceServiceTests {
         let url = makeTempURL()
         defer { cleanup(url) }
 
-        let folder = ManagedFolder(name: "TestRepo", path: "/tmp/test-repo")
+        let folder = ManagedFolder(name: "TestRepo", path: "/tmp/test-repo", isGitRepo: false)
         let session = TerminalSession(
             folderID: folder.id,
             title: "Main",
@@ -69,8 +69,8 @@ struct PersistenceServiceTests {
         let url = makeTempURL()
         defer { cleanup(url) }
 
-        let folder1 = ManagedFolder(path: "/tmp/repo1")
-        let folder2 = ManagedFolder(path: "/tmp/repo2")
+        let folder1 = ManagedFolder(path: "/tmp/repo1", isGitRepo: false)
+        let folder2 = ManagedFolder(path: "/tmp/repo2", isGitRepo: false)
         let session1 = TerminalSession(folderID: folder1.id, title: "S1", workingDirectory: "/tmp/repo1")
         let session2 = TerminalSession(
             folderID: folder2.id,

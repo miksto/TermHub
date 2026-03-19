@@ -67,19 +67,23 @@ struct NewBranchSheet: View {
         do {
             let worktreePath = try GitService.addWorktreeNewBranch(repoPath: folder.path, newBranch: trimmed)
 
-            let sanitizedBranch = trimmed.replacingOccurrences(of: "/", with: "-")
-            let tmuxName = "mux-\(folder.name)-\(sanitizedBranch)"
-
             appState.addSession(
                 folderID: folder.id,
                 title: "\(folder.name) [\(trimmed)]",
                 cwd: worktreePath,
                 worktreePath: worktreePath,
-                branchName: trimmed,
-                tmuxSessionName: tmuxName
+                branchName: trimmed
             )
 
             dismiss()
+        } catch let error as GitServiceError {
+            switch error {
+            case .commandFailed(let msg) where msg.contains("already exists"):
+                errorMessage = "A branch or worktree with this name already exists."
+            default:
+                errorMessage = error.localizedDescription
+            }
+            isCreating = false
         } catch {
             errorMessage = error.localizedDescription
             isCreating = false
