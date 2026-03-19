@@ -117,6 +117,55 @@ struct TerminalSessionTests {
         #expect(decoded.tmuxSessionName == original.tmuxSessionName)
     }
 
+    @Test("generateTmuxSessionName with empty string branch uses plain format")
+    func emptyBranchName() {
+        let id = UUID()
+        let shortID = String(id.uuidString.prefix(4)).lowercased()
+        // Empty string branch is non-nil, so it goes through the branch path
+        let name = TerminalSession.generateTmuxSessionName(
+            workingDirectory: "/Users/dev/app",
+            branchName: "",
+            id: id
+        )
+        #expect(name == "mux-app--\(shortID)")
+    }
+
+    @Test("generateTmuxSessionName with special characters in branch")
+    func specialCharactersBranch() {
+        let id = UUID()
+        let shortID = String(id.uuidString.prefix(4)).lowercased()
+        let name = TerminalSession.generateTmuxSessionName(
+            workingDirectory: "/Users/dev/repo",
+            branchName: "feat/JIRA-123/add-login",
+            id: id
+        )
+        #expect(name == "mux-repo-feat-JIRA-123-add-login-\(shortID)")
+    }
+
+    @Test("generateTmuxSessionName with path containing spaces")
+    func pathWithSpaces() {
+        let id = UUID()
+        let shortID = String(id.uuidString.prefix(4)).lowercased()
+        let name = TerminalSession.generateTmuxSessionName(
+            workingDirectory: "/Users/dev/My Project",
+            branchName: nil,
+            id: id
+        )
+        #expect(name == "mux-My Project-\(shortID)")
+    }
+
+    @Test("generateTmuxSessionName with single-component path")
+    func singleComponentPath() {
+        let id = UUID()
+        let shortID = String(id.uuidString.prefix(4)).lowercased()
+        let name = TerminalSession.generateTmuxSessionName(
+            workingDirectory: "repo",
+            branchName: nil,
+            id: id
+        )
+        #expect(name == "mux-repo-\(shortID)")
+    }
+
     @Test("Codable round-trip with nil optionals")
     func codableRoundTripNilOptionals() throws {
         let id = UUID()
