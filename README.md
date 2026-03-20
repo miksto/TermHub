@@ -14,24 +14,12 @@ A native macOS app for managing terminal sessions across multiple project folder
 
 ### Claude Code integration
 
-To get notified in TermHub when [Claude Code](https://claude.com/claude-code) finishes or needs input, add these hooks to `~/.claude/settings.json`:
+To get notified in TermHub when [Claude Code](https://claude.com/claude-code) finishes, add this hook to `~/.claude/settings.json`:
 
 ```json
 {
   "hooks": {
     "Stop": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "printf '\\a' > /dev/tty" }]
-      }
-    ],
-    "PermissionRequest": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "printf '\\a' > /dev/tty" }]
-      }
-    ],
-    "Notification": [
       {
         "matcher": "",
         "hooks": [{ "type": "command", "command": "printf '\\a' > /dev/tty" }]
