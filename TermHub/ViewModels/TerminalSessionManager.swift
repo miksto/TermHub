@@ -77,7 +77,10 @@ final class TerminalSessionManager {
     }
 
     func destroyTerminal(for sessionID: UUID) {
-        terminals.removeValue(forKey: sessionID)
+        if let terminal = terminals.removeValue(forKey: sessionID) {
+            (terminal as? TermHubTerminalView)?.removeEventMonitors()
+            terminal.removeFromSuperview()
+        }
         delegates.removeValue(forKey: sessionID)
         startedSessions.remove(sessionID)
     }

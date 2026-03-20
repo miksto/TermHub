@@ -74,10 +74,11 @@ class TerminalContainerViewController: NSViewController {
 
         let activeSessionIDs = Set(sessions.map(\.id))
         for subview in containerView.subviews {
-            if let terminalView = subview as? LocalProcessTerminalView,
-               let sessionID = manager.sessionID(for: terminalView),
-               !activeSessionIDs.contains(sessionID) {
-                terminalView.removeFromSuperview()
+            if let terminalView = subview as? LocalProcessTerminalView {
+                let sessionID = manager.sessionID(for: terminalView)
+                if sessionID == nil || !activeSessionIDs.contains(sessionID!) {
+                    terminalView.removeFromSuperview()
+                }
             }
         }
     }
