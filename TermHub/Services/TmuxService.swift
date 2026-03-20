@@ -52,6 +52,7 @@ enum TmuxService {
 
     static func createSession(name: String, cwd: String) throws {
         try run(["new-session", "-d", "-s", name, "-c", cwd])
+        try run(["set-option", "-g", "mouse", "on"])
     }
 
     static func attachCommand(name: String) -> [String] {
