@@ -4,6 +4,7 @@ import SwiftTerm
 @MainActor
 final class TerminalSessionManager {
     private var terminals: [UUID: LocalProcessTerminalView] = [:]
+    private var delegates: [UUID: TerminalProcessDelegate] = [:]
     private var startedSessions: Set<UUID> = []
     var onBell: ((UUID) -> Void)?
 
@@ -19,7 +20,12 @@ final class TerminalSessionManager {
                 self?.onBell?(sessionID)
             }
         }
-        terminal.installOptionKeyMonitor()
+        terminal.installEventMonitors()
+
+        let delegate = TerminalProcessDelegate(manager: self, sessionID: sessionID)
+        delegates[sessionID] = delegate
+        terminal.processDelegate = delegate
+
         terminals[session.id] = terminal
         return terminal
     }
@@ -35,7 +41,11 @@ final class TerminalSessionManager {
 
         if tmuxAvailable {
             if !TmuxService.sessionExists(name: session.tmuxSessionName) {
-                try? TmuxService.createSession(name: session.tmuxSessionName, cwd: cwd)
+                do {
+                    try TmuxService.createSession(name: session.tmuxSessionName, cwd: cwd)
+                } catch {
+                    print("[TermHub] Failed to create tmux session '\(session.tmuxSessionName)': \(error)")
+                }
             }
             let cmd = TmuxService.attachCommand(name: session.tmuxSessionName)
             let executable = cmd[0]
@@ -58,6 +68,7 @@ final class TerminalSessionManager {
     }
 
     func markProcessTerminated(for sessionID: UUID) {
+        print("[TermHub] Process terminated for session \(sessionID)")
         startedSessions.remove(sessionID)
     }
 
@@ -67,6 +78,29 @@ final class TerminalSessionManager {
 
     func destroyTerminal(for sessionID: UUID) {
         terminals.removeValue(forKey: sessionID)
+        delegates.removeValue(forKey: sessionID)
         startedSessions.remove(sessionID)
+    }
+}
+
+private final class TerminalProcessDelegate: LocalProcessTerminalViewDelegate {
+    private weak var manager: TerminalSessionManager?
+    private let sessionID: UUID
+
+    init(manager: TerminalSessionManager, sessionID: UUID) {
+        self.manager = manager
+        self.sessionID = sessionID
+    }
+
+    nonisolated func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
+    nonisolated func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
+    nonisolated func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
+    nonisolated func processTerminated(source: TerminalView, exitCode: Int32?) {
+        let manager = manager
+        let sessionID = sessionID
+        print("[TermHub] Process exited for session \(sessionID), exitCode: \(String(describing: exitCode))")
+        Task { @MainActor in
+            manager?.markProcessTerminated(for: sessionID)
+        }
     }
 }
