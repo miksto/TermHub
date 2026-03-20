@@ -28,6 +28,7 @@ class TermHubTerminalView: LocalProcessTerminalView {
         // which is empty when tmux manages the scrollback.
         scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
             guard let self,
+                  !self.isHidden,
                   self.window != nil,
                   let eventWindow = event.window,
                   eventWindow === self.window else {
@@ -57,15 +58,7 @@ class TermHubTerminalView: LocalProcessTerminalView {
                 let row = min(max(0, Int((self.bounds.height - locationInView.y) / cellHeight)), terminal.rows - 1)
                 terminal.sendEvent(buttonFlags: buttonFlags, x: col, y: row)
             } else {
-                // Mouse reporting is off — send arrow key sequences so scrolling
-                // navigates shell history, scrolls less/vim, etc.
-                let lines = max(1, Int(abs(event.deltaY)))
-                let arrow: [UInt8] = event.deltaY > 0
-                    ? [0x1b, 0x5b, 0x41]   // ESC [ A  (arrow up)
-                    : [0x1b, 0x5b, 0x42]   // ESC [ B  (arrow down)
-                for _ in 0..<lines {
-                    self.send(arrow)
-                }
+                return event
             }
             return nil // Consume the event
         }
