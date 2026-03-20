@@ -54,6 +54,10 @@ enum TmuxService {
     private static func ensureServerConfigured() throws {
         guard !didConfigureServer else { return }
         try run(["set-option", "-g", "mouse", "on"])
+        // Forward pane title changes from the inner shell to the outer terminal (SwiftTerm),
+        // so that setTerminalTitle fires and the session title updates dynamically.
+        try run(["set-option", "-g", "set-titles", "on"])
+        try run(["set-option", "-g", "set-titles-string", "#{pane_title}"])
         didConfigureServer = true
     }
 

@@ -177,19 +177,20 @@ final class AppState {
         if save { saveState() }
     }
 
-    /// Only applies the title if the session still has its default name (the folder name),
-    /// meaning the user hasn't manually renamed it.
+    /// Only applies the title if the user hasn't manually renamed the session.
     private func handleTerminalTitleChange(sessionID: UUID, title: String) {
         guard let session = sessions.first(where: { $0.id == sessionID }),
-              let folder = folders.first(where: { $0.id == session.folderID }),
-              session.title == folder.name
+              !session.hasCustomTitle
         else { return }
-        renameSession(id: sessionID, newTitle: title)
+        guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        sessions[index].title = title
+        saveState()
     }
 
     func renameSession(id: UUID, newTitle: String) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions[index].title = newTitle
+        sessions[index].hasCustomTitle = true
         saveState()
     }
 
