@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 
@@ -18,7 +19,13 @@ final class AppState {
     var pendingNewBranchFolder: ManagedFolder?
     var errorMessage: String?
     var showingAddFolder = false
-    var sessionsNeedingAttention: Set<UUID> = []
+    var sessionsNeedingAttention: Set<UUID> = [] {
+        didSet {
+            NSApp.dockTile.badgeLabel = sessionsNeedingAttention.isEmpty
+                ? nil
+                : "\(sessionsNeedingAttention.count)"
+        }
+    }
     private var lastBellTime: [UUID: Date] = [:]
 
     let terminalManager = TerminalSessionManager()
