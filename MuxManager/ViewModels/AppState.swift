@@ -54,15 +54,7 @@ final class AppState {
         updated.sessionIDs.append(session.id)
         folders[folders.count - 1] = updated
 
-        // Create tmux session
-        if tmuxAvailable, !TmuxService.sessionExists(name: session.tmuxSessionName) {
-            do {
-                try TmuxService.createSession(name: session.tmuxSessionName, cwd: path)
-            } catch {
-                errorMessage = "Failed to create tmux session: \(error.localizedDescription)"
-            }
-        }
-
+        // tmux session is created lazily by TerminalSessionManager.startProcessIfNeeded
         saveState()
 
         if selectedSessionID == nil {
@@ -100,14 +92,7 @@ final class AppState {
             folderName: folderName
         )
 
-        // Create the tmux session immediately so the terminal is ready
-        if tmuxAvailable, !TmuxService.sessionExists(name: session.tmuxSessionName) {
-            do {
-                try TmuxService.createSession(name: session.tmuxSessionName, cwd: cwd)
-            } catch {
-                errorMessage = "Failed to create tmux session: \(error.localizedDescription)"
-            }
-        }
+        // tmux session is created lazily by TerminalSessionManager.startProcessIfNeeded
         sessions.append(session)
 
         if let folderIndex = folders.firstIndex(where: { $0.id == folderID }) {

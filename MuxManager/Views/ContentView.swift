@@ -20,8 +20,8 @@ struct ContentView: View {
             NavigationSplitView {
                 SidebarView()
             } detail: {
-                if let session = appState.selectedSession {
-                    TerminalDetailView(session: session)
+                if appState.selectedSessionID != nil {
+                    TerminalContainerView(selectedSessionID: appState.selectedSessionID)
                 } else {
                     Text("Select or create a session")
                         .foregroundStyle(.secondary)
@@ -42,31 +42,6 @@ struct ContentView: View {
             }
         } message: { message in
             Text(message)
-        }
-        // Close session confirmation
-        .alert(
-            "Close Session",
-            isPresented: Binding(
-                get: { appState.pendingCloseSessionID != nil },
-                set: { if !$0 { appState.pendingCloseSessionID = nil } }
-            ),
-            presenting: appState.pendingCloseSessionID.flatMap { id in
-                appState.sessions.first { $0.id == id }
-            }
-        ) { session in
-            Button("Cancel", role: .cancel) {
-                appState.pendingCloseSessionID = nil
-            }
-            Button("Close", role: .destructive) {
-                appState.removeSession(id: session.id)
-                appState.pendingCloseSessionID = nil
-            }
-        } message: { session in
-            if session.worktreePath != nil {
-                Text("This will close the tmux session \"\(session.tmuxSessionName)\" and remove its worktree.")
-            } else {
-                Text("This will close the tmux session \"\(session.tmuxSessionName)\".")
-            }
         }
     }
 }

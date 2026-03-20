@@ -6,6 +6,7 @@ struct SessionRowView: View {
     var onRemove: () -> Void
 
     @State private var isHovering = false
+    @State private var isConfirming = false
     @State private var isRenaming = false
     @State private var editedTitle = ""
     @FocusState private var isTextFieldFocused: Bool
@@ -27,8 +28,10 @@ struct SessionRowView: View {
                 } else {
                     Text(session.title)
                         .lineLimit(1)
-                        .onTapGesture(count: 2) {
-                            startRenaming()
+                        .overlay {
+                            DoubleClickView {
+                                startRenaming()
+                            }
                         }
                 }
                 if let branch = session.branchName {
@@ -38,19 +41,33 @@ struct SessionRowView: View {
                 }
             }
             Spacer()
-            if isHovering && !isRenaming {
-                Button {
-                    onRemove()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+            if (isHovering || isConfirming) && !isRenaming {
+                if isConfirming {
+                    Button {
+                        isConfirming = false
+                        onRemove()
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button {
+                        isConfirming = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
         .contentShape(Rectangle())
         .onHover { hovering in
             isHovering = hovering
+            if !hovering {
+                isConfirming = false
+            }
         }
         .contextMenu {
             Button("Rename...") {

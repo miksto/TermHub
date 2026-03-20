@@ -6,7 +6,7 @@ struct TerminalNSViewWrapper: NSViewRepresentable {
     let session: TerminalSession
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(appState: appState, sessionID: session.id)
+        Coordinator()
     }
 
     func makeNSView(context: Context) -> LocalProcessTerminalView {
@@ -24,31 +24,29 @@ struct TerminalNSViewWrapper: NSViewRepresentable {
 
         terminal.processDelegate = context.coordinator
 
+        // Defer process start until after the view is in the window hierarchy
+        let manager = appState.terminalManager
+        let sessionCopy = session
+        let tmuxAvailable = appState.tmuxAvailable
+        DispatchQueue.main.async {
+            manager.startProcessIfNeeded(for: sessionCopy, tmuxAvailable: tmuxAvailable)
+        }
+
         return terminal
     }
 
     func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
-        context.coordinator.appState = appState
-        context.coordinator.sessionID = session.id
+        // Start process if it hasn't been started yet (e.g., after view re-appears)
+        let manager = appState.terminalManager
+        let sessionCopy = session
+        let tmuxAvailable = appState.tmuxAvailable
+        DispatchQueue.main.async {
+            manager.startProcessIfNeeded(for: sessionCopy, tmuxAvailable: tmuxAvailable)
+        }
     }
 
     final class Coordinator: LocalProcessTerminalViewDelegate {
-        var appState: AppState
-        var sessionID: UUID
-
-        init(appState: AppState, sessionID: UUID) {
-            self.appState = appState
-            self.sessionID = sessionID
-        }
-
-        nonisolated func setTerminalTitle(source: LocalProcessTerminalView, title: String) {
-            let appState = self.appState
-            let sessionID = self.sessionID
-            Task { @MainActor in
-                appState.renameSession(id: sessionID, newTitle: title)
-            }
-        }
-
+        nonisolated func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
         nonisolated func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
         nonisolated func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
         nonisolated func processTerminated(source: TerminalView, exitCode: Int32?) {}
