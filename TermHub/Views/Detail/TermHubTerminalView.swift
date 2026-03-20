@@ -38,26 +38,35 @@ class TermHubTerminalView: LocalProcessTerminalView {
             let locationInView = self.convert(event.locationInWindow, from: nil)
             guard self.bounds.contains(locationInView) else { return event }
 
-            let terminal = self.getTerminal()
-            guard self.allowMouseReporting && terminal.mouseMode != .off else {
-                return event
-            }
             guard event.deltaY != 0 else { return event }
 
-            let isUp = event.deltaY > 0
-            let flags = event.modifierFlags
-            let buttonFlags = terminal.encodeButton(
-                button: isUp ? 4 : 5,
-                release: false,
-                shift: flags.contains(.shift),
-                meta: flags.contains(.option),
-                control: flags.contains(.control)
-            )
-            let cellWidth = self.bounds.width / CGFloat(max(terminal.cols, 1))
-            let cellHeight = self.bounds.height / CGFloat(max(terminal.rows, 1))
-            let col = min(max(0, Int(locationInView.x / cellWidth)), terminal.cols - 1)
-            let row = min(max(0, Int((self.bounds.height - locationInView.y) / cellHeight)), terminal.rows - 1)
-            terminal.sendEvent(buttonFlags: buttonFlags, x: col, y: row)
+            let terminal = self.getTerminal()
+            if self.allowMouseReporting && terminal.mouseMode != .off {
+                let isUp = event.deltaY > 0
+                let flags = event.modifierFlags
+                let buttonFlags = terminal.encodeButton(
+                    button: isUp ? 4 : 5,
+                    release: false,
+                    shift: flags.contains(.shift),
+                    meta: flags.contains(.option),
+                    control: flags.contains(.control)
+                )
+                let cellWidth = self.bounds.width / CGFloat(max(terminal.cols, 1))
+                let cellHeight = self.bounds.height / CGFloat(max(terminal.rows, 1))
+                let col = min(max(0, Int(locationInView.x / cellWidth)), terminal.cols - 1)
+                let row = min(max(0, Int((self.bounds.height - locationInView.y) / cellHeight)), terminal.rows - 1)
+                terminal.sendEvent(buttonFlags: buttonFlags, x: col, y: row)
+            } else {
+                // Mouse reporting is off — send arrow key sequences so scrolling
+                // navigates shell history, scrolls less/vim, etc.
+                let lines = max(1, Int(abs(event.deltaY)))
+                let arrow: [UInt8] = event.deltaY > 0
+                    ? [0x1b, 0x5b, 0x41]   // ESC [ A  (arrow up)
+                    : [0x1b, 0x5b, 0x42]   // ESC [ B  (arrow down)
+                for _ in 0..<lines {
+                    self.send(arrow)
+                }
+            }
             return nil // Consume the event
         }
     }
