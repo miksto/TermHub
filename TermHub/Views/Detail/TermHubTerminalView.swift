@@ -42,8 +42,8 @@ class TermHubTerminalView: LocalProcessTerminalView {
             guard event.deltaY != 0 else { return event }
 
             let terminal = self.getTerminal()
-            let isUp = event.deltaY > 0
             if self.allowMouseReporting && terminal.mouseMode != .off {
+                let isUp = event.deltaY > 0
                 let flags = event.modifierFlags
                 let buttonFlags = terminal.encodeButton(
                     button: isUp ? 4 : 5,
@@ -58,10 +58,7 @@ class TermHubTerminalView: LocalProcessTerminalView {
                 let row = min(max(0, Int((self.bounds.height - locationInView.y) / cellHeight)), terminal.rows - 1)
                 terminal.sendEvent(buttonFlags: buttonFlags, x: col, y: row)
             } else {
-                // Mouse reporting is off — send arrow key sequences so tmux
-                // (or whatever is running) can scroll its own scrollback.
-                let arrowSeq: [UInt8] = isUp ? [0x1b, 0x4f, 0x41] : [0x1b, 0x4f, 0x42]
-                self.send(source: self.getTerminal(), data: arrowSeq[...])
+                return event
             }
             return nil // Consume the event
         }
