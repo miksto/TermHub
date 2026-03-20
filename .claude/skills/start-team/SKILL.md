@@ -13,13 +13,13 @@ This skill uses **Teams** (via `TeamCreate`). Every team member must be part of 
 1. Call `TeamCreate` before spawning any team member
 2. Every team member `Agent` call must include both `team_name` and `name` parameters
 3. All team members must be on the same team (same `team_name` value)
-4. The main Claude agent spawns the coordinator and review roles. The coordinator spawns implementers as needed.
+4. The main Claude agent spawns the coordinator, review roles, and implementers. It analyzes the plan to determine how many implementers are needed (up to 5).
 
 **Sub-agents:** Team members may freely spawn standalone sub-agents (Agent tool without `team_name`) for helper tasks like research, code exploration, or one-off analysis. These sub-agents are isolated — they cannot message team members and are discarded when done. This is fine and expected.
 
 ## Team Startup
 
-The main Claude agent bootstraps the team by reading the plan and spawning the coordinator and all review roles. The coordinator then analyzes the plan and spawns implementers as needed.
+The main Claude agent bootstraps the team by reading the plan and spawning the coordinator, all review roles, and implementers.
 
 1. Find the most recent plan file in `.claude/plans/` and read its contents (or use a path if provided as an argument: `$ARGUMENTS`)
 2. Read the plan content
@@ -36,7 +36,10 @@ The main Claude agent bootstraps the team by reading the plan and spawning the c
 | Test Engineer | `test-engineer` | `prompts/test-engineer.md` |
 | Reviewer | `reviewer` | `prompts/reviewer.md` |
 | Designer | `designer` | `prompts/designer.md` |
+| Implementers (up to 5) | `implementer-1`, `implementer-2`, etc. | `prompts/implementer.md` |
 
-**For the coordinator prompt**, also append: the `team_name` value and the path to the implementer prompt file (`${CLAUDE_SKILL_DIR}/prompts/implementer.md`) so the coordinator can spawn implementers.
+**Spawning implementers:** Before spawning agents, analyze the plan to determine how many implementers are needed (up to 5) based on the number of parallelizable tasks. Spawn each implementer with the implementer prompt file contents and the full plan appended.
 
-After spawning these agents, the main agent hands off control. The coordinator will analyze the plan, determine how many implementers are needed, and spawn them.
+**For the coordinator prompt**, also append: the `team_name` value and the list of implementer names that were spawned (e.g., "implementer-1", "implementer-2", "implementer-3") so the coordinator knows which implementers are available.
+
+After spawning all agents, the main agent hands off control. The coordinator will decompose the plan into tasks and assign them to the available implementers.
