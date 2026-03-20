@@ -39,6 +39,10 @@ final class AppState {
         terminalManager.onBell = { [weak self] sessionID in
             self?.markNeedsAttention(sessionID: sessionID)
         }
+
+        terminalManager.onTitleChange = { [weak self] sessionID, title in
+            self?.handleTerminalTitleChange(sessionID: sessionID, title: title)
+        }
     }
 
     var selectedSession: TerminalSession? {
@@ -151,6 +155,16 @@ final class AppState {
         }
 
         if save { saveState() }
+    }
+
+    /// Only applies the title if the session still has its default name (the folder name),
+    /// meaning the user hasn't manually renamed it.
+    private func handleTerminalTitleChange(sessionID: UUID, title: String) {
+        guard let session = sessions.first(where: { $0.id == sessionID }),
+              let folder = folders.first(where: { $0.id == session.folderID }),
+              session.title == folder.name
+        else { return }
+        renameSession(id: sessionID, newTitle: title)
     }
 
     func renameSession(id: UUID, newTitle: String) {

@@ -7,6 +7,7 @@ final class TerminalSessionManager {
     private var delegates: [UUID: TerminalProcessDelegate] = [:]
     private var startedSessions: Set<UUID> = []
     var onBell: ((UUID) -> Void)?
+    var onTitleChange: ((UUID, String) -> Void)?
 
     func getOrCreateTerminal(for session: TerminalSession, tmuxAvailable: Bool) -> LocalProcessTerminalView {
         if let existing = terminals[session.id] {
@@ -95,7 +96,13 @@ private final class TerminalProcessDelegate: LocalProcessTerminalViewDelegate {
         self.sessionID = sessionID
     }
 
-    nonisolated func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
+    nonisolated func setTerminalTitle(source: LocalProcessTerminalView, title: String) {
+        let manager = manager
+        let sessionID = sessionID
+        Task { @MainActor in
+            manager?.onTitleChange?(sessionID, title)
+        }
+    }
     nonisolated func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
     nonisolated func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
     nonisolated func processTerminated(source: TerminalView, exitCode: Int32?) {
