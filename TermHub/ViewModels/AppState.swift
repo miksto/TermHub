@@ -18,7 +18,6 @@ final class AppState {
     var pendingNewBranchFolder: ManagedFolder?
     var errorMessage: String?
     var showingAddFolder = false
-    var pendingCloseSessionID: UUID?
     var sessionsNeedingAttention: Set<UUID> = []
     private var lastBellTime: [UUID: Date] = [:]
 

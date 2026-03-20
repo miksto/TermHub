@@ -23,10 +23,13 @@ struct TermHubApp: App {
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
-                Divider()
+            }
 
+            CommandGroup(replacing: .saveItem) {
                 Button("Close Session") {
-                    appState.pendingCloseSessionID = appState.selectedSessionID
+                    if let id = appState.selectedSessionID {
+                        appState.removeSession(id: id)
+                    }
                 }
                 .keyboardShortcut("w", modifiers: .command)
                 .disabled(appState.selectedSession == nil)
