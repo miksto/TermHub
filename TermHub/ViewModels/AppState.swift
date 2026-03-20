@@ -178,12 +178,15 @@ final class AppState {
     }
 
     /// Only applies the title if the user hasn't manually renamed the session.
+    /// Ignores empty titles (e.g. sent by programs on exit) to avoid clearing useful titles.
     private func handleTerminalTitleChange(sessionID: UUID, title: String) {
-        guard let session = sessions.first(where: { $0.id == sessionID }),
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let session = sessions.first(where: { $0.id == sessionID }),
               !session.hasCustomTitle
         else { return }
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
-        sessions[index].title = title
+        sessions[index].title = trimmed
         saveState()
     }
 
