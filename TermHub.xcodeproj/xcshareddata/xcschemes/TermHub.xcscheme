@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D2AE2D8D6559A3B08D6AE067"
-               BuildableName = "MuxManager.app"
-               BlueprintName = "MuxManager"
-               ReferencedContainer = "container:MuxManager.xcodeproj">
+               BlueprintIdentifier = "DDEB62360CD6D7D5372601FB"
+               BuildableName = "TermHub.app"
+               BlueprintName = "TermHub"
+               ReferencedContainer = "container:TermHub.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,10 +29,10 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1479FADE93F8C233E2A243BA"
-               BuildableName = "MuxManagerTests.xctest"
-               BlueprintName = "MuxManagerTests"
-               ReferencedContainer = "container:MuxManager.xcodeproj">
+               BlueprintIdentifier = "B4195AF813CAFFB98BD71625"
+               BuildableName = "TermHubTests.xctest"
+               BlueprintName = "TermHubTests"
+               ReferencedContainer = "container:TermHub.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,10 +46,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D2AE2D8D6559A3B08D6AE067"
-            BuildableName = "MuxManager.app"
-            BlueprintName = "MuxManager"
-            ReferencedContainer = "container:MuxManager.xcodeproj">
+            BlueprintIdentifier = "DDEB62360CD6D7D5372601FB"
+            BuildableName = "TermHub.app"
+            BlueprintName = "TermHub"
+            ReferencedContainer = "container:TermHub.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -58,10 +58,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1479FADE93F8C233E2A243BA"
-               BuildableName = "MuxManagerTests.xctest"
-               BlueprintName = "MuxManagerTests"
-               ReferencedContainer = "container:MuxManager.xcodeproj">
+               BlueprintIdentifier = "B4195AF813CAFFB98BD71625"
+               BuildableName = "TermHubTests.xctest"
+               BlueprintName = "TermHubTests"
+               ReferencedContainer = "container:TermHub.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -82,10 +82,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D2AE2D8D6559A3B08D6AE067"
-            BuildableName = "MuxManager.app"
-            BlueprintName = "MuxManager"
-            ReferencedContainer = "container:MuxManager.xcodeproj">
+            BlueprintIdentifier = "DDEB62360CD6D7D5372601FB"
+            BuildableName = "TermHub.app"
+            BlueprintName = "TermHub"
+            ReferencedContainer = "container:TermHub.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -99,10 +99,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D2AE2D8D6559A3B08D6AE067"
-            BuildableName = "MuxManager.app"
-            BlueprintName = "MuxManager"
-            ReferencedContainer = "container:MuxManager.xcodeproj">
+            BlueprintIdentifier = "DDEB62360CD6D7D5372601FB"
+            BuildableName = "TermHub.app"
+            BlueprintName = "TermHub"
+            ReferencedContainer = "container:TermHub.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

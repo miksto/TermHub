@@ -1,6 +1,6 @@
-name: MuxManager
+name: TermHub
 options:
-  bundleIdPrefix: com.muxmanager
+  bundleIdPrefix: com.termhub
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "16.4"
@@ -12,45 +12,45 @@ packages:
     from: "1.2.0"
 
 schemes:
-  MuxManager:
+  TermHub:
     build:
       targets:
-        MuxManager: all
-        MuxManagerTests: [test]
+        TermHub: all
+        TermHubTests: [test]
     test:
       targets:
-        - MuxManagerTests
+        - TermHubTests
 
 targets:
-  MuxManager:
+  TermHub:
     type: application
     platform: macOS
     sources:
-      - MuxManager
+      - TermHub
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.muxmanager.app
-        PRODUCT_NAME: MuxManager
+        PRODUCT_BUNDLE_IDENTIFIER: com.termhub.app
+        PRODUCT_NAME: TermHub
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "6.0"
-        CODE_SIGN_ENTITLEMENTS: MuxManager/App/MuxManager.entitlements
+        CODE_SIGN_ENTITLEMENTS: TermHub/App/TermHub.entitlements
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         SWIFT_STRICT_CONCURRENCY: complete
     dependencies:
       - package: SwiftTerm
-  MuxManagerTests:
+  TermHubTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - MuxManagerTests
+      - TermHubTests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.muxmanager.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.termhub.tests
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         SWIFT_STRICT_CONCURRENCY: complete
     dependencies:
-      - target: MuxManager
+      - target: TermHub

@@ -17,5 +17,5 @@ Package.resolved
 *~
 
 # Xcode project internal files (keep project.pbxproj, ignore user data)
-MuxManager.xcodeproj/xcuserdata/
-MuxManager.xcodeproj/project.xcworkspace/xcuserdata/
+TermHub.xcodeproj/xcuserdata/
+TermHub.xcodeproj/project.xcworkspace/xcuserdata/

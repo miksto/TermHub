@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import MuxManager
+@testable import TermHub
 
 @Suite("GitService Tests")
 struct GitServiceTests {

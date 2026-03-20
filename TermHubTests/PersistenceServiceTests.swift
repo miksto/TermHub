@@ -1,12 +1,12 @@
 import Foundation
 import Testing
-@testable import MuxManager
+@testable import TermHub
 
 @Suite("PersistenceService Tests")
 struct PersistenceServiceTests {
     private func makeTempURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("MuxManagerTests-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("TermHubTests-\(UUID().uuidString)", isDirectory: true)
         return tempDir.appendingPathComponent("state.json")
     }
 

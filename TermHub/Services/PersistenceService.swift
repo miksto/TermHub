@@ -28,7 +28,7 @@ enum PersistenceService {
             for: .applicationSupportDirectory,
             in: .userDomainMask
         ).first!
-        let appDir = appSupport.appendingPathComponent("MuxManager", isDirectory: true)
+        let appDir = appSupport.appendingPathComponent("TermHub", isDirectory: true)
         return appDir.appendingPathComponent("state.json")
     }
 

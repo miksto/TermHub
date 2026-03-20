@@ -8,7 +8,7 @@ struct AddFolderSheet: View {
         VStack(spacing: 16) {
             Text("Add Folder")
                 .font(.headline)
-            Text("Select a folder to manage with MuxManager.")
+            Text("Select a folder to manage with TermHub.")
                 .foregroundStyle(.secondary)
             HStack {
                 Button("Cancel") {
