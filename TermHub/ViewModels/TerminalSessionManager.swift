@@ -19,6 +19,7 @@ final class TerminalSessionManager {
                 self?.onBell?(sessionID)
             }
         }
+        terminal.installOptionKeyMonitor()
         terminals[session.id] = terminal
         return terminal
     }
