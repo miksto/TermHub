@@ -58,3 +58,11 @@ xcodebuild -project TermHub.xcodeproj -scheme TermHub -destination 'platform=mac
 ```bash
 xcodebuild -project TermHub.xcodeproj -scheme TermHub -destination 'platform=macOS' test
 ```
+
+## Claude Code
+
+When working with [Claude Code](https://claude.com/claude-code), you can use the following slash commands:
+
+- `/build` — Build the app and show only warnings, errors, and the result
+- `/test` — Run the test suite and show only test results
+- `/regenerate-project` — Regenerate the Xcode project from `project.yml` and refresh the LSP config
