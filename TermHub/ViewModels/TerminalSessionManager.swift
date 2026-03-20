@@ -56,6 +56,10 @@ final class TerminalSessionManager {
         }
     }
 
+    func markProcessTerminated(for sessionID: UUID) {
+        startedSessions.remove(sessionID)
+    }
+
     func sessionID(for terminal: LocalProcessTerminalView) -> UUID? {
         terminals.first { $0.value === terminal }?.key
     }

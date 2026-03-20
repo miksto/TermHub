@@ -6,7 +6,7 @@ struct TerminalNSViewWrapper: NSViewRepresentable {
     let session: TerminalSession
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(manager: appState.terminalManager, sessionID: session.id)
     }
 
     func makeNSView(context: Context) -> LocalProcessTerminalView {
@@ -46,9 +46,23 @@ struct TerminalNSViewWrapper: NSViewRepresentable {
     }
 
     final class Coordinator: LocalProcessTerminalViewDelegate {
+        let manager: TerminalSessionManager
+        let sessionID: UUID
+
+        init(manager: TerminalSessionManager, sessionID: UUID) {
+            self.manager = manager
+            self.sessionID = sessionID
+        }
+
         nonisolated func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
         nonisolated func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
         nonisolated func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
-        nonisolated func processTerminated(source: TerminalView, exitCode: Int32?) {}
+        nonisolated func processTerminated(source: TerminalView, exitCode: Int32?) {
+            let manager = manager
+            let sessionID = sessionID
+            Task { @MainActor in
+                manager.markProcessTerminated(for: sessionID)
+            }
+        }
     }
 }
