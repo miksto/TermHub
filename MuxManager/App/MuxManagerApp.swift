@@ -9,6 +9,7 @@ struct MuxManagerApp: App {
             ContentView()
                 .environment(appState)
         }
+        .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("New Shell in Current Folder") {

@@ -28,6 +28,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            .navigationSplitViewStyle(.balanced)
         }
         .alert(
             "Error",

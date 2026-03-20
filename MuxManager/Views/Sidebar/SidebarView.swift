@@ -19,8 +19,6 @@ struct SidebarView: View {
             }
             .listStyle(.sidebar)
 
-            Divider()
-
             Button {
                 let panel = NSOpenPanel()
                 panel.title = "Choose a folder"
@@ -32,14 +30,14 @@ struct SidebarView: View {
                 }
             } label: {
                 Label("Add Folder", systemImage: "folder.badge.plus")
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
-        .navigationTitle("MuxManager")
         .sheet(
             isPresented: Binding(
                 get: { appState.pendingWorktreeFolder != nil },
