@@ -15,6 +15,8 @@ enum TmuxServiceError: Error, LocalizedError {
 }
 
 enum TmuxService {
+    private static let socketName = "termhub"
+
     @discardableResult
     private static func run(_ arguments: [String]) throws -> String {
         guard let tmux = ShellEnvironment.tmuxPath else {
@@ -22,7 +24,7 @@ enum TmuxService {
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: tmux)
-        process.arguments = arguments
+        process.arguments = ["-L", socketName] + arguments
         process.environment = ShellEnvironment.shellEnvironment
 
         let pipe = Pipe()
@@ -56,7 +58,7 @@ enum TmuxService {
         guard let tmux = ShellEnvironment.tmuxPath else {
             return [ShellEnvironment.defaultShell]
         }
-        return [tmux, "attach-session", "-t", name]
+        return [tmux, "-L", socketName, "attach-session", "-t", name]
     }
 
     static func killSession(name: String) throws {
