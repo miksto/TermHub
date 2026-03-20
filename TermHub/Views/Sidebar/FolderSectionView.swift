@@ -17,7 +17,7 @@ struct FolderSectionView: View {
                     appState.removeSession(id: session.id)
                 })
                 .tag(session.id)
-                .listRowInsets(EdgeInsets(top: 0, leading: 28, bottom: 0, trailing: 0))
+                .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
             }
 
             // Action buttons row below sessions
