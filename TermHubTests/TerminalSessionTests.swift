@@ -78,7 +78,7 @@ struct TerminalSessionTests {
             branchName: "release/v2.0",
             id: id
         )
-        #expect(worktree == "mux-app-release-v2.0-\(shortID)")
+        #expect(worktree == "mux-app-release-v2_0-\(shortID)")
     }
 
     @Test("two sessions with same folder name get different tmux names")

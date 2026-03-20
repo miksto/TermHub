@@ -33,6 +33,7 @@ final class AppState {
     init() {
         tmuxAvailable = TmuxService.isAvailable()
         loadState()
+        migrateTmuxSessionNames()
         restoreTmuxSessions()
 
         terminalManager.onBell = { [weak self] sessionID in
@@ -214,13 +215,42 @@ final class AppState {
         return siblings.first
     }
 
+    /// Migrate tmux session names from the old scheme (allowing `.` and `:`) to the new
+    /// sanitized scheme (replacing them with `_`). Renames live tmux sessions and updates
+    /// the persisted model so existing sessions are not orphaned.
+    private func migrateTmuxSessionNames() {
+        guard tmuxAvailable else { return }
+        var changed = false
+        for i in sessions.indices {
+            let oldName = sessions[i].tmuxSessionName
+            let newName = oldName
+                .replacingOccurrences(of: ".", with: "_")
+                .replacingOccurrences(of: ":", with: "_")
+            guard newName != oldName else { continue }
+            if TmuxService.sessionExists(name: oldName) {
+                do {
+                    try TmuxService.renameSession(oldName: oldName, newName: newName)
+                } catch {
+                    print("[TermHub] Failed to rename tmux session '\(oldName)' → '\(newName)': \(error)")
+                }
+            }
+            sessions[i].tmuxSessionName = newName
+            changed = true
+        }
+        if changed { saveState() }
+    }
+
     /// Re-create tmux sessions that were killed externally while the app was not running.
     private func restoreTmuxSessions() {
         guard tmuxAvailable else { return }
         for session in sessions {
             let cwd = session.worktreePath ?? session.workingDirectory
             if !TmuxService.sessionExists(name: session.tmuxSessionName) {
-                try? TmuxService.createSession(name: session.tmuxSessionName, cwd: cwd)
+                do {
+                    try TmuxService.createSession(name: session.tmuxSessionName, cwd: cwd)
+                } catch {
+                    print("[TermHub] Failed to restore tmux session '\(session.tmuxSessionName)': \(error)")
+                }
             }
         }
     }

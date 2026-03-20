@@ -37,10 +37,17 @@ struct TerminalSession: Identifiable, Codable, Hashable {
     /// - Worktree: `mux-<foldername>-<branch>-<uuid4>` with slashes replaced by dashes
     static func generateTmuxSessionName(folderName: String, branchName: String?, id: UUID = UUID()) -> String {
         let shortID = String(id.uuidString.prefix(4)).lowercased()
+        let sanitizedFolder = folderName
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ".", with: "_")
+            .replacingOccurrences(of: ":", with: "_")
         if let branch = branchName {
-            let sanitizedBranch = branch.replacingOccurrences(of: "/", with: "-")
-            return "mux-\(folderName)-\(sanitizedBranch)-\(shortID)"
+            let sanitizedBranch = branch
+                .replacingOccurrences(of: "/", with: "-")
+                .replacingOccurrences(of: ".", with: "_")
+                .replacingOccurrences(of: ":", with: "_")
+            return "mux-\(sanitizedFolder)-\(sanitizedBranch)-\(shortID)"
         }
-        return "mux-\(folderName)-\(shortID)"
+        return "mux-\(sanitizedFolder)-\(shortID)"
     }
 }
