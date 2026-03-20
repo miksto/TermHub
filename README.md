@@ -2,6 +2,8 @@
 
 A native macOS app for managing terminal sessions across multiple project folders with automatic git worktree support.
 
+![TermHub screenshot](screenshot.png)
+
 ## Features
 
 - **Multi-folder terminal management** — Add project folders and organize terminal sessions under each one. Sessions are persisted and restored automatically.
