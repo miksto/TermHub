@@ -76,13 +76,8 @@ struct NewBranchSheet: View {
             )
 
             dismiss()
-        } catch let error as GitServiceError {
-            switch error {
-            case .commandFailed(let msg) where msg.contains("already exists"):
-                errorMessage = "A branch or worktree with this name already exists."
-            default:
-                errorMessage = error.localizedDescription
-            }
+        } catch GitServiceError.worktreeAlreadyExists {
+            errorMessage = "A branch or worktree with this name already exists."
             isCreating = false
         } catch {
             errorMessage = error.localizedDescription

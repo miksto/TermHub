@@ -9,7 +9,7 @@ final class AppState {
     var sessions: [TerminalSession] = []
     var selectedSessionID: UUID? {
         didSet {
-            if let id = selectedSessionID {
+            if let id = selectedSessionID, NSApp.isActive {
                 sessionsNeedingAttention.remove(id)
             }
         }
@@ -38,6 +38,18 @@ final class AppState {
 
         terminalManager.onBell = { [weak self] sessionID in
             self?.markNeedsAttention(sessionID: sessionID)
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                if let id = self?.selectedSessionID {
+                    self?.sessionsNeedingAttention.remove(id)
+                }
+            }
         }
 
         terminalManager.onTitleChange = { [weak self] sessionID, title in
@@ -130,12 +142,20 @@ final class AppState {
         // Find the session before removing
         guard let session = sessions.first(where: { $0.id == id }) else { return }
 
-        // Perform tmux + worktree cleanup
-        try? TmuxService.killSession(name: session.tmuxSessionName)
+        // Perform tmux + worktree cleanup (best-effort)
+        do {
+            try TmuxService.killSession(name: session.tmuxSessionName)
+        } catch {
+            print("[TermHub] Failed to kill tmux session '\(session.tmuxSessionName)': \(error)")
+        }
         if let worktreePath = session.worktreePath {
             let folderPath = parentFolderPath ?? folders.first(where: { $0.id == session.folderID })?.path
             if let repoPath = folderPath {
-                try? GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath)
+                do {
+                    try GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath)
+                } catch {
+                    print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)")
+                }
             }
         }
 
@@ -198,7 +218,8 @@ final class AppState {
     }
 
     func markNeedsAttention(sessionID: UUID) {
-        guard selectedSessionID != sessionID else { return }
+        let isAppActive = NSApp.isActive
+        guard !(selectedSessionID == sessionID && isAppActive) else { return }
 
         let now = Date()
         if let last = lastBellTime[sessionID], now.timeIntervalSince(last) < 2 {

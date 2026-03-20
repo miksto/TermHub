@@ -6,12 +6,17 @@ final class TerminalSessionManager {
     private var terminals: [UUID: LocalProcessTerminalView] = [:]
     private var delegates: [UUID: TerminalProcessDelegate] = [:]
     private var startedSessions: Set<UUID> = []
+    private var destroyedSessionIDs: Set<UUID> = []
     var onBell: ((UUID) -> Void)?
     var onTitleChange: ((UUID, String) -> Void)?
 
-    func getOrCreateTerminal(for session: TerminalSession, tmuxAvailable: Bool) -> LocalProcessTerminalView {
+    func getOrCreateTerminal(for session: TerminalSession, tmuxAvailable: Bool) -> LocalProcessTerminalView? {
         if let existing = terminals[session.id] {
             return existing
+        }
+
+        if destroyedSessionIDs.contains(session.id) {
+            return nil
         }
 
         let terminal = TermHubTerminalView(frame: .init(x: 0, y: 0, width: 800, height: 600))
@@ -78,6 +83,7 @@ final class TerminalSessionManager {
     }
 
     func destroyTerminal(for sessionID: UUID) {
+        destroyedSessionIDs.insert(sessionID)
         if let terminal = terminals.removeValue(forKey: sessionID) {
             (terminal as? TermHubTerminalView)?.removeEventMonitors()
             terminal.removeFromSuperview()

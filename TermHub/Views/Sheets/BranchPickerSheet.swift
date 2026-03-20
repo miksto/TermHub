@@ -116,13 +116,8 @@ struct BranchPickerSheet: View {
             )
 
             dismiss()
-        } catch let error as GitServiceError {
-            switch error {
-            case .commandFailed(let msg) where msg.contains("already exists"):
-                createError = "A worktree for this branch already exists. Remove it first or choose a different branch."
-            default:
-                createError = error.localizedDescription
-            }
+        } catch GitServiceError.worktreeAlreadyExists {
+            createError = "A worktree for this branch already exists. Remove it first or choose a different branch."
             isCreating = false
         } catch {
             createError = error.localizedDescription

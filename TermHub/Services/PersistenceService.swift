@@ -45,7 +45,10 @@ enum PersistenceService {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
-        guard let data = try? encoder.encode(state) else {
+        let data: Data
+        do {
+            data = try encoder.encode(state)
+        } catch {
             throw PersistenceError.encodingFailed
         }
         do {

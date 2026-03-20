@@ -16,6 +16,7 @@ enum TmuxServiceError: Error, LocalizedError {
 
 enum TmuxService {
     private static let socketName = "termhub"
+    nonisolated(unsafe) private static var didConfigureServer = false
 
     @discardableResult
     private static func run(_ arguments: [String]) throws -> String {
@@ -50,9 +51,15 @@ enum TmuxService {
         return output.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private static func ensureServerConfigured() throws {
+        guard !didConfigureServer else { return }
+        try run(["set-option", "-g", "mouse", "on"])
+        didConfigureServer = true
+    }
+
     static func createSession(name: String, cwd: String) throws {
         try run(["new-session", "-d", "-s", name, "-c", cwd])
-        try run(["set-option", "-g", "mouse", "on"])
+        try ensureServerConfigured()
     }
 
     static func attachCommand(name: String) -> [String] {

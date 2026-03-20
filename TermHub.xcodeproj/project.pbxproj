@@ -12,7 +12,6 @@
 		14D9D109DD6048DAAF7F02E5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */; };
 		1516020445C4D4CC3CA4535A /* PersistenceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */; };
 		1DAB698DEF6120695A01F8DC /* DoubleClickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E16A5970DB7655DECDB85E /* DoubleClickView.swift */; };
-		216479041A324FA153230064 /* AddFolderSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D15BC123BC6A9D16ED18A33 /* AddFolderSheet.swift */; };
 		21E8FE21B4A9CEB20CA876BD /* NewBranchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */; };
 		2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BC1F94C86B5BEF5E5C1B54 /* SessionRowView.swift */; };
 		2FBDC520049A4B907DAB76B7 /* GitServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E184F75BBAEAD51F534B2DA4 /* GitServiceTests.swift */; };
@@ -57,8 +56,6 @@
 		309C94FFFD305685DF84F204 /* TmuxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxService.swift; sourceTree = "<group>"; };
 		35E16A5970DB7655DECDB85E /* DoubleClickView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleClickView.swift; sourceTree = "<group>"; };
 		3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionTests.swift; sourceTree = "<group>"; };
-		4D15BC123BC6A9D16ED18A33 /* AddFolderSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFolderSheet.swift; sourceTree = "<group>"; };
-
 		503B8C574CFDAB867E3DA066 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
 		53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewBranchSheet.swift; sourceTree = "<group>"; };
 		65DA0695D1865124B38B0457 /* BranchPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchPickerSheet.swift; sourceTree = "<group>"; };
@@ -93,7 +90,6 @@
 		18BDB0790594BFAE255CFBEE /* Sheets */ = {
 			isa = PBXGroup;
 			children = (
-				4D15BC123BC6A9D16ED18A33 /* AddFolderSheet.swift */,
 				65DA0695D1865124B38B0457 /* BranchPickerSheet.swift */,
 				53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */,
 			);
@@ -298,7 +294,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				216479041A324FA153230064 /* AddFolderSheet.swift in Sources */,
 				3ABEE09ECFA59D8269E25998 /* AppState.swift in Sources */,
 				11031E9388A57B9722E570AC /* BranchPickerSheet.swift in Sources */,
 				14D9D109DD6048DAAF7F02E5 /* ContentView.swift in Sources */,

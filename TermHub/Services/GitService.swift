@@ -3,6 +3,7 @@ import Foundation
 enum GitServiceError: Error, LocalizedError {
     case commandFailed(String)
     case notAGitRepo
+    case worktreeAlreadyExists
 
     var errorDescription: String? {
         switch self {
@@ -10,6 +11,8 @@ enum GitServiceError: Error, LocalizedError {
             return "Git command failed: \(message)"
         case .notAGitRepo:
             return "Not a git repository"
+        case .worktreeAlreadyExists:
+            return "A worktree or branch with this name already exists"
         }
     }
 }
@@ -40,7 +43,11 @@ enum GitService {
         ) ?? ""
 
         if process.terminationStatus != 0 {
-            throw GitServiceError.commandFailed(errorOutput.isEmpty ? output : errorOutput)
+            let message = errorOutput.isEmpty ? output : errorOutput
+            if message.contains("already exists") {
+                throw GitServiceError.worktreeAlreadyExists
+            }
+            throw GitServiceError.commandFailed(message)
         }
         return output.trimmingCharacters(in: .whitespacesAndNewlines)
     }

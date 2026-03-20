@@ -45,7 +45,9 @@ class TerminalContainerViewController: NSViewController {
         tmuxAvailable: Bool
     ) {
         for session in sessions {
-            let terminal = manager.getOrCreateTerminal(for: session, tmuxAvailable: tmuxAvailable)
+            guard let terminal = manager.getOrCreateTerminal(for: session, tmuxAvailable: tmuxAvailable) else {
+                continue
+            }
             if terminal.superview !== containerView {
                 terminal.translatesAutoresizingMaskIntoConstraints = false
                 containerView.addSubview(terminal)
