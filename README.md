@@ -50,13 +50,13 @@ open TermHub.xcodeproj
 Or build from the command line (after running `xcodegen generate`):
 
 ```bash
-xcodebuild -project TermHub.xcodeproj -scheme TermHub -destination 'platform=macOS' build
+xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub build
 ```
 
 ## Running Tests
 
 ```bash
-xcodebuild -project TermHub.xcodeproj -scheme TermHub -destination 'platform=macOS' test
+xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test
 ```
 
 ## Claude Code
