@@ -15,6 +15,14 @@ struct SessionRowView: View {
         HStack {
             Image(systemName: "terminal")
                 .foregroundStyle(.secondary)
+                .overlay(alignment: .topTrailing) {
+                    if appState.sessionsNeedingAttention.contains(session.id) {
+                        Circle()
+                            .fill(.orange)
+                            .frame(width: 8, height: 8)
+                            .offset(x: 3, y: -3)
+                    }
+                }
             VStack(alignment: .leading) {
                 if isRenaming {
                     TextField("Session name", text: $editedTitle, onCommit: {

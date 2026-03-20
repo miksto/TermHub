@@ -5,13 +5,20 @@ import SwiftTerm
 final class TerminalSessionManager {
     private var terminals: [UUID: LocalProcessTerminalView] = [:]
     private var startedSessions: Set<UUID> = []
+    var onBell: ((UUID) -> Void)?
 
     func getOrCreateTerminal(for session: TerminalSession, tmuxAvailable: Bool) -> LocalProcessTerminalView {
         if let existing = terminals[session.id] {
             return existing
         }
 
-        let terminal = LocalProcessTerminalView(frame: .init(x: 0, y: 0, width: 800, height: 600))
+        let terminal = TermHubTerminalView(frame: .init(x: 0, y: 0, width: 800, height: 600))
+        let sessionID = session.id
+        terminal.onBell = { [weak self] in
+            Task { @MainActor in
+                self?.onBell?(sessionID)
+            }
+        }
         terminals[session.id] = terminal
         return terminal
     }

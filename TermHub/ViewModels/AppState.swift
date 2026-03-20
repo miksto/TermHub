@@ -6,13 +6,21 @@ import Observation
 final class AppState {
     var folders: [ManagedFolder] = []
     var sessions: [TerminalSession] = []
-    var selectedSessionID: UUID?
+    var selectedSessionID: UUID? {
+        didSet {
+            if let id = selectedSessionID {
+                sessionsNeedingAttention.remove(id)
+            }
+        }
+    }
     var tmuxAvailable: Bool = false
     var pendingWorktreeFolder: ManagedFolder?
     var pendingNewBranchFolder: ManagedFolder?
     var errorMessage: String?
     var showingAddFolder = false
     var pendingCloseSessionID: UUID?
+    var sessionsNeedingAttention: Set<UUID> = []
+    private var lastBellTime: [UUID: Date] = [:]
 
     let terminalManager = TerminalSessionManager()
 
@@ -20,6 +28,10 @@ final class AppState {
         tmuxAvailable = TmuxService.isAvailable()
         loadState()
         restoreTmuxSessions()
+
+        terminalManager.onBell = { [weak self] sessionID in
+            self?.markNeedsAttention(sessionID: sessionID)
+        }
     }
 
     var selectedSession: TerminalSession? {
@@ -122,6 +134,8 @@ final class AppState {
         }
 
         terminalManager.destroyTerminal(for: id)
+        sessionsNeedingAttention.remove(id)
+        lastBellTime.removeValue(forKey: id)
         sessions.removeAll { $0.id == id }
 
         // Remove from folder's sessionIDs
@@ -160,6 +174,17 @@ final class AppState {
         if idx < ordered.count - 1 {
             selectedSessionID = ordered[idx + 1]
         }
+    }
+
+    func markNeedsAttention(sessionID: UUID) {
+        guard selectedSessionID != sessionID else { return }
+
+        let now = Date()
+        if let last = lastBellTime[sessionID], now.timeIntervalSince(last) < 2 {
+            return
+        }
+        lastBellTime[sessionID] = now
+        sessionsNeedingAttention.insert(sessionID)
     }
 
     /// Returns the next (or previous if last) sibling session ID within the same folder.
