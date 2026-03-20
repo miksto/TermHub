@@ -11,6 +11,9 @@ build/
 Packages/
 Package.resolved
 
+# SourceKit-LSP
+buildServer.json
+
 # macOS
 .DS_Store
 *.swp
