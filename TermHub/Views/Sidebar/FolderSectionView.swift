@@ -61,7 +61,7 @@ struct FolderSectionView: View {
             }
             .moveDisabled(true)
             .padding(.top, 2)
-            .listRowInsets(EdgeInsets(top: 0, leading: 28, bottom: 0, trailing: 0))
+            .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
         } header: {
             HStack {
                 Label(folder.name, systemImage: "folder")
