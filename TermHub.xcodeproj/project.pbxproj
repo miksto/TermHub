@@ -18,17 +18,16 @@
 		3175266A96F424FC8AD47EC9 /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2D21CC5CCB192AA60F30B9 /* TerminalSession.swift */; };
 		3ABEE09ECFA59D8269E25998 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04093E0C76CFF2730B42B826 /* AppState.swift */; };
 		443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
+		4F840D4B9206FEAD40353FB2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 189B8C6AC49B8C82A724EC59 /* Assets.xcassets */; };
 		54C04030545ACD76203F4E45 /* ManagedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */; };
 		5812F2FE76E7B03FD230223C /* TerminalContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */; };
 		5DFB49734D63E711E22CAC08 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2305607A9F1189FC98956101 /* GitService.swift */; };
-
 		7320427A88D31382D529A08B /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B9D3FC1CF2381671427FFD85 /* SwiftTerm */; };
 		7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9636C089AF563FC8C56018 /* SidebarView.swift */; };
 		870E7673914A54A99132975A /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503B8C574CFDAB867E3DA066 /* AppStateTests.swift */; };
 		952771C820508D521A3947CE /* TmuxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C94FFFD305685DF84F204 /* TmuxService.swift */; };
 		9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C5380DC16B45138FCB73AA /* FolderSectionView.swift */; };
-
-		0656990CA03DDA2E44799DD9 /* TermHubTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8EB83FAB94AC8C5A13253F /* TermHubTerminalView.swift */; };
+		C6DA5396377DE1E72E2DFE62 /* TermHubTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */; };
 		D31094FDAF7E04158A12E36A /* TerminalSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */; };
 		F62CE910810C831E5EB25298 /* ManagedFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */; };
 		F8BC8AFAE178685B5122ACFA /* TerminalSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */; };
@@ -49,6 +48,7 @@
 		04093E0C76CFF2730B42B826 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolderTests.swift; sourceTree = "<group>"; };
 		12C5380DC16B45138FCB73AA /* FolderSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSectionView.swift; sourceTree = "<group>"; };
+		189B8C6AC49B8C82A724EC59 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalContainerView.swift; sourceTree = "<group>"; };
 		2305607A9F1189FC98956101 /* GitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitService.swift; sourceTree = "<group>"; };
 		28AD17721856C8A80790F5F0 /* TermHubTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TermHubTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -60,10 +60,9 @@
 		53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewBranchSheet.swift; sourceTree = "<group>"; };
 		65DA0695D1865124B38B0457 /* BranchPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchPickerSheet.swift; sourceTree = "<group>"; };
 		66BC1F94C86B5BEF5E5C1B54 /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
-
-		6B8EB83FAB94AC8C5A13253F /* TermHubTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermHubTerminalView.swift; sourceTree = "<group>"; };
 		7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		7F3949FA374894F3DD12A156 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
+		8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermHubTerminalView.swift; sourceTree = "<group>"; };
 		A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceServiceTests.swift; sourceTree = "<group>"; };
 		A8DA80D5DF6673B1A0F4BC83 /* TermHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TermHub.entitlements; sourceTree = "<group>"; };
 		B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionManager.swift; sourceTree = "<group>"; };
@@ -99,8 +98,8 @@
 		2A3275DFE89066C04675DD25 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
+				8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */,
 				21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */,
-				6B8EB83FAB94AC8C5A13253F /* TermHubTerminalView.swift */,
 			);
 			path = Detail;
 			sourceTree = "<group>";
@@ -167,6 +166,7 @@
 		D9CF638FD2C69646CA206BE4 /* TermHub */ = {
 			isa = PBXGroup;
 			children = (
+				189B8C6AC49B8C82A724EC59 /* Assets.xcassets */,
 				BC06E252EA1F320E1EEA5C83 /* App */,
 				FA26D23AFE7F5CBDDCAE007C /* Models */,
 				7A789E618E8F31F550725355 /* Services */,
@@ -241,6 +241,7 @@
 			buildConfigurationList = 10354F0F7EB0F14096B61365 /* Build configuration list for PBXNativeTarget "TermHub" */;
 			buildPhases = (
 				113C35CBAA3D8BF62454F353 /* Sources */,
+				A5C43D4A2C276B105BAEAE3E /* Resources */,
 				AB21D78DEB61B7DD3A5D4977 /* Frameworks */,
 			);
 			buildRules = (
@@ -289,6 +290,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		A5C43D4A2C276B105BAEAE3E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4F840D4B9206FEAD40353FB2 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		113C35CBAA3D8BF62454F353 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -307,8 +319,8 @@
 				01DD14CA14BF6A73A8AEE59E /* ShellEnvironment.swift in Sources */,
 				7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */,
 				FA522806246981A6680125A0 /* TermHubApp.swift in Sources */,
+				C6DA5396377DE1E72E2DFE62 /* TermHubTerminalView.swift in Sources */,
 				5812F2FE76E7B03FD230223C /* TerminalContainerView.swift in Sources */,
-				0656990CA03DDA2E44799DD9 /* TermHubTerminalView.swift in Sources */,
 				3175266A96F424FC8AD47EC9 /* TerminalSession.swift in Sources */,
 				F8BC8AFAE178685B5122ACFA /* TerminalSessionManager.swift in Sources */,
 				952771C820508D521A3947CE /* TmuxService.swift in Sources */,
