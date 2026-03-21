@@ -12,6 +12,9 @@ final class AppState {
             if let id = selectedSessionID, NSApp.isActive {
                 sessionsNeedingAttention.remove(id)
             }
+            if !isLoading {
+                saveState()
+            }
         }
     }
     var tmuxAvailable: Bool = false
@@ -30,6 +33,7 @@ final class AppState {
         }
     }
     private var lastBellTime: [UUID: Date] = [:]
+    private var isLoading = false
 
     let terminalManager = TerminalSessionManager()
 
@@ -322,10 +326,13 @@ final class AppState {
     }
 
     private func loadState() {
+        isLoading = true
+        defer { isLoading = false }
         do {
             let state = try PersistenceService.load()
             folders = state.folders
             sessions = state.sessions
+            selectedSessionID = state.selectedSessionID
         } catch {
             print("Failed to load state: \(error)")
         }
@@ -333,7 +340,7 @@ final class AppState {
 
     private func saveState() {
         do {
-            try PersistenceService.save(folders: folders, sessions: sessions)
+            try PersistenceService.save(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID)
         } catch {
             print("Failed to save state: \(error)")
         }

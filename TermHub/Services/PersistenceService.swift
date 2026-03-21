@@ -20,6 +20,7 @@ enum PersistenceError: Error, LocalizedError {
 struct PersistedState: Codable {
     var folders: [ManagedFolder]
     var sessions: [TerminalSession]
+    var selectedSessionID: UUID?
 }
 
 enum PersistenceService {
@@ -35,13 +36,14 @@ enum PersistenceService {
     static func save(
         folders: [ManagedFolder],
         sessions: [TerminalSession],
+        selectedSessionID: UUID? = nil,
         to url: URL? = nil
     ) throws {
         let fileURL = url ?? defaultStateFileURL
         let dir = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        let state = PersistedState(folders: folders, sessions: sessions)
+        let state = PersistedState(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
@@ -60,15 +62,15 @@ enum PersistenceService {
 
     static func load(
         from url: URL? = nil
-    ) throws -> (folders: [ManagedFolder], sessions: [TerminalSession]) {
+    ) throws -> (folders: [ManagedFolder], sessions: [TerminalSession], selectedSessionID: UUID?) {
         let fileURL = url ?? defaultStateFileURL
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            return (folders: [], sessions: [])
+            return (folders: [], sessions: [], selectedSessionID: nil)
         }
         do {
             let data = try Data(contentsOf: fileURL)
             let state = try JSONDecoder().decode(PersistedState.self, from: data)
-            return (folders: state.folders, sessions: state.sessions)
+            return (folders: state.folders, sessions: state.sessions, selectedSessionID: state.selectedSessionID)
         } catch {
             throw PersistenceError.decodingFailed(error)
         }
