@@ -43,6 +43,12 @@ struct TermHubApp: App {
             }
 
             CommandGroup(after: .toolbar) {
+                Button("Command Palette") {
+                    appState.showCommandPalette.toggle()
+                }
+                .keyboardShortcut("p", modifiers: .command)
+
+
                 Button("Previous Session") {
                     appState.selectPreviousSession()
                 }

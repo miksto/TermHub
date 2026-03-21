@@ -20,6 +20,7 @@ final class AppState {
     var errorMessage: String?
     var showingAddFolder = false
     var showKeyboardShortcuts = false
+    var showCommandPalette = false
     var sessionsNeedingAttention: Set<UUID> = [] {
         didSet {
             NSApp.dockTile.badgeLabel = sessionsNeedingAttention.isEmpty

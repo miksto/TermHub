@@ -4,32 +4,40 @@ struct ContentView: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        VStack(spacing: 0) {
-            if !appState.tmuxAvailable {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                    Text("tmux not found — sessions won't persist across restarts")
+        ZStack {
+            VStack(spacing: 0) {
+                if !appState.tmuxAvailable {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                        Text("tmux not found — sessions won't persist across restarts")
+                    }
+                    .font(.callout)
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.85))
                 }
-                .font(.callout)
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-                .background(Color.orange.opacity(0.85))
+
+                NavigationSplitView {
+                    SidebarView()
+                } detail: {
+                    if appState.selectedSessionID != nil {
+                        TerminalContainerView(selectedSessionID: appState.selectedSessionID)
+                    } else {
+                        Text("Select or create a session")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+                .navigationSplitViewStyle(.balanced)
             }
 
-            NavigationSplitView {
-                SidebarView()
-            } detail: {
-                if appState.selectedSessionID != nil {
-                    TerminalContainerView(selectedSessionID: appState.selectedSessionID)
-                } else {
-                    Text("Select or create a session")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+            if appState.showCommandPalette {
+                CommandPaletteOverlay()
+                    .transition(.opacity)
             }
-            .navigationSplitViewStyle(.balanced)
         }
+        .animation(.easeOut(duration: 0.15), value: appState.showCommandPalette)
         .sheet(isPresented: Binding(
             get: { appState.showKeyboardShortcuts },
             set: { appState.showKeyboardShortcuts = $0 }

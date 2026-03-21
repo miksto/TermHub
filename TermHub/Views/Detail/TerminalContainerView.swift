@@ -17,13 +17,15 @@ struct TerminalContainerView: NSViewControllerRepresentable {
         let tmuxAvailable = appState.tmuxAvailable
         let sessions = appState.sessions
         let selectedID = selectedSessionID
+        let suppressFocus = appState.showCommandPalette
 
         DispatchQueue.main.async {
             controller.updateTerminals(
                 sessions: sessions,
                 selectedID: selectedID,
                 manager: manager,
-                tmuxAvailable: tmuxAvailable
+                tmuxAvailable: tmuxAvailable,
+                suppressFocus: suppressFocus
             )
         }
     }
@@ -42,7 +44,8 @@ class TerminalContainerViewController: NSViewController {
         sessions: [TerminalSession],
         selectedID: UUID?,
         manager: TerminalSessionManager,
-        tmuxAvailable: Bool
+        tmuxAvailable: Bool,
+        suppressFocus: Bool = false
     ) {
         for session in sessions {
             guard let terminal = manager.getOrCreateTerminal(for: session, tmuxAvailable: tmuxAvailable) else {
@@ -70,7 +73,9 @@ class TerminalContainerViewController: NSViewController {
             terminal.isHidden = !isSelected
             if isSelected {
                 manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
-                view.window?.makeFirstResponder(terminal)
+                if !suppressFocus {
+                    view.window?.makeFirstResponder(terminal)
+                }
             }
         }
 

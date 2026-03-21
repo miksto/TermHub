@@ -4,6 +4,7 @@ struct KeyboardShortcutsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private let shortcuts: [(description: String, keys: String)] = [
+        ("Command Palette", "⌘P"),
         ("New Shell in Current Folder", "⌘T"),
         ("Add Folder", "⌘N"),
         ("Close Session", "⌘W"),
@@ -42,6 +43,6 @@ struct KeyboardShortcutsSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .padding(.bottom, 20)
         }
-        .frame(width: 380, height: 280)
+        .frame(width: 380, height: 310)
     }
 }
