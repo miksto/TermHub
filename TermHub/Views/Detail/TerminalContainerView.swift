@@ -9,34 +9,44 @@ struct TerminalContainerView: NSViewControllerRepresentable {
     let selectedSessionID: UUID?
 
     func makeNSViewController(context: Context) -> TerminalContainerViewController {
-        TerminalContainerViewController()
+        TerminalContainerViewController(appState: appState)
     }
 
     func updateNSViewController(_ controller: TerminalContainerViewController, context: Context) {
-        let manager = appState.terminalManager
-        let tmuxAvailable = appState.tmuxAvailable
-        let sessions = appState.sessions
+        // Only read lightweight properties to control when SwiftUI triggers this method.
+        // Notably, we do NOT read appState.sessions here — title changes would cause
+        // unnecessary re-evaluations that interfere with terminal rendering during heavy output.
         let selectedID = selectedSessionID
-        let suppressInteraction = appState.showCommandPalette
+        let suppressInteraction = appState.showCommandPalette || appState.showSearchBar
+        let sessionListVersion = appState.sessionListVersion
+        let tmuxAvailable = appState.tmuxAvailable
 
-        DispatchQueue.main.async {
-            controller.updateTerminals(
-                sessions: sessions,
-                selectedID: selectedID,
-                manager: manager,
-                tmuxAvailable: tmuxAvailable,
-                suppressInteraction: suppressInteraction
-            )
-        }
+        controller.updateTerminals(
+            selectedID: selectedID,
+            tmuxAvailable: tmuxAvailable,
+            suppressInteraction: suppressInteraction,
+            sessionListVersion: sessionListVersion
+        )
     }
 }
 
 class TerminalContainerViewController: NSViewController {
     private let containerView = NSView()
-    private var lastSessionIDs: [UUID] = []
+    private let appState: AppState
+    private var lastSessionListVersion = -1
     private var lastSelectedID: UUID?
     private var lastTmuxAvailable: Bool?
     private var lastSuppressInteraction: Bool?
+
+    init(appState: AppState) {
+        self.appState = appState
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func loadView() {
         containerView.wantsLayer = true
@@ -45,22 +55,24 @@ class TerminalContainerViewController: NSViewController {
     }
 
     func updateTerminals(
-        sessions: [TerminalSession],
         selectedID: UUID?,
-        manager: TerminalSessionManager,
         tmuxAvailable: Bool,
-        suppressInteraction: Bool = false
+        suppressInteraction: Bool = false,
+        sessionListVersion: Int
     ) {
-        let sessionIDs = sessions.map(\.id)
-        let stateChanged = sessionIDs != lastSessionIDs
+        let stateChanged = sessionListVersion != lastSessionListVersion
             || selectedID != lastSelectedID
             || tmuxAvailable != lastTmuxAvailable
             || suppressInteraction != lastSuppressInteraction
         guard stateChanged else { return }
-        lastSessionIDs = sessionIDs
+        lastSessionListVersion = sessionListVersion
         lastSelectedID = selectedID
         lastTmuxAvailable = tmuxAvailable
         lastSuppressInteraction = suppressInteraction
+
+        // Read sessions from appState directly (not through SwiftUI observation).
+        let sessions = appState.sessions
+        let manager = appState.terminalManager
 
         for session in sessions {
             guard let terminal = manager.getOrCreateTerminal(for: session, tmuxAvailable: tmuxAvailable) else {
@@ -90,7 +102,10 @@ class TerminalContainerViewController: NSViewController {
             }
 
             let isSelected = session.id == selectedID
-            terminal.isHidden = !isSelected
+            let shouldHide = !isSelected
+            if terminal.isHidden != shouldHide {
+                terminal.isHidden = shouldHide
+            }
             if isSelected {
                 manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
                 if !suppressInteraction, view.window?.firstResponder !== terminal {

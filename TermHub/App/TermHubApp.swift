@@ -48,6 +48,11 @@ struct TermHubApp: App {
                 }
                 .keyboardShortcut("p", modifiers: .command)
 
+                Button("Find in Terminal") {
+                    appState.showSearchBar.toggle()
+                }
+                .keyboardShortcut("f", modifiers: .command)
+
 
                 Button("Previous Session") {
                     appState.selectPreviousSession()
@@ -58,6 +63,13 @@ struct TermHubApp: App {
                     appState.selectNextSession()
                 }
                 .keyboardShortcut(.downArrow, modifiers: [.command, .option])
+
+                ForEach(1...9, id: \.self) { number in
+                    Button("Session \(number)") {
+                        appState.selectSessionByIndex(number - 1)
+                    }
+                    .keyboardShortcut(KeyEquivalent(Character("\(number)")), modifiers: .command)
+                }
             }
         }
     }

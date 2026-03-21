@@ -95,4 +95,35 @@ enum GitService {
     static func removeWorktree(repoPath: String, worktreePath: String) throws {
         try run(["-C", repoPath, "worktree", "remove", "--force", worktreePath])
     }
+
+    static func isDirty(path: String) -> Bool {
+        do {
+            let output = try run(["-C", path, "status", "--porcelain"])
+            return !output.isEmpty
+        } catch {
+            return false
+        }
+    }
+
+    static func aheadBehind(path: String) -> (ahead: Int, behind: Int) {
+        do {
+            let output = try run(["-C", path, "rev-list", "--left-right", "--count", "HEAD...@{u}"])
+            let parts = output.split(separator: "\t")
+            guard parts.count == 2,
+                  let ahead = Int(parts[0].trimmingCharacters(in: .whitespaces)),
+                  let behind = Int(parts[1].trimmingCharacters(in: .whitespaces))
+            else {
+                return (0, 0)
+            }
+            return (ahead, behind)
+        } catch {
+            return (0, 0)
+        }
+    }
+
+    static func status(path: String) -> GitStatus {
+        let dirty = isDirty(path: path)
+        let (ahead, behind) = aheadBehind(path: path)
+        return GitStatus(isDirty: dirty, ahead: ahead, behind: behind)
+    }
 }

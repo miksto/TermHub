@@ -20,11 +20,6 @@ final class TerminalSessionManager {
         }
 
         let terminal = TermHubTerminalView(frame: .init(x: 0, y: 0, width: 800, height: 600))
-        if tmuxAvailable {
-            // tmux manages its own scrollback; disable SwiftTerm's local buffer
-            // to avoid redundant scrollback that can cause scroll position artifacts.
-            terminal.changeScrollback(0)
-        }
         let sessionID = session.id
         terminal.onBell = { [weak self] in
             Task { @MainActor in
@@ -85,6 +80,22 @@ final class TerminalSessionManager {
 
     func sessionID(for terminal: LocalProcessTerminalView) -> UUID? {
         terminals.first { $0.value === terminal }?.key
+    }
+
+    @discardableResult
+    func findNext(sessionID: UUID, term: String, options: SearchOptions = SearchOptions()) -> Bool {
+        guard let terminal = terminals[sessionID] else { return false }
+        return terminal.findNext(term, options: options)
+    }
+
+    @discardableResult
+    func findPrevious(sessionID: UUID, term: String, options: SearchOptions = SearchOptions()) -> Bool {
+        guard let terminal = terminals[sessionID] else { return false }
+        return terminal.findPrevious(term, options: options)
+    }
+
+    func clearSearch(sessionID: UUID) {
+        terminals[sessionID]?.clearSearch()
     }
 
     func destroyTerminal(for sessionID: UUID) {

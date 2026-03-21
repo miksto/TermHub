@@ -9,10 +9,13 @@ final class AppState {
     var sessions: [TerminalSession] = []
     var selectedSessionID: UUID? {
         didSet {
-            if let id = selectedSessionID, NSApp.isActive {
+            if showSearchBar {
+                showSearchBar = false
+            }
+            if let id = selectedSessionID, NSApp?.isActive == true {
                 sessionsNeedingAttention.remove(id)
             }
-            if !isLoading {
+            if !isLoading, selectedSessionID != nil {
                 saveState()
             }
         }
@@ -24,6 +27,10 @@ final class AppState {
     var showingAddFolder = false
     var showKeyboardShortcuts = false
     var showCommandPalette = false
+    var showSearchBar = false
+    /// Incremented only when sessions are added or removed (not on title/property changes).
+    /// Used by TerminalContainerView to avoid re-evaluation on every session mutation.
+    private(set) var sessionListVersion = 0
     var renamingSessionID: UUID?
     var sessionsNeedingAttention: Set<UUID> = [] {
         didSet {
@@ -32,6 +39,8 @@ final class AppState {
                 : "\(sessionsNeedingAttention.count)"
         }
     }
+    var gitStatuses: [String: GitStatus] = [:]
+    private var gitStatusTimer: Timer?
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
 
@@ -62,6 +71,8 @@ final class AppState {
         terminalManager.onTitleChange = { [weak self] sessionID, title in
             self?.handleTerminalTitleChange(sessionID: sessionID, title: title)
         }
+
+        startGitStatusPolling()
     }
 
     var selectedSession: TerminalSession? {
@@ -97,6 +108,7 @@ final class AppState {
         folders[folders.count - 1] = updated
 
         // tmux session is created lazily by TerminalSessionManager.startProcessIfNeeded
+        sessionListVersion += 1
         saveState()
 
         if selectedSessionID == nil {
@@ -142,6 +154,7 @@ final class AppState {
         }
 
         selectedSessionID = session.id
+        sessionListVersion += 1
         saveState()
     }
 
@@ -181,6 +194,7 @@ final class AppState {
             folders[i].sessionIDs.removeAll { $0 == id }
         }
 
+        sessionListVersion += 1
         if save { saveState() }
     }
 
@@ -250,6 +264,12 @@ final class AppState {
         if idx < ordered.count - 1 {
             selectedSessionID = ordered[idx + 1]
         }
+    }
+
+    func selectSessionByIndex(_ index: Int) {
+        let ordered = allSessionIDsOrdered
+        guard index >= 0, index < ordered.count else { return }
+        selectedSessionID = ordered[index]
     }
 
     func markNeedsAttention(sessionID: UUID) {
@@ -325,6 +345,52 @@ final class AppState {
         }
     }
 
+    func gitStatus(forFolderPath path: String) -> GitStatus? {
+        gitStatuses[path]
+    }
+
+    func gitStatus(forSession session: TerminalSession) -> GitStatus? {
+        if let worktreePath = session.worktreePath {
+            return gitStatuses[worktreePath]
+        }
+        guard let folder = folders.first(where: { $0.id == session.folderID }) else { return nil }
+        return gitStatuses[folder.path]
+    }
+
+    private func startGitStatusPolling() {
+        refreshGitStatuses()
+        gitStatusTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshGitStatuses()
+            }
+        }
+    }
+
+    private func refreshGitStatuses() {
+        var pathsToCheck: [String] = []
+        for folder in folders where folder.isGitRepo && folder.pathExists {
+            pathsToCheck.append(folder.path)
+        }
+        for session in sessions {
+            if let worktreePath = session.worktreePath {
+                pathsToCheck.append(worktreePath)
+            }
+        }
+        guard !pathsToCheck.isEmpty else { return }
+
+        let paths = pathsToCheck
+        Task.detached {
+            var statuses: [String: GitStatus] = [:]
+            for path in paths {
+                statuses[path] = GitService.status(path: path)
+            }
+            let result = statuses
+            await MainActor.run { @MainActor [weak self] in
+                self?.gitStatuses = result
+            }
+        }
+    }
+
     private func loadState() {
         isLoading = true
         defer { isLoading = false }
@@ -333,6 +399,7 @@ final class AppState {
             folders = state.folders
             sessions = state.sessions
             selectedSessionID = state.selectedSessionID
+            sessionListVersion += 1
         } catch {
             print("Failed to load state: \(error)")
         }
