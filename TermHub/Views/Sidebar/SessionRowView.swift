@@ -24,6 +24,7 @@ struct SessionRowView: View {
                     .focused($isTextFieldFocused)
                     .onExitCommand {
                         isRenaming = false
+                        appState.finishRenamingSession(id: session.id)
                     }
                 } else {
                     Text(session.title)
@@ -89,6 +90,7 @@ struct SessionRowView: View {
         editedTitle = session.title
         isRenaming = true
         isTextFieldFocused = true
+        appState.startRenamingSession(id: session.id)
     }
 
     private func commitRename() {
@@ -97,5 +99,6 @@ struct SessionRowView: View {
             appState.renameSession(id: session.id, newTitle: trimmed)
         }
         isRenaming = false
+        appState.finishRenamingSession(id: session.id)
     }
 }

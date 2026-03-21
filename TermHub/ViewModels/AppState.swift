@@ -21,6 +21,7 @@ final class AppState {
     var showingAddFolder = false
     var showKeyboardShortcuts = false
     var showCommandPalette = false
+    var renamingSessionID: UUID?
     var sessionsNeedingAttention: Set<UUID> = [] {
         didSet {
             NSApp.dockTile.badgeLabel = sessionsNeedingAttention.isEmpty
@@ -181,15 +182,28 @@ final class AppState {
 
     /// Only applies the title if the user hasn't manually renamed the session.
     /// Ignores empty titles (e.g. sent by programs on exit) to avoid clearing useful titles.
+    /// Skips updates while the user is actively renaming the session or if the title is unchanged.
     private func handleTerminalTitleChange(sessionID: UUID, title: String) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
+              renamingSessionID != sessionID,
               let session = sessions.first(where: { $0.id == sessionID }),
               !session.hasCustomTitle
         else { return }
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        guard sessions[index].title != trimmed else { return }
         sessions[index].title = trimmed
         saveState()
+    }
+
+    func startRenamingSession(id: UUID) {
+        renamingSessionID = id
+    }
+
+    func finishRenamingSession(id: UUID) {
+        if renamingSessionID == id {
+            renamingSessionID = nil
+        }
     }
 
     func renameSession(id: UUID, newTitle: String) {
