@@ -206,6 +206,17 @@ final class AppState {
         }
     }
 
+    func moveFolder(fromOffsets source: IndexSet, toOffset destination: Int) {
+        folders.move(fromOffsets: source, toOffset: destination)
+        saveState()
+    }
+
+    func moveSession(fromOffsets source: IndexSet, toOffset destination: Int, inFolderID folderID: UUID) {
+        guard let index = folders.firstIndex(where: { $0.id == folderID }) else { return }
+        folders[index].sessionIDs.move(fromOffsets: source, toOffset: destination)
+        saveState()
+    }
+
     func renameSession(id: UUID, newTitle: String) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions[index].title = newTitle

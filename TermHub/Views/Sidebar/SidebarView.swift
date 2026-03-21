@@ -16,6 +16,9 @@ struct SidebarView: View {
                         }
                     )
                 }
+                .onMove { from, to in
+                    appState.moveFolder(fromOffsets: from, toOffset: to)
+                }
             }
             .listStyle(.sidebar)
 

@@ -6,18 +6,18 @@ struct FolderSectionView: View {
     var onRequestRemoveFolder: () -> Void
 
     @State private var isExpanded = true
-    private var folderSessions: [TerminalSession] {
-        appState.sessions.filter { $0.folderID == folder.id }
-    }
 
     var body: some View {
         Section(isExpanded: $isExpanded) {
-            ForEach(folderSessions) { session in
-                SessionRowView(session: session, onRemove: {
-                    appState.removeSession(id: session.id)
+            ForEach(folder.sessionIDs, id: \.self) { sessionID in
+                SessionRowView(sessionID: sessionID, onRemove: {
+                    appState.removeSession(id: sessionID)
                 })
-                .tag(session.id)
+                .tag(sessionID)
                 .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
+            }
+            .onMove { from, to in
+                appState.moveSession(fromOffsets: from, toOffset: to, inFolderID: folder.id)
             }
 
             // Action buttons row below sessions
@@ -59,6 +59,7 @@ struct FolderSectionView: View {
                     .controlSize(.small)
                 }
             }
+            .moveDisabled(true)
             .padding(.top, 2)
             .listRowInsets(EdgeInsets(top: 0, leading: 28, bottom: 0, trailing: 0))
         } header: {
