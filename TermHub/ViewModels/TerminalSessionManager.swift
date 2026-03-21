@@ -20,6 +20,11 @@ final class TerminalSessionManager {
         }
 
         let terminal = TermHubTerminalView(frame: .init(x: 0, y: 0, width: 800, height: 600))
+        if tmuxAvailable {
+            // tmux manages its own scrollback; disable SwiftTerm's local buffer
+            // to avoid redundant scrollback that can cause scroll position artifacts.
+            terminal.changeScrollback(0)
+        }
         let sessionID = session.id
         terminal.onBell = { [weak self] in
             Task { @MainActor in

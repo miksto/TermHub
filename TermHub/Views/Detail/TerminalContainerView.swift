@@ -33,6 +33,10 @@ struct TerminalContainerView: NSViewControllerRepresentable {
 
 class TerminalContainerViewController: NSViewController {
     private let containerView = NSView()
+    private var lastSessionIDs: [UUID] = []
+    private var lastSelectedID: UUID?
+    private var lastTmuxAvailable: Bool?
+    private var lastSuppressInteraction: Bool?
 
     override func loadView() {
         containerView.wantsLayer = true
@@ -47,6 +51,17 @@ class TerminalContainerViewController: NSViewController {
         tmuxAvailable: Bool,
         suppressInteraction: Bool = false
     ) {
+        let sessionIDs = sessions.map(\.id)
+        let stateChanged = sessionIDs != lastSessionIDs
+            || selectedID != lastSelectedID
+            || tmuxAvailable != lastTmuxAvailable
+            || suppressInteraction != lastSuppressInteraction
+        guard stateChanged else { return }
+        lastSessionIDs = sessionIDs
+        lastSelectedID = selectedID
+        lastTmuxAvailable = tmuxAvailable
+        lastSuppressInteraction = suppressInteraction
+
         for session in sessions {
             guard let terminal = manager.getOrCreateTerminal(for: session, tmuxAvailable: tmuxAvailable) else {
                 continue
@@ -78,7 +93,7 @@ class TerminalContainerViewController: NSViewController {
             terminal.isHidden = !isSelected
             if isSelected {
                 manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
-                if !suppressInteraction {
+                if !suppressInteraction, view.window?.firstResponder !== terminal {
                     view.window?.makeFirstResponder(terminal)
                 }
             }
