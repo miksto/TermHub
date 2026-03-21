@@ -47,6 +47,12 @@ struct SessionRowView: View {
                     }
                 }
                 Spacer()
+                if let status = appState.gitStatus(forSession: session), status.isDirty {
+                    Circle()
+                        .fill(.orange)
+                        .frame(width: 8, height: 8)
+                        .help("Uncommitted changes")
+                }
                 if appState.sessionsNeedingAttention.contains(sessionID) {
                     Circle()
                         .fill(.red)

@@ -7,6 +7,13 @@ struct FolderSectionView: View {
 
     @State private var isExpanded = true
 
+    private func aheadBehindText(_ status: GitStatus) -> String {
+        var parts: [String] = []
+        if status.ahead > 0 { parts.append("↑\(status.ahead)") }
+        if status.behind > 0 { parts.append("↓\(status.behind)") }
+        return parts.joined(separator: " ")
+    }
+
     var body: some View {
         Section(isExpanded: $isExpanded) {
             ForEach(folder.sessionIDs, id: \.self) { sessionID in
@@ -70,6 +77,17 @@ struct FolderSectionView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.yellow)
                         .help("Folder path no longer exists: \(folder.path)")
+                }
+                if folder.isGitRepo, let status = appState.gitStatus(forFolderPath: folder.path) {
+                    Circle()
+                        .fill(status.isDirty ? .orange : .green)
+                        .frame(width: 8, height: 8)
+                        .help(status.isDirty ? "Uncommitted changes" : "Clean")
+                    if status.ahead > 0 || status.behind > 0 {
+                        Text(aheadBehindText(status))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
             }
