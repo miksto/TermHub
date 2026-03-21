@@ -35,6 +35,13 @@ struct TermHubApp: App {
                 .disabled(appState.selectedSession == nil)
             }
 
+            CommandGroup(replacing: .help) {
+                Button("Keyboard Shortcuts") {
+                    appState.showKeyboardShortcuts = true
+                }
+                .keyboardShortcut("k", modifiers: [.command, .shift])
+            }
+
             CommandGroup(after: .toolbar) {
                 Button("Previous Session") {
                     appState.selectPreviousSession()

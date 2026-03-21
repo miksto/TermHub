@@ -30,6 +30,12 @@ struct ContentView: View {
             }
             .navigationSplitViewStyle(.balanced)
         }
+        .sheet(isPresented: Binding(
+            get: { appState.showKeyboardShortcuts },
+            set: { appState.showKeyboardShortcuts = $0 }
+        )) {
+            KeyboardShortcutsSheet()
+        }
         .alert(
             "Error",
             isPresented: Binding(

@@ -19,6 +19,7 @@ final class AppState {
     var pendingNewBranchFolder: ManagedFolder?
     var errorMessage: String?
     var showingAddFolder = false
+    var showKeyboardShortcuts = false
     var sessionsNeedingAttention: Set<UUID> = [] {
         didSet {
             NSApp.dockTile.badgeLabel = sessionsNeedingAttention.isEmpty

@@ -27,6 +27,7 @@
 		870E7673914A54A99132975A /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503B8C574CFDAB867E3DA066 /* AppStateTests.swift */; };
 		952771C820508D521A3947CE /* TmuxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C94FFFD305685DF84F204 /* TmuxService.swift */; };
 		9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C5380DC16B45138FCB73AA /* FolderSectionView.swift */; };
+		BA1CA5ACCDAAEA3E158B39C8 /* KeyboardShortcutsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */; };
 		C6DA5396377DE1E72E2DFE62 /* TermHubTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */; };
 		D31094FDAF7E04158A12E36A /* TerminalSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */; };
 		F62CE910810C831E5EB25298 /* ManagedFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */; };
@@ -70,6 +71,7 @@
 		CE9636C089AF563FC8C56018 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		E0AC5E3E087609AE1FC208DC /* TermHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TermHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E184F75BBAEAD51F534B2DA4 /* GitServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitServiceTests.swift; sourceTree = "<group>"; };
+		E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsSheet.swift; sourceTree = "<group>"; };
 		F429369FC6F6D0A32E72B81C /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		FE2D21CC5CCB192AA60F30B9 /* TerminalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSession.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -90,6 +92,7 @@
 			isa = PBXGroup;
 			children = (
 				65DA0695D1865124B38B0457 /* BranchPickerSheet.swift */,
+				E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */,
 				53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */,
 			);
 			path = Sheets;
@@ -312,6 +315,7 @@
 				1DAB698DEF6120695A01F8DC /* DoubleClickView.swift in Sources */,
 				9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */,
 				5DFB49734D63E711E22CAC08 /* GitService.swift in Sources */,
+				BA1CA5ACCDAAEA3E158B39C8 /* KeyboardShortcutsSheet.swift in Sources */,
 				54C04030545ACD76203F4E45 /* ManagedFolder.swift in Sources */,
 				21E8FE21B4A9CEB20CA876BD /* NewBranchSheet.swift in Sources */,
 				443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */,
