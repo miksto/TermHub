@@ -3,6 +3,8 @@ import SwiftTerm
 
 class TermHubTerminalView: LocalProcessTerminalView {
     var onBell: (() -> Void)?
+    /// When true, scroll events are consumed and not forwarded to the terminal.
+    var blockScrollEvents = false
     private nonisolated(unsafe) var flagsMonitor: Any?
     private nonisolated(unsafe) var scrollMonitor: Any?
 
@@ -38,6 +40,11 @@ class TermHubTerminalView: LocalProcessTerminalView {
             // Check that the scroll is over this terminal view.
             let locationInView = self.convert(event.locationInWindow, from: nil)
             guard self.bounds.contains(locationInView) else { return event }
+
+            // When the command palette is open, skip all terminal scroll handling.
+            // Return the event so AppKit's normal hit-testing can route it to the
+            // SwiftUI ScrollView in the palette overlay (which is on top in the ZStack).
+            if self.blockScrollEvents { return event }
 
             guard event.deltaY != 0 else { return event }
 

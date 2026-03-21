@@ -17,7 +17,7 @@ struct TerminalContainerView: NSViewControllerRepresentable {
         let tmuxAvailable = appState.tmuxAvailable
         let sessions = appState.sessions
         let selectedID = selectedSessionID
-        let suppressFocus = appState.showCommandPalette
+        let suppressInteraction = appState.showCommandPalette
 
         DispatchQueue.main.async {
             controller.updateTerminals(
@@ -25,7 +25,7 @@ struct TerminalContainerView: NSViewControllerRepresentable {
                 selectedID: selectedID,
                 manager: manager,
                 tmuxAvailable: tmuxAvailable,
-                suppressFocus: suppressFocus
+                suppressInteraction: suppressInteraction
             )
         }
     }
@@ -45,7 +45,7 @@ class TerminalContainerViewController: NSViewController {
         selectedID: UUID?,
         manager: TerminalSessionManager,
         tmuxAvailable: Bool,
-        suppressFocus: Bool = false
+        suppressInteraction: Bool = false
     ) {
         for session in sessions {
             guard let terminal = manager.getOrCreateTerminal(for: session, tmuxAvailable: tmuxAvailable) else {
@@ -69,11 +69,16 @@ class TerminalContainerViewController: NSViewController {
                 terminal.nativeForegroundColor = NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
             }
 
+            // Block scroll events on the terminal when the palette is open
+            if let hubTerminal = terminal as? TermHubTerminalView {
+                hubTerminal.blockScrollEvents = suppressInteraction
+            }
+
             let isSelected = session.id == selectedID
             terminal.isHidden = !isSelected
             if isSelected {
                 manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
-                if !suppressFocus {
+                if !suppressInteraction {
                     view.window?.makeFirstResponder(terminal)
                 }
             }
