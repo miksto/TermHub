@@ -33,6 +33,7 @@ final class AppState {
     /// Used by TerminalContainerView to avoid re-evaluation on every session mutation.
     private(set) var sessionListVersion = 0
     var renamingSessionID: UUID?
+    var renamingEditText: String = ""
     var sessionsNeedingAttention: Set<UUID> = [] {
         didSet {
             NSApp.dockTile.badgeLabel = sessionsNeedingAttention.isEmpty
@@ -273,12 +274,16 @@ final class AppState {
     }
 
     func startRenamingSession(id: UUID) {
+        if let session = sessions.first(where: { $0.id == id }) {
+            renamingEditText = session.title
+        }
         renamingSessionID = id
     }
 
     func finishRenamingSession(id: UUID) {
         if renamingSessionID == id {
             renamingSessionID = nil
+            renamingEditText = ""
         }
     }
 
@@ -293,6 +298,7 @@ final class AppState {
         sessions[index].title = newTitle
         displayStates[id]?.title = newTitle
         sessions[index].hasCustomTitle = true
+        displayStates[id]?.title = newTitle
         saveState()
     }
 

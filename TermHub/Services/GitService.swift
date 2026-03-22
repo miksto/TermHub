@@ -67,6 +67,37 @@ enum GitService {
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }
     }
 
+    static func currentBranch(repoPath: String) -> String? {
+        guard let output = try? run(["-C", repoPath, "symbolic-ref", "--short", "HEAD"]),
+              !output.isEmpty else {
+            return nil
+        }
+        return output
+    }
+
+    static func listBranchesWithDates(repoPath: String) throws -> [(branch: String, date: Date)] {
+        let output = try run([
+            "-C", repoPath,
+            "for-each-ref",
+            "--sort=-committerdate",
+            "--format=%(refname:short)\t%(committerdate:iso8601)",
+            "refs/heads/",
+        ])
+        guard !output.isEmpty else { return [] }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+
+        return output.components(separatedBy: "\n").compactMap { line in
+            let parts = line.split(separator: "\t", maxSplits: 1)
+            guard parts.count == 2,
+                  let date = formatter.date(from: String(parts[1]))
+            else { return nil }
+            return (branch: String(parts[0]), date: date)
+        }
+    }
+
     /// Sanitizes a branch name by replacing slashes with dashes for use in file paths.
     static func sanitizeBranchName(_ branch: String) -> String {
         branch.replacingOccurrences(of: "/", with: "-")

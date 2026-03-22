@@ -114,3 +114,44 @@ struct GitServiceTests {
         #expect(GitService.parseWorktreeList(output, branch: "detached") == nil)
     }
 }
+
+@Suite("BranchInfo Tests")
+struct BranchInfoTests {
+    private func makeBranch(name: String) -> BranchInfo {
+        BranchInfo(name: name, lastCommitDate: Date(), isCurrentBranch: false, hasActiveSession: false)
+    }
+
+    @Test("prefix returns nil for simple branch names")
+    func prefixNilForSimple() {
+        #expect(makeBranch(name: "main").prefix == nil)
+        #expect(makeBranch(name: "develop").prefix == nil)
+    }
+
+    @Test("prefix returns everything up to and including last slash")
+    func prefixIncludesSlash() {
+        #expect(makeBranch(name: "feature/login").prefix == "feature/")
+        #expect(makeBranch(name: "release/v2.0/rc1").prefix == "release/v2.0/")
+    }
+
+    @Test("leafName returns part after last slash")
+    func leafNameAfterSlash() {
+        #expect(makeBranch(name: "feature/login").leafName == "login")
+        #expect(makeBranch(name: "release/v2.0/rc1").leafName == "rc1")
+    }
+
+    @Test("leafName returns full name when no slash")
+    func leafNameNoSlash() {
+        #expect(makeBranch(name: "main").leafName == "main")
+    }
+
+    @Test("relativeDate returns a non-empty string")
+    func relativeDateNonEmpty() {
+        let branch = BranchInfo(
+            name: "test",
+            lastCommitDate: Date().addingTimeInterval(-86400),
+            isCurrentBranch: false,
+            hasActiveSession: false
+        )
+        #expect(!branch.relativeDate.isEmpty)
+    }
+}

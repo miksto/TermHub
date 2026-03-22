@@ -25,6 +25,7 @@
 		443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
 		4D0062BE42AE108A8D2A22FE /* WorktreeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */; };
 		4F840D4B9206FEAD40353FB2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 189B8C6AC49B8C82A724EC59 /* Assets.xcassets */; };
+		51D692A095F5EDEB41E4963A /* BranchInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FCD6AEA3D27254627DCB74 /* BranchInfo.swift */; };
 		53D8F6199FA9053BF347F6C9 /* GitDiffParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB18E599834BFB7B2F489CB6 /* GitDiffParserTests.swift */; };
 		54C04030545ACD76203F4E45 /* ManagedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */; };
 		5812F2FE76E7B03FD230223C /* TerminalContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */; };
@@ -73,6 +74,7 @@
 		2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolder.swift; sourceTree = "<group>"; };
 		309C94FFFD305685DF84F204 /* TmuxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxService.swift; sourceTree = "<group>"; };
 		35E16A5970DB7655DECDB85E /* DoubleClickView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleClickView.swift; sourceTree = "<group>"; };
+		35FCD6AEA3D27254627DCB74 /* BranchInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchInfo.swift; sourceTree = "<group>"; };
 		3C8A71DCEDDF41556161E6B8 /* GitStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitStatus.swift; sourceTree = "<group>"; };
 		3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionTests.swift; sourceTree = "<group>"; };
 		4B36A08544BDCA24B09F7F72 /* FuzzyMatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatch.swift; sourceTree = "<group>"; };
@@ -263,6 +265,7 @@
 		FA26D23AFE7F5CBDDCAE007C /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				35FCD6AEA3D27254627DCB74 /* BranchInfo.swift */,
 				E1013B2E11F22771C770C920 /* DetailTab.swift */,
 				DC97B1440980E92FE85562A7 /* GitDiff.swift */,
 				3C8A71DCEDDF41556161E6B8 /* GitStatus.swift */,
@@ -365,6 +368,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3ABEE09ECFA59D8269E25998 /* AppState.swift in Sources */,
+				51D692A095F5EDEB41E4963A /* BranchInfo.swift in Sources */,
 				11031E9388A57B9722E570AC /* BranchPickerSheet.swift in Sources */,
 				183B17FD893A5DBE32155EBE /* CommandPaletteOverlay.swift in Sources */,
 				B3051C5B1DD678028A3D3CB6 /* CommandPaletteRowView.swift in Sources */,
