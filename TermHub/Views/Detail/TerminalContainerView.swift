@@ -47,6 +47,7 @@ class TerminalContainerViewController: NSViewController {
     private var diffScrollView: NSScrollView?
     private var diffDelegate: DiffTableDelegate?
     private var diffEmptyStateView: NSTextField?
+    private var wrapToggleButton: NSButton?
     private var lastDetailTab: DetailTab = .terminal
     private var contentTopToTabBar: NSLayoutConstraint!
     private var contentTopToRoot: NSLayoutConstraint!
@@ -129,7 +130,7 @@ class TerminalContainerViewController: NSViewController {
         scrollView.drawsBackground = false
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
-        let tableView = NSTableView()
+        let tableView = ArrowCursorTableView()
         tableView.style = .plain
         tableView.backgroundColor = .clear
         tableView.headerView = nil
@@ -171,6 +172,29 @@ class TerminalContainerViewController: NSViewController {
         ])
         self.diffEmptyStateView = emptyLabel
 
+        // Line wrap toggle button
+        let wrapButton = NSButton()
+        wrapButton.image = NSImage(systemSymbolName: "arrow.turn.down.left", accessibilityDescription: "Toggle line wrapping")
+        wrapButton.imagePosition = .imageOnly
+        wrapButton.bezelStyle = .accessoryBarAction
+        wrapButton.isBordered = false
+        wrapButton.wantsLayer = true
+        wrapButton.layer?.cornerRadius = 4
+        wrapButton.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.6).cgColor
+        wrapButton.contentTintColor = .white
+        wrapButton.toolTip = "Toggle line wrapping"
+        wrapButton.target = self
+        wrapButton.action = #selector(toggleLineWrapping)
+        wrapButton.translatesAutoresizingMaskIntoConstraints = false
+        diffContainer.addSubview(wrapButton)
+        NSLayoutConstraint.activate([
+            wrapButton.topAnchor.constraint(equalTo: diffContainer.topAnchor, constant: 3),
+            wrapButton.trailingAnchor.constraint(equalTo: diffContainer.trailingAnchor, constant: -6),
+            wrapButton.widthAnchor.constraint(equalToConstant: 28),
+            wrapButton.heightAnchor.constraint(equalToConstant: 22),
+        ])
+        self.wrapToggleButton = wrapButton
+
         // Observe frame changes for side-by-side mode switching
         scrollView.postsFrameChangedNotifications = true
         NotificationCenter.default.addObserver(
@@ -192,10 +216,33 @@ class TerminalContainerViewController: NSViewController {
 
     @objc private func diffFrameChanged() {
         guard let delegate = diffDelegate, let scrollView = diffScrollView else { return }
-        let newSideBySide = scrollView.frame.width >= 800
-        guard newSideBySide != delegate.isSideBySide else { return }
-        delegate.rebuildRows(for: scrollView.frame.width)
-        (scrollView.documentView as? NSTableView)?.reloadData()
+        let width = scrollView.frame.width
+        let newSideBySide = width >= 800
+        if newSideBySide != delegate.isSideBySide {
+            delegate.rebuildRows(for: width)
+            (scrollView.documentView as? NSTableView)?.reloadData()
+        } else if delegate.lineWrapping, abs(width - delegate.lastWidth) > 1 {
+            delegate.lastWidth = width
+            delegate.invalidateHeightCache()
+            if let tableView = scrollView.documentView as? NSTableView, delegate.rows.count > 0 {
+                tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integersIn: 0..<delegate.rows.count))
+            }
+        }
+    }
+
+    @objc private func toggleLineWrapping() {
+        guard let delegate = diffDelegate, let scrollView = diffScrollView,
+              let tableView = scrollView.documentView as? NSTableView else { return }
+        delegate.lineWrapping.toggle()
+        delegate.invalidateHeightCache()
+
+        let active = delegate.lineWrapping
+        wrapToggleButton?.contentTintColor = active ? .white : .secondaryLabelColor
+        wrapToggleButton?.layer?.backgroundColor = (active
+            ? NSColor.controlAccentColor.withAlphaComponent(0.6)
+            : NSColor.white.withAlphaComponent(0.06)).cgColor
+
+        tableView.reloadData()
     }
 
     /// Syncs tab/diff state. Called from updateTerminals and from tab bar button actions.
@@ -465,3 +512,10 @@ class DetailTabBarNSView: NSView {
         return nil
     }
 }
+
+private class ArrowCursorTableView: NSTableView {
+    override func resetCursorRects() {
+        addCursorRect(visibleRect, cursor: .arrow)
+    }
+}
+

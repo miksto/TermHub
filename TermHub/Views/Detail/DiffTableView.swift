@@ -195,9 +195,14 @@ struct DiffTableView: NSViewRepresentable {
             guard let delegate, let scrollView else { return }
             let width = scrollView.frame.width
             let newSideBySide = width >= 800
-            guard newSideBySide != delegate.isSideBySide else { return }
-            delegate.rebuildRows(for: width)
-            tableView.reloadData()
+            if newSideBySide != delegate.isSideBySide {
+                delegate.rebuildRows(for: width)
+                tableView.reloadData()
+            } else if delegate.lineWrapping, abs(width - delegate.lastWidth) > 1 {
+                delegate.lastWidth = width
+                delegate.invalidateHeightCache()
+                tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integersIn: 0..<delegate.rows.count))
+            }
         }
 
         deinit {
@@ -216,10 +221,59 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     var rows: [DiffRow] = []
     var isSideBySide: Bool = false
     var lastDiff: GitDiff = .empty
+    var lastWidth: CGFloat = 0
+    var lineWrapping: Bool = true
+    /// Cached row heights keyed by row index, invalidated on width/row changes.
+    private var heightCache: [Int: CGFloat] = [:]
 
     func rebuildRows(for width: CGFloat) {
+        lastWidth = width
         isSideBySide = width >= 800
         rows = DiffRowBuilder.buildRows(from: diff, sideBySide: isSideBySide)
+        heightCache.removeAll(keepingCapacity: true)
+    }
+
+    func invalidateHeightCache() {
+        heightCache.removeAll(keepingCapacity: true)
+    }
+
+    private func unifiedContentWidth() -> CGFloat {
+        lastWidth - DiffMetrics.gutterWidth * 2 - DiffMetrics.prefixWidth - 4
+    }
+
+    private func sideBySideContentWidth() -> CGFloat {
+        floor(lastWidth / 2) - DiffMetrics.gutterWidth - DiffMetrics.prefixWidth - 4
+    }
+
+    /// Fast check: does this line fit in one row without wrapping?
+    private func fitsInSingleLine(_ content: String, contentWidth: CGFloat) -> Bool {
+        CGFloat(content.count) * DiffFonts.monoCharWidth <= contentWidth
+    }
+
+    private func heightForUnifiedLine(_ line: DiffLine, row: Int) -> CGFloat {
+        let contentWidth = unifiedContentWidth()
+        if fitsInSingleLine(line.content, contentWidth: contentWidth) {
+            return DiffMetrics.lineRowHeight
+        }
+        if let cached = heightCache[row] { return cached }
+        let h = DiffDrawing.wrappedTextHeight(line.content, width: contentWidth, font: DiffFonts.mono)
+        heightCache[row] = h
+        return h
+    }
+
+    private func heightForSideBySideLine(old: DiffLine?, new: DiffLine?, row: Int) -> CGFloat {
+        let contentWidth = sideBySideContentWidth()
+        let oldFits = old.map { fitsInSingleLine($0.content, contentWidth: contentWidth) } ?? true
+        let newFits = new.map { fitsInSingleLine($0.content, contentWidth: contentWidth) } ?? true
+        if oldFits && newFits {
+            return DiffMetrics.lineRowHeight
+        }
+        if let cached = heightCache[row] { return cached }
+        let oldHeight = old.map { DiffDrawing.wrappedTextHeight($0.content, width: contentWidth, font: DiffFonts.mono) } ?? DiffMetrics.lineRowHeight
+        let newHeight = new.map { DiffDrawing.wrappedTextHeight($0.content, width: contentWidth, font: DiffFonts.mono) } ?? DiffMetrics.lineRowHeight
+        let h = max(oldHeight, newHeight)
+        heightCache[row] = h
+        return h
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int {
@@ -235,7 +289,10 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         switch rows[row].kind {
         case .fileHeader: DiffMetrics.fileHeaderRowHeight
         case .hunkHeader: DiffMetrics.hunkHeaderRowHeight
-        case .unifiedLine, .sideBySideLine: DiffMetrics.lineRowHeight
+        case .unifiedLine(let line):
+            lineWrapping ? heightForUnifiedLine(line, row: row) : DiffMetrics.lineRowHeight
+        case .sideBySideLine(let old, let new):
+            lineWrapping ? heightForSideBySideLine(old: old, new: new, row: row) : DiffMetrics.lineRowHeight
         case .fileSeparator: DiffMetrics.separatorRowHeight
         }
     }
@@ -265,6 +322,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
             let cell = tableView.makeView(withIdentifier: id, owner: nil) as? UnifiedLineDrawView
                 ?? UnifiedLineDrawView(identifier: id)
             cell.line = line
+            cell.lineWrapping = lineWrapping
             cell.needsDisplay = true
             return cell
 
@@ -274,6 +332,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
                 ?? SideBySideLineDrawView(identifier: id)
             cell.oldLine = old
             cell.newLine = new
+            cell.lineWrapping = lineWrapping
             cell.needsDisplay = true
             return cell
 
@@ -348,34 +407,68 @@ private enum DiffFonts {
         ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
     static let monoMedium = NSFont(name: "Source Code Pro Medium", size: 12)
         ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+    /// Width of a single character in the monospace font, used for fast "will this line wrap?" checks.
+    static let monoCharWidth: CGFloat = ("M" as NSString).size(withAttributes: [.font: mono]).width
+    /// Height of a single line of text in the monospace font.
+    static let monoLineHeight: CGFloat = ("Xg" as NSString).boundingRect(
+        with: NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
+        options: [.usesLineFragmentOrigin],
+        attributes: [.font: mono]
+    ).height
 }
 
 // MARK: - Draw Helpers
 
 @MainActor
 private enum DiffDrawing {
-    static func drawGutterText(_ text: String, in rect: NSRect, font: NSFont, color: NSColor) {
+    static func drawGutterText(_ text: String, in rect: NSRect, font: NSFont, color: NSColor, wrap: Bool) {
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
         let size = (text as NSString).size(withAttributes: attrs)
-        let y = rect.midY - size.height / 2
+        let y = wrap ? rect.minY + 2 : rect.midY - size.height / 2
         // Right-align within rect with 4pt padding
         let x = rect.maxX - size.width - 4
         (text as NSString).draw(at: NSPoint(x: max(rect.minX, x), y: y), withAttributes: attrs)
     }
 
-    static func drawText(_ text: String, in rect: NSRect, font: NSFont, color: NSColor, centered: Bool = false) {
+    static func wrappedTextHeight(_ text: String, width: CGFloat, font: NSFont) -> CGFloat {
+        guard width > 0 else { return DiffMetrics.lineRowHeight }
+        let attrs: [NSAttributedString.Key: Any] = [.font: font]
+        let rect = (text as NSString).boundingRect(
+            with: NSSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin],
+            attributes: attrs
+        )
+        // If it fits in a single line, return the standard row height
+        if rect.height <= DiffFonts.monoLineHeight + 1 {
+            return DiffMetrics.lineRowHeight
+        }
+        return ceil(rect.height)
+    }
+
+    static func drawText(
+        _ text: String, in rect: NSRect, font: NSFont, color: NSColor,
+        centered: Bool = false, wrap: Bool = false
+    ) {
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
         let size = (text as NSString).size(withAttributes: attrs)
-        let y = rect.midY - size.height / 2
-        let x = centered ? rect.midX - size.width / 2 : rect.minX
-        (text as NSString).draw(
-            in: NSRect(x: x, y: y, width: rect.width - (x - rect.minX), height: size.height),
-            withAttributes: attrs
-        )
+        if centered {
+            let y = wrap ? rect.minY + 2 : rect.midY - size.height / 2
+            let x = rect.midX - size.width / 2
+            (text as NSString).draw(at: NSPoint(x: x, y: y), withAttributes: attrs)
+        } else if wrap {
+            let drawRect = NSRect(x: rect.minX, y: rect.minY + 2, width: rect.width, height: rect.height - 2)
+            (text as NSString).draw(with: drawRect, options: [.usesLineFragmentOrigin], attributes: attrs)
+        } else {
+            let y = rect.midY - size.height / 2
+            (text as NSString).draw(
+                in: NSRect(x: rect.minX, y: y, width: rect.width, height: size.height),
+                withAttributes: attrs
+            )
+        }
     }
 
     static func drawLineSide(
-        line: DiffLine?, isOld: Bool, in rect: NSRect, font: NSFont, gutterFont: NSFont
+        line: DiffLine?, isOld: Bool, in rect: NSRect, font: NSFont, gutterFont: NSFont, wrap: Bool
     ) {
         let gw = DiffMetrics.gutterWidth
         let pw = DiffMetrics.prefixWidth
@@ -403,14 +496,14 @@ private enum DiffDrawing {
             // Gutter text
             let lineNum = isOld ? line.oldLineNumber : line.newLineNumber
             if let num = lineNum {
-                drawGutterText(String(num), in: gutterRect, font: gutterFont, color: DiffColors.gutterFg)
+                drawGutterText(String(num), in: gutterRect, font: gutterFont, color: DiffColors.gutterFg, wrap: wrap)
             }
 
             // Prefix
-            drawText(DiffColors.prefix(for: line.type), in: prefixRect, font: font, color: fg, centered: true)
+            drawText(DiffColors.prefix(for: line.type), in: prefixRect, font: font, color: fg, centered: true, wrap: wrap)
 
             // Content
-            drawText(line.content, in: contentRect, font: font, color: fg)
+            drawText(line.content, in: contentRect, font: font, color: fg, wrap: wrap)
         } else {
             // Empty side
             DiffColors.contextGutterBg.setFill()
@@ -447,7 +540,9 @@ private class FileHeaderDrawView: NSView {
         ]
         let pathSize = (file.displayPath as NSString).size(withAttributes: pathAttrs)
         let pathY = bounds.midY - pathSize.height / 2
-        let pathRect = NSRect(x: 12, y: pathY, width: bounds.width - 120, height: pathSize.height)
+        // Right margin accounts for the floating wrap toggle button
+        let rightMargin: CGFloat = 46
+        let pathRect = NSRect(x: 12, y: pathY, width: bounds.width - 120 - rightMargin, height: pathSize.height)
         (file.displayPath as NSString).draw(with: pathRect, options: [.truncatesLastVisibleLine, .usesLineFragmentOrigin], attributes: pathAttrs)
 
         // Stats
@@ -459,7 +554,7 @@ private class FileHeaderDrawView: NSView {
             let text = "Binary"
             let size = (text as NSString).size(withAttributes: attrs)
             (text as NSString).draw(
-                at: NSPoint(x: bounds.maxX - size.width - 12, y: bounds.midY - size.height / 2),
+                at: NSPoint(x: bounds.maxX - size.width - rightMargin, y: bounds.midY - size.height / 2),
                 withAttributes: attrs
             )
         } else {
@@ -476,7 +571,7 @@ private class FileHeaderDrawView: NSView {
             let addedSize = (addedStr as NSString).size(withAttributes: addedAttrs)
             let deletedSize = (deletedStr as NSString).size(withAttributes: deletedAttrs)
             let totalWidth = addedSize.width + deletedSize.width
-            let startX = bounds.maxX - totalWidth - 12
+            let startX = bounds.maxX - totalWidth - rightMargin
             let y = bounds.midY - addedSize.height / 2
 
             (addedStr as NSString).draw(at: NSPoint(x: startX, y: y), withAttributes: addedAttrs)
@@ -520,6 +615,7 @@ private class HunkHeaderDrawView: NSView {
 
 private class UnifiedLineDrawView: NSView {
     var line: DiffLine?
+    var lineWrapping: Bool = false
 
     init(identifier: NSUserInterfaceItemIdentifier) {
         super.init(frame: .zero)
@@ -536,6 +632,7 @@ private class UnifiedLineDrawView: NSView {
         let pw = DiffMetrics.prefixWidth
         let font = DiffFonts.mono
         let fg = DiffColors.foreground(for: line.type)
+        let wrap = lineWrapping
 
         // Line background
         let bg = DiffColors.background(for: line.type)
@@ -549,7 +646,7 @@ private class UnifiedLineDrawView: NSView {
         DiffColors.gutterBackground(for: line.type).setFill()
         oldGutterRect.fill()
         if let num = line.oldLineNumber {
-            DiffDrawing.drawGutterText(String(num), in: oldGutterRect, font: font, color: DiffColors.gutterFg)
+            DiffDrawing.drawGutterText(String(num), in: oldGutterRect, font: font, color: DiffColors.gutterFg, wrap: wrap)
         }
 
         // New gutter background + text
@@ -557,17 +654,17 @@ private class UnifiedLineDrawView: NSView {
         DiffColors.gutterBackground(for: line.type).setFill()
         newGutterRect.fill()
         if let num = line.newLineNumber {
-            DiffDrawing.drawGutterText(String(num), in: newGutterRect, font: font, color: DiffColors.gutterFg)
+            DiffDrawing.drawGutterText(String(num), in: newGutterRect, font: font, color: DiffColors.gutterFg, wrap: wrap)
         }
 
         // Prefix
         let prefixRect = NSRect(x: gw * 2, y: 0, width: pw, height: bounds.height)
-        DiffDrawing.drawText(DiffColors.prefix(for: line.type), in: prefixRect, font: font, color: fg, centered: true)
+        DiffDrawing.drawText(DiffColors.prefix(for: line.type), in: prefixRect, font: font, color: fg, centered: true, wrap: wrap)
 
         // Content
         let contentX = gw * 2 + pw
         let contentRect = NSRect(x: contentX, y: 0, width: bounds.width - contentX - 4, height: bounds.height)
-        DiffDrawing.drawText(line.content, in: contentRect, font: font, color: fg)
+        DiffDrawing.drawText(line.content, in: contentRect, font: font, color: fg, wrap: wrap)
     }
 }
 
@@ -576,6 +673,7 @@ private class UnifiedLineDrawView: NSView {
 private class SideBySideLineDrawView: NSView {
     var oldLine: DiffLine?
     var newLine: DiffLine?
+    var lineWrapping: Bool = false
 
     init(identifier: NSUserInterfaceItemIdentifier) {
         super.init(frame: .zero)
@@ -592,7 +690,7 @@ private class SideBySideLineDrawView: NSView {
 
         // Left side
         let leftRect = NSRect(x: 0, y: 0, width: half, height: bounds.height)
-        DiffDrawing.drawLineSide(line: oldLine, isOld: true, in: leftRect, font: font, gutterFont: font)
+        DiffDrawing.drawLineSide(line: oldLine, isOld: true, in: leftRect, font: font, gutterFont: font, wrap: lineWrapping)
 
         // Center divider
         DiffColors.dividerColor.setFill()
@@ -600,7 +698,7 @@ private class SideBySideLineDrawView: NSView {
 
         // Right side
         let rightRect = NSRect(x: half + 1, y: 0, width: bounds.width - half - 1, height: bounds.height)
-        DiffDrawing.drawLineSide(line: newLine, isOld: false, in: rightRect, font: font, gutterFont: font)
+        DiffDrawing.drawLineSide(line: newLine, isOld: false, in: rightRect, font: font, gutterFont: font, wrap: lineWrapping)
     }
 }
 
