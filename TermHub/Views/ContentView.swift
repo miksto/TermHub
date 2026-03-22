@@ -22,14 +22,7 @@ struct ContentView: View {
                     SidebarView()
                 } detail: {
                     if appState.selectedSessionID != nil {
-                        ZStack(alignment: .top) {
-                            TerminalContainerView(selectedSessionID: appState.selectedSessionID)
-                            if appState.showSearchBar {
-                                TerminalSearchBar()
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                            }
-                        }
-                        .animation(.easeOut(duration: 0.15), value: appState.showSearchBar)
+                        TerminalContainerView(selectedSessionID: appState.selectedSessionID)
                     } else {
                         Text("Select or create a session")
                             .foregroundStyle(.secondary)

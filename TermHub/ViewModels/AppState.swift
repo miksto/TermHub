@@ -9,9 +9,6 @@ final class AppState {
     var sessions: [TerminalSession] = []
     var selectedSessionID: UUID? {
         didSet {
-            if showSearchBar {
-                showSearchBar = false
-            }
             if let id = selectedSessionID, NSApp?.isActive == true {
                 sessionsNeedingAttention.remove(id)
             }
@@ -27,7 +24,6 @@ final class AppState {
     var showingAddFolder = false
     var showKeyboardShortcuts = false
     var showCommandPalette = false
-    var showSearchBar = false
     /// Incremented only when sessions are added or removed (not on title/property changes).
     /// Used by TerminalContainerView to avoid re-evaluation on every session mutation.
     private(set) var sessionListVersion = 0

@@ -11,10 +11,6 @@ struct KeyboardShortcutsSheet: View {
         ("Previous Session", "⌥⌘↑"),
         ("Next Session", "⌥⌘↓"),
         ("Switch to Session 1–9", "⌘1–⌘9"),
-        ("Find in Terminal", "⌘F"),
-        ("Find Next", "Enter"),
-        ("Find Previous", "⇧Enter"),
-        ("Close Search", "Esc"),
         ("Keyboard Shortcuts", "⇧⌘K"),
     ]
 
@@ -48,6 +44,6 @@ struct KeyboardShortcutsSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .padding(.bottom, 20)
         }
-        .frame(width: 380, height: 440)
+        .frame(width: 380, height: 340)
     }
 }

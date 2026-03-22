@@ -94,44 +94,4 @@ enum TmuxService {
         return ShellEnvironment.tmuxPath != nil
     }
 
-    // MARK: - Copy-mode search
-
-    static func searchBackward(session name: String, term: String, caseSensitive: Bool) {
-        do {
-            try run(["copy-mode", "-t", name])
-            if caseSensitive {
-                try run(["send-keys", "-t", name, "-X", "search-backward-text", term])
-            } else {
-                // Use regex mode with (?i) flag for case-insensitive plain text search
-                let escaped = NSRegularExpression.escapedPattern(for: term)
-                try run(["send-keys", "-t", name, "-X", "search-backward", "(?i)" + escaped])
-            }
-        } catch {
-            print("[TermHub] tmux search-backward failed: \(error)")
-        }
-    }
-
-    static func searchAgain(session name: String) {
-        do {
-            try run(["send-keys", "-t", name, "-X", "search-again"])
-        } catch {
-            print("[TermHub] tmux search-again failed: \(error)")
-        }
-    }
-
-    static func searchReverse(session name: String) {
-        do {
-            try run(["send-keys", "-t", name, "-X", "search-reverse"])
-        } catch {
-            print("[TermHub] tmux search-reverse failed: \(error)")
-        }
-    }
-
-    static func cancelCopyMode(session name: String) {
-        do {
-            try run(["send-keys", "-t", name, "-X", "cancel"])
-        } catch {
-            print("[TermHub] tmux cancel copy-mode failed: \(error)")
-        }
-    }
 }

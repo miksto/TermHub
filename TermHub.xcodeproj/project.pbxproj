@@ -29,7 +29,6 @@
 		7320427A88D31382D529A08B /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B9D3FC1CF2381671427FFD85 /* SwiftTerm */; };
 		7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9636C089AF563FC8C56018 /* SidebarView.swift */; };
 		870E7673914A54A99132975A /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503B8C574CFDAB867E3DA066 /* AppStateTests.swift */; };
-		88C6B9FBC39FE3D37E70CDED /* TerminalSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC833730B17A2734E43FB6D7 /* TerminalSearchBar.swift */; };
 		952771C820508D521A3947CE /* TmuxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C94FFFD305685DF84F204 /* TmuxService.swift */; };
 		9C8CAF8F640A638B205D5C5F /* DiffStatsText.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */; };
 		9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C5380DC16B45138FCB73AA /* FolderSectionView.swift */; };
@@ -85,7 +84,6 @@
 		B94816DB493F9BC69DC84FAD /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
 		BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffStatsText.swift; sourceTree = "<group>"; };
 		C465706A234D9B14263BEEDF /* TermHubApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermHubApp.swift; sourceTree = "<group>"; };
-		CC833730B17A2734E43FB6D7 /* TerminalSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSearchBar.swift; sourceTree = "<group>"; };
 		CE9636C089AF563FC8C56018 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		D6789CD823BD6E6D092FFA36 /* CommandPaletteOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteOverlay.swift; sourceTree = "<group>"; };
 		E0AC5E3E087609AE1FC208DC /* TermHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TermHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -123,7 +121,6 @@
 			children = (
 				8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */,
 				21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */,
-				CC833730B17A2734E43FB6D7 /* TerminalSearchBar.swift */,
 			);
 			path = Detail;
 			sourceTree = "<group>";
@@ -370,7 +367,6 @@
 				FA522806246981A6680125A0 /* TermHubApp.swift in Sources */,
 				C6DA5396377DE1E72E2DFE62 /* TermHubTerminalView.swift in Sources */,
 				5812F2FE76E7B03FD230223C /* TerminalContainerView.swift in Sources */,
-				88C6B9FBC39FE3D37E70CDED /* TerminalSearchBar.swift in Sources */,
 				3175266A96F424FC8AD47EC9 /* TerminalSession.swift in Sources */,
 				F8BC8AFAE178685B5122ACFA /* TerminalSessionManager.swift in Sources */,
 				952771C820508D521A3947CE /* TmuxService.swift in Sources */,

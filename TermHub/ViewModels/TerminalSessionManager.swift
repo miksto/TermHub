@@ -7,8 +7,6 @@ final class TerminalSessionManager {
     private var delegates: [UUID: TerminalProcessDelegate] = [:]
     private var startedSessions: Set<UUID> = []
     private var destroyedSessionIDs: Set<UUID> = []
-    private var tmuxSessionNames: [UUID: String] = [:]
-    private var activeSearchTerm: [UUID: (term: String, caseSensitive: Bool)] = [:]
     var onBell: ((UUID) -> Void)?
     var onTitleChange: ((UUID, String) -> Void)?
 
@@ -42,7 +40,15 @@ final class TerminalSessionManager {
     func startProcessIfNeeded(for session: TerminalSession, tmuxAvailable: Bool) {
         guard !startedSessions.contains(session.id) else { return }
         guard let terminal = terminals[session.id] else { return }
-        guard terminal.window != nil else { return }  // Not in window hierarchy yet; retry later
+        guard terminal.window != nil else {
+            // Terminal not yet in window hierarchy. Retry on next run loop cycle.
+            let session = session
+            let tmuxAvailable = tmuxAvailable
+            DispatchQueue.main.async { [weak self] in
+                self?.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
+            }
+            return
+        }
         startedSessions.insert(session.id)
 
         let shell = ShellEnvironment.defaultShell
@@ -56,7 +62,6 @@ final class TerminalSessionManager {
                     print("[TermHub] Failed to create tmux session '\(session.tmuxSessionName)': \(error)")
                 }
             }
-            tmuxSessionNames[session.id] = session.tmuxSessionName
             let cmd = TmuxService.attachCommand(name: session.tmuxSessionName)
             let executable = cmd[0]
             let args = Array(cmd.dropFirst())
@@ -86,47 +91,6 @@ final class TerminalSessionManager {
         terminals.first { $0.value === terminal }?.key
     }
 
-    @discardableResult
-    func findNext(sessionID: UUID, term: String, caseSensitive: Bool = false) -> Bool {
-        if let tmuxName = tmuxSessionNames[sessionID] {
-            let prev = activeSearchTerm[sessionID]
-            if prev?.term == term && prev?.caseSensitive == caseSensitive {
-                TmuxService.searchAgain(session: tmuxName)
-            } else {
-                activeSearchTerm[sessionID] = (term, caseSensitive)
-                TmuxService.searchBackward(session: tmuxName, term: term, caseSensitive: caseSensitive)
-            }
-            return true
-        }
-        guard let terminal = terminals[sessionID] else { return false }
-        return terminal.findNext(term, options: SearchOptions(caseSensitive: caseSensitive))
-    }
-
-    @discardableResult
-    func findPrevious(sessionID: UUID, term: String, caseSensitive: Bool = false) -> Bool {
-        if let tmuxName = tmuxSessionNames[sessionID] {
-            let prev = activeSearchTerm[sessionID]
-            if prev?.term == term && prev?.caseSensitive == caseSensitive {
-                TmuxService.searchReverse(session: tmuxName)
-            } else {
-                activeSearchTerm[sessionID] = (term, caseSensitive)
-                TmuxService.searchBackward(session: tmuxName, term: term, caseSensitive: caseSensitive)
-            }
-            return true
-        }
-        guard let terminal = terminals[sessionID] else { return false }
-        return terminal.findPrevious(term, options: SearchOptions(caseSensitive: caseSensitive))
-    }
-
-    func clearSearch(sessionID: UUID) {
-        if let tmuxName = tmuxSessionNames[sessionID] {
-            TmuxService.cancelCopyMode(session: tmuxName)
-            activeSearchTerm.removeValue(forKey: sessionID)
-            return
-        }
-        terminals[sessionID]?.clearSearch()
-    }
-
     func destroyTerminal(for sessionID: UUID) {
         destroyedSessionIDs.insert(sessionID)
         if let terminal = terminals.removeValue(forKey: sessionID) {
@@ -135,8 +99,6 @@ final class TerminalSessionManager {
         }
         delegates.removeValue(forKey: sessionID)
         startedSessions.remove(sessionID)
-        tmuxSessionNames.removeValue(forKey: sessionID)
-        activeSearchTerm.removeValue(forKey: sessionID)
     }
 }
 
