@@ -113,6 +113,10 @@ enum GitService {
         try run(["-C", repoPath, "worktree", "remove", "--force", worktreePath])
     }
 
+    static func deleteLocalBranch(repoPath: String, branch: String) throws {
+        try run(["-C", repoPath, "branch", "-D", branch])
+    }
+
     /// Returns (linesAdded, linesDeleted) for uncommitted changes (staged + unstaged).
     static func diffStats(path: String) -> (added: Int, deleted: Int) {
         do {

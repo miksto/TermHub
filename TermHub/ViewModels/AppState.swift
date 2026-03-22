@@ -194,6 +194,13 @@ final class AppState {
                     } catch {
                         print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)")
                     }
+                    if let branch = session.branchName {
+                        do {
+                            try GitService.deleteLocalBranch(repoPath: repoPath, branch: branch)
+                        } catch {
+                            print("[TermHub] Failed to delete branch '\(branch)': \(error)")
+                        }
+                    }
                     // Remove the container directory if it's now empty
                     let container = GitService.worktreeContainerPath(repoPath: repoPath)
                     let fm = FileManager.default
