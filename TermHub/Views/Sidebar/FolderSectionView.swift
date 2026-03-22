@@ -7,6 +7,13 @@ struct FolderSectionView: View {
 
     @State private var isExpanded = true
 
+    private func diffText(_ status: GitStatus) -> String {
+        var parts: [String] = []
+        if status.linesAdded > 0 { parts.append("+\(status.linesAdded)") }
+        if status.linesDeleted > 0 { parts.append("-\(status.linesDeleted)") }
+        return parts.joined(separator: " ")
+    }
+
     private func aheadBehindText(_ status: GitStatus) -> String {
         var parts: [String] = []
         if status.ahead > 0 { parts.append("↑\(status.ahead)") }
@@ -79,10 +86,11 @@ struct FolderSectionView: View {
                         .help("Folder path no longer exists: \(folder.path)")
                 }
                 if folder.isGitRepo, let status = appState.gitStatus(forFolderPath: folder.path) {
-                    Circle()
-                        .fill(status.isDirty ? .orange : .green)
-                        .frame(width: 8, height: 8)
-                        .help(status.isDirty ? "Uncommitted changes" : "Clean")
+                    if status.isDirty {
+                        Text(diffText(status))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                     if status.ahead > 0 || status.behind > 0 {
                         Text(aheadBehindText(status))
                             .font(.caption2)

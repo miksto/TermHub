@@ -96,12 +96,22 @@ enum GitService {
         try run(["-C", repoPath, "worktree", "remove", "--force", worktreePath])
     }
 
-    static func isDirty(path: String) -> Bool {
+    /// Returns (linesAdded, linesDeleted) for uncommitted changes (staged + unstaged).
+    static func diffStats(path: String) -> (added: Int, deleted: Int) {
         do {
-            let output = try run(["-C", path, "status", "--porcelain"])
-            return !output.isEmpty
+            let output = try run(["-C", path, "diff", "--numstat", "HEAD"])
+            var added = 0
+            var deleted = 0
+            for line in output.components(separatedBy: "\n") where !line.isEmpty {
+                let parts = line.split(separator: "\t")
+                guard parts.count >= 2 else { continue }
+                // Binary files show "-" instead of numbers
+                added += Int(parts[0]) ?? 0
+                deleted += Int(parts[1]) ?? 0
+            }
+            return (added, deleted)
         } catch {
-            return false
+            return (0, 0)
         }
     }
 
@@ -122,8 +132,8 @@ enum GitService {
     }
 
     static func status(path: String) -> GitStatus {
-        let dirty = isDirty(path: path)
+        let (added, deleted) = diffStats(path: path)
         let (ahead, behind) = aheadBehind(path: path)
-        return GitStatus(isDirty: dirty, ahead: ahead, behind: behind)
+        return GitStatus(linesAdded: added, linesDeleted: deleted, ahead: ahead, behind: behind)
     }
 }

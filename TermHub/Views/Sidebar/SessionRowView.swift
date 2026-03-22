@@ -48,10 +48,9 @@ struct SessionRowView: View {
                 }
                 Spacer()
                 if let status = appState.gitStatus(forSession: session), status.isDirty {
-                    Circle()
-                        .fill(.orange)
-                        .frame(width: 8, height: 8)
-                        .help("Uncommitted changes")
+                    Text(diffText(status))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
                 if appState.sessionsNeedingAttention.contains(sessionID) {
                     Circle()
@@ -96,6 +95,13 @@ struct SessionRowView: View {
                 }
             }
         }
+    }
+
+    private func diffText(_ status: GitStatus) -> String {
+        var parts: [String] = []
+        if status.linesAdded > 0 { parts.append("+\(status.linesAdded)") }
+        if status.linesDeleted > 0 { parts.append("-\(status.linesDeleted)") }
+        return parts.joined(separator: " ")
     }
 
     private func startRenaming() {

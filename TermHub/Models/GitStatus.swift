@@ -1,9 +1,12 @@
 import Foundation
 
 struct GitStatus: Equatable, Sendable {
-    let isDirty: Bool
+    let linesAdded: Int
+    let linesDeleted: Int
     let ahead: Int
     let behind: Int
 
-    static let clean = GitStatus(isDirty: false, ahead: 0, behind: 0)
+    var isDirty: Bool { linesAdded > 0 || linesDeleted > 0 }
+
+    static let clean = GitStatus(linesAdded: 0, linesDeleted: 0, ahead: 0, behind: 0)
 }
