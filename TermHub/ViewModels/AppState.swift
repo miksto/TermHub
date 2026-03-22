@@ -334,6 +334,26 @@ final class AppState {
         selectedSessionID = ordered[index]
     }
 
+    func selectNextSessionNeedingAttention() {
+        guard !sessionsNeedingAttention.isEmpty else { return }
+        let ordered = allSessionIDsOrdered.filter { sessionsNeedingAttention.contains($0) }
+        guard !ordered.isEmpty else { return }
+
+        if let current = selectedSessionID, let idx = ordered.firstIndex(of: current) {
+            // Cycle to next attention session after current
+            selectedSessionID = ordered[(idx + 1) % ordered.count]
+        } else if let current = selectedSessionID,
+                  let currentGlobal = allSessionIDsOrdered.firstIndex(of: current) {
+            // Pick the first attention session after the current position
+            selectedSessionID = ordered.first { id in
+                guard let idx = allSessionIDsOrdered.firstIndex(of: id) else { return false }
+                return idx > currentGlobal
+            } ?? ordered.first
+        } else {
+            selectedSessionID = ordered.first
+        }
+    }
+
     func markNeedsAttention(sessionID: UUID) {
         let isAppActive = NSApp.isActive
         guard !(selectedSessionID == sessionID && isAppActive) else { return }

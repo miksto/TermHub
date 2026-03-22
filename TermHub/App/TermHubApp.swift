@@ -43,7 +43,7 @@ struct TermHubApp: App {
                 Button("Keyboard Shortcuts") {
                     appState.showKeyboardShortcuts = true
                 }
-                .keyboardShortcut("k", modifiers: [.command, .shift])
+                .keyboardShortcut("/", modifiers: .command)
             }
 
             CommandGroup(after: .toolbar) {
@@ -73,7 +73,7 @@ struct TermHubApp: App {
                 Button("Toggle Git Diff") {
                     appState.toggleDetailTab()
                 }
-                .keyboardShortcut("d", modifiers: [.command, .shift])
+                .keyboardShortcut("d", modifiers: [.command, .option])
                 .disabled(appState.selectedSession == nil)
 
                 Button("Previous Tab") {
@@ -97,6 +97,12 @@ struct TermHubApp: App {
                     appState.selectNextSession()
                 }
                 .keyboardShortcut(.downArrow, modifiers: [.command, .option])
+
+                Button("Jump to Notification") {
+                    appState.selectNextSessionNeedingAttention()
+                }
+                .keyboardShortcut("j", modifiers: .command)
+                .disabled(appState.sessionsNeedingAttention.isEmpty)
 
                 ForEach(1...9, id: \.self) { number in
                     Button("Session \(number)") {
