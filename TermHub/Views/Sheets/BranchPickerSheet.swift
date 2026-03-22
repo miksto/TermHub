@@ -153,13 +153,19 @@ struct BranchPickerSheet: View {
                                 branchRow(branch: branch, isSelected: index == selectedIndex)
                                     .id(branch.id)
                                     .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        selectedIndex = index
-                                    }
-                                    .onTapGesture(count: 2) {
-                                        selectedIndex = index
-                                        confirmSelection()
-                                    }
+                                    .gesture(
+                                        TapGesture(count: 2)
+                                            .onEnded {
+                                                selectedIndex = index
+                                                confirmSelection()
+                                            }
+                                            .simultaneously(with:
+                                                TapGesture(count: 1)
+                                                    .onEnded {
+                                                        selectedIndex = index
+                                                    }
+                                            )
+                                    )
                             }
                         }
                         .padding(.horizontal, 6)
