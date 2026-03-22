@@ -14,18 +14,17 @@ struct TermHubApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
-            CommandGroup(after: .newItem) {
-                Button("New Shell in Current Folder") {
-                    newShellInCurrentFolder()
-                }
-                .keyboardShortcut("t", modifiers: .command)
-                .disabled(appState.selectedSession == nil)
-
+            CommandGroup(replacing: .newItem) {
                 Button("Add Folder...") {
                     appState.showAddFolderPanel()
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
+                Button("New Shell in Current Folder") {
+                    newShellInCurrentFolder()
+                }
+                .keyboardShortcut("t", modifiers: .command)
+                .disabled(appState.selectedSession == nil)
             }
 
             CommandGroup(replacing: .saveItem) {
