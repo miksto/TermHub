@@ -49,6 +49,7 @@
 		D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80290449765DD56337BC111 /* SessionDisplayState.swift */; };
 		DE82574D984DD29D186D830E /* FuzzyMatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ECB69224974D220FDE98A6F /* FuzzyMatchTests.swift */; };
 		E59234002788C97D87673134 /* CommandPaletteStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */; };
+		F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */; };
 		F62CE910810C831E5EB25298 /* ManagedFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */; };
 		F8BC8AFAE178685B5122ACFA /* TerminalSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */; };
 		FA522806246981A6680125A0 /* TermHubApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C465706A234D9B14263BEEDF /* TermHubApp.swift */; };
@@ -96,6 +97,7 @@
 		9ECB69224974D220FDE98A6F /* FuzzyMatchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatchTests.swift; sourceTree = "<group>"; };
 		A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceServiceTests.swift; sourceTree = "<group>"; };
 		A8DA80D5DF6673B1A0F4BC83 /* TermHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TermHub.entitlements; sourceTree = "<group>"; };
+		B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSwitcherOverlay.swift; sourceTree = "<group>"; };
 		B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionManager.swift; sourceTree = "<group>"; };
 		B80290449765DD56337BC111 /* SessionDisplayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDisplayState.swift; sourceTree = "<group>"; };
 		B94816DB493F9BC69DC84FAD /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
@@ -197,6 +199,7 @@
 			isa = PBXGroup;
 			children = (
 				7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */,
+				B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */,
 				F49056157884467DA4ED6D14 /* CommandPalette */,
 				2A3275DFE89066C04675DD25 /* Detail */,
 				18BDB0790594BFAE255CFBEE /* Sheets */,
@@ -418,6 +421,7 @@
 				443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */,
 				D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */,
 				2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */,
+				F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */,
 				01DD14CA14BF6A73A8AEE59E /* ShellEnvironment.swift in Sources */,
 				7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */,
 				FA522806246981A6680125A0 /* TermHubApp.swift in Sources */,

@@ -21,6 +21,7 @@ struct PersistedState: Codable {
     var folders: [ManagedFolder]
     var sessions: [TerminalSession]
     var selectedSessionID: UUID?
+    var sessionMRUOrder: [UUID]?
 }
 
 enum PersistenceService {
@@ -39,13 +40,14 @@ enum PersistenceService {
         folders: [ManagedFolder],
         sessions: [TerminalSession],
         selectedSessionID: UUID? = nil,
+        sessionMRUOrder: [UUID] = [],
         to url: URL? = nil
     ) throws {
         let fileURL = url ?? defaultStateFileURL
         let dir = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        let state = PersistedState(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID)
+        let state = PersistedState(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID, sessionMRUOrder: sessionMRUOrder)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
@@ -73,15 +75,15 @@ enum PersistenceService {
 
     static func load(
         from url: URL? = nil
-    ) throws -> (folders: [ManagedFolder], sessions: [TerminalSession], selectedSessionID: UUID?) {
+    ) throws -> (folders: [ManagedFolder], sessions: [TerminalSession], selectedSessionID: UUID?, sessionMRUOrder: [UUID]) {
         let fileURL = url ?? defaultStateFileURL
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            return (folders: [], sessions: [], selectedSessionID: nil)
+            return (folders: [], sessions: [], selectedSessionID: nil, sessionMRUOrder: [])
         }
         do {
             let data = try Data(contentsOf: fileURL)
             let state = try JSONDecoder().decode(PersistedState.self, from: data)
-            return (folders: state.folders, sessions: state.sessions, selectedSessionID: state.selectedSessionID)
+            return (folders: state.folders, sessions: state.sessions, selectedSessionID: state.selectedSessionID, sessionMRUOrder: state.sessionMRUOrder ?? [])
         } catch {
             throw PersistenceError.decodingFailed(error)
         }

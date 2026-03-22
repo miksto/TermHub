@@ -1,7 +1,10 @@
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
     @Environment(AppState.self) private var appState
+    @State private var keyMonitor: Any?
+    @State private var flagsMonitor: Any?
 
     var body: some View {
         ZStack {
@@ -36,8 +39,14 @@ struct ContentView: View {
                 CommandPaletteOverlay()
                     .transition(.opacity)
             }
+
+            if appState.isSessionSwitcherActive {
+                SessionSwitcherOverlay()
+                    .transition(.opacity)
+            }
         }
         .animation(.easeOut(duration: 0.15), value: appState.showCommandPalette)
+        .animation(.easeOut(duration: 0.1), value: appState.isSessionSwitcherActive)
         .sheet(isPresented: Binding(
             get: { appState.showKeyboardShortcuts },
             set: { appState.showKeyboardShortcuts = $0 }
@@ -83,6 +92,53 @@ struct ContentView: View {
             } else {
                 Text("This will close \(sessionCount) tmux session(s) for \"\(folder.name)\".")
             }
+        }
+        .onAppear { installSessionSwitcherMonitors() }
+        .onDisappear { removeSessionSwitcherMonitors() }
+    }
+
+    private func installSessionSwitcherMonitors() {
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Ctrl+Tab (keyCode 48 = Tab)
+            guard event.keyCode == 48,
+                  event.modifierFlags.contains(.control) else {
+                return event
+            }
+            let reverse = event.modifierFlags.contains(.shift)
+            if appState.isSessionSwitcherActive {
+                if reverse {
+                    appState.reverseSessionSwitcher()
+                } else {
+                    appState.advanceSessionSwitcher()
+                }
+            } else {
+                if reverse {
+                    // For Ctrl+Shift+Tab when not active, begin and immediately reverse
+                    appState.beginSessionSwitcher()
+                } else {
+                    appState.beginSessionSwitcher()
+                }
+            }
+            return nil
+        }
+
+        flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
+            if appState.isSessionSwitcherActive,
+               !event.modifierFlags.contains(.control) {
+                appState.commitSessionSwitcher()
+            }
+            return event
+        }
+    }
+
+    private func removeSessionSwitcherMonitors() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+            self.keyMonitor = nil
+        }
+        if let flagsMonitor {
+            NSEvent.removeMonitor(flagsMonitor)
+            self.flagsMonitor = nil
         }
     }
 }

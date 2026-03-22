@@ -17,11 +17,17 @@ final class AppState {
             if let id = selectedSessionID, NSApp?.isActive == true {
                 sessionsNeedingAttention.remove(id)
             }
+            if let id = selectedSessionID, !isSessionSwitcherActive {
+                updateMRUOrder(selectedID: id)
+            }
             if !isLoading, selectedSessionID != nil {
                 saveState()
             }
         }
     }
+    private(set) var sessionMRUOrder: [UUID] = []
+    var isSessionSwitcherActive = false
+    var switcherSelectedIndex: Int = 0
     var tmuxAvailable: Bool = false
     var pendingWorktreeFolder: ManagedFolder?
     var pendingNewBranchFolder: ManagedFolder?
@@ -140,6 +146,7 @@ final class AppState {
         )
         sessions.append(session)
         displayStates[session.id] = SessionDisplayState(title: session.title)
+        sessionMRUOrder.insert(session.id, at: 0)
         var updated = folders[folders.count - 1]
         updated.sessionIDs.append(session.id)
         folders[folders.count - 1] = updated
@@ -193,6 +200,7 @@ final class AppState {
         // tmux session is created lazily by TerminalSessionManager.startProcessIfNeeded
         sessions.append(session)
         displayStates[session.id] = SessionDisplayState(title: session.title)
+        sessionMRUOrder.insert(session.id, at: 0)
 
         if let folderIndex = folders.firstIndex(where: { $0.id == folderID }) {
             folders[folderIndex].sessionIDs.append(session.id)
@@ -254,6 +262,7 @@ final class AppState {
         sessionsNeedingAttention.remove(id)
         lastBellTime.removeValue(forKey: id)
         displayStates.removeValue(forKey: id)
+        sessionMRUOrder.removeAll { $0 == id }
         sessions.removeAll { $0.id == id }
 
         // Remove from folder's sessionIDs
@@ -361,6 +370,51 @@ final class AppState {
             } ?? ordered.first
         } else {
             selectedSessionID = ordered.first
+        }
+    }
+
+    // MARK: - MRU Session Switcher
+
+    private func updateMRUOrder(selectedID: UUID) {
+        sessionMRUOrder.removeAll { $0 == selectedID }
+        sessionMRUOrder.insert(selectedID, at: 0)
+    }
+
+    /// Sessions in MRU order with display info for the switcher overlay.
+    var sessionSwitcherItems: [(id: UUID, title: String, folderName: String?)] {
+        let validIDs = sessionMRUOrder.filter { id in sessions.contains { $0.id == id } }
+        return validIDs.compactMap { id in
+            guard let session = sessions.first(where: { $0.id == id }) else { return nil }
+            let folder = folders.first { $0.id == session.folderID }
+            return (id: id, title: displayState(for: id)?.title ?? session.title, folderName: folder?.name)
+        }
+    }
+
+    func beginSessionSwitcher() {
+        let items = sessionSwitcherItems
+        guard items.count >= 2 else { return }
+        isSessionSwitcherActive = true
+        switcherSelectedIndex = 1
+    }
+
+    func advanceSessionSwitcher() {
+        let items = sessionSwitcherItems
+        guard !items.isEmpty else { return }
+        switcherSelectedIndex = (switcherSelectedIndex + 1) % items.count
+    }
+
+    func reverseSessionSwitcher() {
+        let items = sessionSwitcherItems
+        guard !items.isEmpty else { return }
+        switcherSelectedIndex = (switcherSelectedIndex - 1 + items.count) % items.count
+    }
+
+    func commitSessionSwitcher() {
+        let items = sessionSwitcherItems
+        let index = switcherSelectedIndex
+        isSessionSwitcherActive = false
+        if index < items.count {
+            selectedSessionID = items[index].id
         }
     }
 
@@ -570,6 +624,11 @@ final class AppState {
             for session in sessions {
                 displayStates[session.id] = SessionDisplayState(title: session.title)
             }
+            // Restore MRU order, falling back to sidebar order for sessions not in the persisted list.
+            let validSessionIDs = Set(sessions.map(\.id))
+            let persisted = state.sessionMRUOrder.filter { validSessionIDs.contains($0) }
+            let missing = allSessionIDsOrdered.filter { !persisted.contains($0) }
+            sessionMRUOrder = persisted + missing
             selectedSessionID = state.selectedSessionID
             sessionListVersion += 1
         } catch {
@@ -583,7 +642,7 @@ final class AppState {
     private func saveState() {
         guard !loadFailed else { return }
         do {
-            try PersistenceService.save(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID)
+            try PersistenceService.save(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID, sessionMRUOrder: sessionMRUOrder)
         } catch {
             print("Failed to save state: \(error)")
         }
