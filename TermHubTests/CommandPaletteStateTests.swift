@@ -144,9 +144,9 @@ struct CommandPaletteStateTests {
         #expect(state.breadcrumbs == ["New Shell"])
     }
 
-    @Test("root items include sessions and actions")
+    @Test("root items show only actions, not sessions")
     @MainActor
-    func rootItemsIncludeSessionsAndActions() {
+    func rootItemsShowOnlyActions() {
         let appState = makeCleanAppState()
         appState.addFolder(path: "/tmp")
 
@@ -154,10 +154,25 @@ struct CommandPaletteStateTests {
         let items = paletteState.items(appState: appState) { }
 
         let sessionItems = items.filter { $0.id.hasPrefix("session-") }
-        #expect(sessionItems.count == 1)
+        #expect(sessionItems.isEmpty)
 
         let actionItems = items.filter { $0.id.hasPrefix("action-") }
         #expect(!actionItems.isEmpty)
+        #expect(actionItems.contains { $0.id == "action-go-to-session" })
+    }
+
+    @Test("session picker mode shows sessions")
+    @MainActor
+    func sessionPickerShowsSessions() {
+        let appState = makeCleanAppState()
+        appState.addFolder(path: "/tmp")
+
+        let paletteState = CommandPaletteState()
+        paletteState.pushMode(.sessionPicker)
+        let items = paletteState.items(appState: appState) { }
+
+        let sessionItems = items.filter { $0.id.hasPrefix("session-") }
+        #expect(sessionItems.count == 1)
     }
 
     @Test("query filters items by fuzzy match")

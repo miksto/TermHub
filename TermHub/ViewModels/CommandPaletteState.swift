@@ -15,6 +15,7 @@ enum TextInputAction: Sendable {
 
 enum PaletteMode: Sendable {
     case commands
+    case sessionPicker
     case folderPicker(action: FolderAction)
     case branchPicker(folder: ManagedFolder)
     case textInput(prompt: String, action: TextInputAction)
@@ -63,6 +64,7 @@ final class CommandPaletteState {
         modeStack.compactMap { mode in
             switch mode {
             case .commands: return nil
+            case .sessionPicker: return "Go to Session"
             case .folderPicker(let action):
                 switch action {
                 case .newShell: return "New Shell"
@@ -124,6 +126,8 @@ final class CommandPaletteState {
         switch currentMode {
         case .commands:
             return commandItems(appState: appState, dismiss: dismiss)
+        case .sessionPicker:
+            return sessionPickerItems(appState: appState, dismiss: dismiss)
         case .folderPicker(let action):
             return folderPickerItems(appState: appState, action: action, dismiss: dismiss)
         case .branchPicker(let folder):
@@ -136,46 +140,41 @@ final class CommandPaletteState {
     // MARK: - Item Builders
 
     private func commandItems(appState: AppState, dismiss: @escaping @MainActor @Sendable () -> Void) -> [PaletteItem] {
-        var items: [PaletteItem] = []
+        let items = buildActionItems(appState: appState, dismiss: dismiss)
+        return filterByQuery(items)
+    }
 
-        // Session items
-        for session in appState.sessions {
+    private func sessionPickerItems(appState: AppState, dismiss: @escaping @MainActor @Sendable () -> Void) -> [PaletteItem] {
+        let items = appState.sessions.map { session in
             let folder = appState.folders.first { $0.id == session.folderID }
             let subtitle = [folder?.name, session.branchName].compactMap { $0 }.joined(separator: " / ")
-            items.append(PaletteItem(
+            return PaletteItem(
                 id: "session-\(session.id.uuidString)",
                 icon: "terminal",
                 title: session.title,
-                subtitle: subtitle.isEmpty ? nil : subtitle,
-                category: "Sessions"
+                subtitle: subtitle.isEmpty ? nil : subtitle
             ) { [weak appState] in
                 appState?.selectedSessionID = session.id
                 dismiss()
-            })
-        }
-
-        // Action items
-        let actions = buildActionItems(appState: appState, dismiss: dismiss)
-        items.append(contentsOf: actions)
-
-        // Filter by query
-        if query.isEmpty {
-            return items
-        }
-
-        return items.compactMap { item in
-            let searchText = [item.title, item.subtitle].compactMap { $0 }.joined(separator: " ")
-            if let score = FuzzyMatch.score(query: query, candidate: searchText) {
-                return (item, score)
             }
-            return nil
         }
-        .sorted { $0.1 > $1.1 }
-        .map(\.0)
+        return filterByQuery(items)
     }
 
     private func buildActionItems(appState: AppState, dismiss: @escaping @MainActor @Sendable () -> Void) -> [PaletteItem] {
         var actions: [PaletteItem] = []
+
+        // Go to Session
+        if !appState.sessions.isEmpty {
+            actions.append(PaletteItem(
+                id: "action-go-to-session",
+                icon: "terminal",
+                title: "Go to Session",
+                category: "Actions"
+            ) { [weak self] in
+                self?.pushMode(.sessionPicker)
+            })
+        }
 
         // New Shell
         if appState.folders.count == 1 {
