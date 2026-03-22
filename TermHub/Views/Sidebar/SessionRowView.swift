@@ -84,6 +84,12 @@ struct SessionRowView: View {
                 Button("Rename...") {
                     startRenaming()
                 }
+                if let branchName = session.branchName {
+                    Button("Copy Branch Name") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(branchName, forType: .string)
+                    }
+                }
                 Divider()
                 Button("Close Session", role: .destructive) {
                     onRemove()
