@@ -5,7 +5,7 @@ Arguments: `$ARGUMENTS` should be the branch name for the new worktree (e.g. `/i
 Steps:
 
 1. Get the current repo root by running `git rev-parse --show-toplevel`.
-2. Find the most recent plan file in `~/.claude/plans/` by modification time (use `ls -t ~/.claude/plans/*.md | head -1`).
+2. Use the plan file from the current conversation (the one you wrote during planning). If no plan was created in this conversation, ask the user which plan file to use.
 3. URL-encode the repo path and plan path (replace spaces with `%20`, etc.).
 4. Run the following command, substituting the values:
 

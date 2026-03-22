@@ -67,6 +67,16 @@ termhub://new-worktree?repo=/path/to/repo&branch=feature/xyz&plan=/path/to/plan.
 | `branch` | Yes | Branch name for the worktree |
 | `plan` | No | Path to a plan file — if provided, runs `claude` to implement it in the new session |
 
+#### Implement in worktree
+
+When planning a feature with Claude Code on the main branch, you may want the implementation to happen in a separate git worktree. The `/implement-in-worktree` slash command bridges that gap:
+
+```
+/implement-in-worktree my-feature-branch
+```
+
+This uses the plan file from the current conversation, creates a new worktree and TermHub session for the given branch, and starts Claude with the plan — so you go from planning to isolated implementation in one step.
+
 ## Requirements
 
 - macOS 14.0 (Sonoma) or later
