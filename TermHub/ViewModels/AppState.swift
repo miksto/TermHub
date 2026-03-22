@@ -163,7 +163,8 @@ final class AppState {
         title: String,
         cwd: String,
         worktreePath: String? = nil,
-        branchName: String? = nil
+        branchName: String? = nil,
+        isExternalWorktree: Bool = false
     ) {
         let folderName = folders.first(where: { $0.id == folderID })?.name
         let session = TerminalSession(
@@ -172,6 +173,7 @@ final class AppState {
             workingDirectory: cwd,
             worktreePath: worktreePath,
             branchName: branchName,
+            isExternalWorktree: isExternalWorktree,
             folderName: folderName
         )
 
@@ -197,7 +199,7 @@ final class AppState {
         } catch {
             print("[TermHub] Failed to kill tmux session '\(session.tmuxSessionName)': \(error)")
         }
-        if let worktreePath = session.worktreePath {
+        if let worktreePath = session.worktreePath, !session.isExternalWorktree {
             let otherSessionUsesWorktree = sessions.contains {
                 $0.id != id && $0.worktreePath == worktreePath
             }

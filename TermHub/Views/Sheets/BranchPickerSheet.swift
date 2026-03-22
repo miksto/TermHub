@@ -13,6 +13,8 @@ struct BranchPickerSheet: View {
     @State private var loadError: String?
     @State private var createError: String?
     @State private var isCreating = false
+    @State private var showAttachConfirmation = false
+    @State private var existingWorktreePath: String?
 
     private var filteredBranches: [String] {
         if searchText.isEmpty {
@@ -82,6 +84,17 @@ struct BranchPickerSheet: View {
             .padding()
         }
         .frame(minWidth: 350, minHeight: 350)
+        .alert("Attach Existing Worktree?", isPresented: $showAttachConfirmation) {
+            Button("Attach") {
+                attachExistingWorktree()
+            }
+            .keyboardShortcut(.defaultAction)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if let path = existingWorktreePath {
+                Text("A worktree for this branch already exists at:\n\(path)\n\nWould you like to attach it as a session?")
+            }
+        }
         .task {
             loadBranches()
         }
@@ -117,11 +130,35 @@ struct BranchPickerSheet: View {
 
             dismiss()
         } catch GitServiceError.worktreeAlreadyExists {
-            createError = "A worktree for this branch already exists. Remove it first or choose a different branch."
+            do {
+                if let path = try GitService.findExistingWorktree(repoPath: folder.path, branch: branch) {
+                    existingWorktreePath = path
+                    showAttachConfirmation = true
+                } else {
+                    createError = "A worktree for this branch already exists but could not be located."
+                }
+            } catch {
+                createError = "A worktree for this branch already exists. \(error.localizedDescription)"
+            }
             isCreating = false
         } catch {
             createError = error.localizedDescription
             isCreating = false
         }
+    }
+
+    private func attachExistingWorktree() {
+        guard let branch = selectedBranch, let path = existingWorktreePath else { return }
+
+        appState.addSession(
+            folderID: folder.id,
+            title: "\(folder.name) [\(branch)]",
+            cwd: path,
+            worktreePath: path,
+            branchName: branch,
+            isExternalWorktree: true
+        )
+
+        dismiss()
     }
 }

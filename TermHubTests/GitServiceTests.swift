@@ -35,4 +35,82 @@ struct GitServiceTests {
         let path = GitService.worktreeContainerPath(repoPath: "/Users/dev/my-repo")
         #expect(path == "/Users/dev/my-repo-termhub")
     }
+
+    // MARK: - parseWorktreeList
+
+    @Test("parseWorktreeList finds matching branch")
+    func parseWorktreeListMatch() {
+        let output = """
+        worktree /Users/dev/my-repo
+        HEAD abc1234
+        branch refs/heads/main
+
+        worktree /tmp/test-wt
+        HEAD def5678
+        branch refs/heads/feature/login
+
+        """
+        let result = GitService.parseWorktreeList(output, branch: "feature/login")
+        #expect(result == "/tmp/test-wt")
+    }
+
+    @Test("parseWorktreeList returns nil when no match")
+    func parseWorktreeListNoMatch() {
+        let output = """
+        worktree /Users/dev/my-repo
+        HEAD abc1234
+        branch refs/heads/main
+
+        """
+        let result = GitService.parseWorktreeList(output, branch: "feature/login")
+        #expect(result == nil)
+    }
+
+    @Test("parseWorktreeList with multiple worktrees returns correct one")
+    func parseWorktreeListMultiple() {
+        let output = """
+        worktree /Users/dev/my-repo
+        HEAD abc1234
+        branch refs/heads/main
+
+        worktree /tmp/wt-a
+        HEAD 111111
+        branch refs/heads/feature/a
+
+        worktree /tmp/wt-b
+        HEAD 222222
+        branch refs/heads/feature/b
+
+        """
+        #expect(GitService.parseWorktreeList(output, branch: "feature/a") == "/tmp/wt-a")
+        #expect(GitService.parseWorktreeList(output, branch: "feature/b") == "/tmp/wt-b")
+        #expect(GitService.parseWorktreeList(output, branch: "feature/c") == nil)
+    }
+
+    @Test("parseWorktreeList with branch containing slashes")
+    func parseWorktreeListSlashedBranch() {
+        let output = """
+        worktree /home/user/wt
+        HEAD aaa
+        branch refs/heads/release/v2.0/rc1
+
+        """
+        #expect(GitService.parseWorktreeList(output, branch: "release/v2.0/rc1") == "/home/user/wt")
+    }
+
+    @Test("parseWorktreeList skips detached HEAD entries")
+    func parseWorktreeListDetachedHead() {
+        let output = """
+        worktree /Users/dev/my-repo
+        HEAD abc1234
+        branch refs/heads/main
+
+        worktree /tmp/detached-wt
+        HEAD def5678
+        detached
+
+        """
+        #expect(GitService.parseWorktreeList(output, branch: "main") == "/Users/dev/my-repo")
+        #expect(GitService.parseWorktreeList(output, branch: "detached") == nil)
+    }
 }

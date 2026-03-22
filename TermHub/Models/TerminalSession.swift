@@ -8,6 +8,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
     var worktreePath: String?
     var branchName: String?
     var hasCustomTitle: Bool
+    var isExternalWorktree: Bool
     var tmuxSessionName: String
 
     init(
@@ -18,6 +19,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         worktreePath: String? = nil,
         branchName: String? = nil,
         hasCustomTitle: Bool = false,
+        isExternalWorktree: Bool = false,
         tmuxSessionName: String? = nil,
         folderName: String? = nil
     ) {
@@ -28,11 +30,25 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         self.worktreePath = worktreePath
         self.branchName = branchName
         self.hasCustomTitle = hasCustomTitle
+        self.isExternalWorktree = isExternalWorktree
         self.tmuxSessionName = tmuxSessionName ?? Self.generateTmuxSessionName(
             folderName: folderName ?? (workingDirectory as NSString).lastPathComponent,
             branchName: branchName,
             id: id
         )
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        folderID = try container.decode(UUID.self, forKey: .folderID)
+        title = try container.decode(String.self, forKey: .title)
+        workingDirectory = try container.decode(String.self, forKey: .workingDirectory)
+        worktreePath = try container.decodeIfPresent(String.self, forKey: .worktreePath)
+        branchName = try container.decodeIfPresent(String.self, forKey: .branchName)
+        hasCustomTitle = try container.decodeIfPresent(Bool.self, forKey: .hasCustomTitle) ?? false
+        isExternalWorktree = try container.decodeIfPresent(Bool.self, forKey: .isExternalWorktree) ?? false
+        tmuxSessionName = try container.decode(String.self, forKey: .tmuxSessionName)
     }
 
     /// Generates a tmux session name following the convention:

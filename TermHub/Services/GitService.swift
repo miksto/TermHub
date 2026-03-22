@@ -113,6 +113,34 @@ enum GitService {
         try run(["-C", repoPath, "worktree", "remove", "--force", worktreePath])
     }
 
+    /// Finds the path of an existing worktree checked out on the given branch.
+    /// Returns `nil` if no worktree is checked out on that branch.
+    static func findExistingWorktree(repoPath: String, branch: String) throws -> String? {
+        let output = try run(["-C", repoPath, "worktree", "list", "--porcelain"])
+        return parseWorktreeList(output, branch: branch)
+    }
+
+    /// Parses `git worktree list --porcelain` output to find the path for a given branch.
+    static func parseWorktreeList(_ output: String, branch: String) -> String? {
+        let blocks = output.components(separatedBy: "\n\n")
+        for block in blocks {
+            let lines = block.components(separatedBy: "\n")
+            var path: String?
+            var blockBranch: String?
+            for line in lines {
+                if line.hasPrefix("worktree ") {
+                    path = String(line.dropFirst("worktree ".count))
+                } else if line.hasPrefix("branch refs/heads/") {
+                    blockBranch = String(line.dropFirst("branch refs/heads/".count))
+                }
+            }
+            if blockBranch == branch, let path {
+                return path
+            }
+        }
+        return nil
+    }
+
     static func deleteLocalBranch(repoPath: String, branch: String) throws {
         try run(["-C", repoPath, "branch", "-D", branch])
     }
