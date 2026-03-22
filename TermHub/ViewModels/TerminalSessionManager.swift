@@ -66,26 +66,36 @@ final class TerminalSessionManager {
         let cwd = session.worktreePath ?? session.workingDirectory
 
         if tmuxAvailable {
-            if !TmuxService.sessionExists(name: session.tmuxSessionName) {
-                do {
-                    try TmuxService.createSession(name: session.tmuxSessionName, cwd: cwd)
-                } catch {
-                    print("[TermHub] Failed to create tmux session '\(session.tmuxSessionName)': \(error)")
+            let tmuxSessionName = session.tmuxSessionName
+            let pendingCommand = pendingCommands.removeValue(forKey: session.id)
+            let env = ShellEnvironment.shellEnvironment
+
+            // Run blocking tmux process calls off the main thread to avoid
+            // re-entrant run-loop spinning during SwiftUI layout updates.
+            Task.detached {
+                if !TmuxService.sessionExists(name: tmuxSessionName) {
+                    do {
+                        try TmuxService.createSession(name: tmuxSessionName, cwd: cwd)
+                    } catch {
+                        print("[TermHub] Failed to create tmux session '\(tmuxSessionName)': \(error)")
+                    }
                 }
-            }
-            let cmd = TmuxService.attachCommand(name: session.tmuxSessionName)
-            let executable = cmd[0]
-            let args = Array(cmd.dropFirst())
-            terminal.startProcess(
-                executable: executable,
-                args: args,
-                environment: ShellEnvironment.shellEnvironment.map { "\($0.key)=\($0.value)" },
-                execName: (executable as NSString).lastPathComponent
-            )
-            if let command = pendingCommands.removeValue(forKey: session.id) {
-                let tmuxName = session.tmuxSessionName
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    try? TmuxService.sendKeys(sessionName: tmuxName, text: command)
+
+                await MainActor.run {
+                    let cmd = TmuxService.attachCommand(name: tmuxSessionName)
+                    let executable = cmd[0]
+                    let args = Array(cmd.dropFirst())
+                    terminal.startProcess(
+                        executable: executable,
+                        args: args,
+                        environment: env.map { "\($0.key)=\($0.value)" },
+                        execName: (executable as NSString).lastPathComponent
+                    )
+                }
+
+                if let command = pendingCommand {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    try? TmuxService.sendKeys(sessionName: tmuxSessionName, text: command)
                 }
             }
         } else {
