@@ -342,11 +342,11 @@ private enum DiffColors {
 
 @MainActor
 private enum DiffFonts {
-    static let mono = NSFont(name: "SF Mono", size: 12)
+    static let mono = NSFont(name: "Source Code Pro", size: 12)
         ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-    static let monoSmall = NSFont(name: "SF Mono", size: 11)
+    static let monoSmall = NSFont(name: "Source Code Pro", size: 11)
         ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
-    static let monoMedium = NSFont(name: "SF Mono", size: 12)
+    static let monoMedium = NSFont(name: "Source Code Pro Medium", size: 12)
         ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
 }
 
