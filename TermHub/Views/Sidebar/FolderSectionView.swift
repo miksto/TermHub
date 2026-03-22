@@ -10,14 +10,14 @@ struct FolderSectionView: View {
     private struct WorktreeGroup: Identifiable {
         let worktreePath: String
         let branchName: String
-        let sessionIDs: [UUID]
+        let sessions: [TerminalSession]
         var id: String { worktreePath }
     }
 
-    private var plainSessionIDs: [UUID] {
-        folder.sessionIDs.filter { id in
-            appState.sessions.first(where: { $0.id == id })?.worktreePath == nil
-        }
+    private var plainSessions: [TerminalSession] {
+        folder.sessionIDs.compactMap { id in
+            appState.sessions.first(where: { $0.id == id })
+        }.filter { $0.worktreePath == nil }
     }
 
     private var worktreeGroups: [WorktreeGroup] {
@@ -30,14 +30,14 @@ struct FolderSectionView: View {
                 groups[idx] = WorktreeGroup(
                     worktreePath: groups[idx].worktreePath,
                     branchName: groups[idx].branchName,
-                    sessionIDs: groups[idx].sessionIDs + [sessionID]
+                    sessions: groups[idx].sessions + [session]
                 )
             } else {
                 seen[wt] = groups.count
                 groups.append(WorktreeGroup(
                     worktreePath: wt,
                     branchName: session.branchName ?? "worktree",
-                    sessionIDs: [sessionID]
+                    sessions: [session]
                 ))
             }
         }
@@ -52,13 +52,16 @@ struct FolderSectionView: View {
     }
 
     var body: some View {
+        // Trigger re-evaluation on structural changes (add/remove).
+        // sessions is @ObservationIgnored so title changes won't re-render this view.
+        let _ = appState.sessionListVersion
         Section(isExpanded: $isExpanded) {
             // Plain shell sessions
-            ForEach(plainSessionIDs, id: \.self) { sessionID in
-                SessionRowView(sessionID: sessionID, onRemove: {
-                    appState.removeSession(id: sessionID)
+            ForEach(plainSessions) { session in
+                SessionRowView(session: session, onRemove: {
+                    appState.removeSession(id: session.id)
                 })
-                .tag(sessionID)
+                .tag(session.id)
                 .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
             }
 
@@ -113,11 +116,11 @@ struct FolderSectionView: View {
                 )
                 .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
 
-                ForEach(group.sessionIDs, id: \.self) { sessionID in
-                    SessionRowView(sessionID: sessionID, onRemove: {
-                        appState.removeSession(id: sessionID)
+                ForEach(group.sessions) { session in
+                    SessionRowView(session: session, onRemove: {
+                        appState.removeSession(id: session.id)
                     })
-                    .tag(sessionID)
+                    .tag(session.id)
                     .listRowInsets(EdgeInsets(top: 0, leading: 28, bottom: 0, trailing: 0))
                 }
             }

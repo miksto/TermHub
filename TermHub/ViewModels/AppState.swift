@@ -6,7 +6,12 @@ import Observation
 @MainActor
 final class AppState {
     var folders: [ManagedFolder] = []
-    var sessions: [TerminalSession] = []
+    @ObservationIgnored var sessions: [TerminalSession] = []
+    @ObservationIgnored private var displayStates: [UUID: SessionDisplayState] = [:]
+
+    func displayState(for id: UUID) -> SessionDisplayState? {
+        displayStates[id]
+    }
     var selectedSessionID: UUID? {
         didSet {
             if let id = selectedSessionID, NSApp?.isActive == true {
@@ -132,6 +137,7 @@ final class AppState {
             workingDirectory: path
         )
         sessions.append(session)
+        displayStates[session.id] = SessionDisplayState(title: session.title)
         var updated = folders[folders.count - 1]
         updated.sessionIDs.append(session.id)
         folders[folders.count - 1] = updated
@@ -179,6 +185,7 @@ final class AppState {
 
         // tmux session is created lazily by TerminalSessionManager.startProcessIfNeeded
         sessions.append(session)
+        displayStates[session.id] = SessionDisplayState(title: session.title)
 
         if let folderIndex = folders.firstIndex(where: { $0.id == folderID }) {
             folders[folderIndex].sessionIDs.append(session.id)
@@ -236,6 +243,7 @@ final class AppState {
         terminalManager.destroyTerminal(for: id)
         sessionsNeedingAttention.remove(id)
         lastBellTime.removeValue(forKey: id)
+        displayStates.removeValue(forKey: id)
         sessions.removeAll { $0.id == id }
 
         // Remove from folder's sessionIDs
@@ -260,6 +268,7 @@ final class AppState {
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         guard sessions[index].title != trimmed else { return }
         sessions[index].title = trimmed
+        displayStates[sessionID]?.title = trimmed
         saveState()
     }
 
@@ -282,6 +291,7 @@ final class AppState {
     func renameSession(id: UUID, newTitle: String) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions[index].title = newTitle
+        displayStates[id]?.title = newTitle
         sessions[index].hasCustomTitle = true
         saveState()
     }
@@ -509,6 +519,9 @@ final class AppState {
             let state = try PersistenceService.load()
             folders = state.folders
             sessions = state.sessions
+            for session in sessions {
+                displayStates[session.id] = SessionDisplayState(title: session.title)
+            }
             selectedSessionID = state.selectedSessionID
             sessionListVersion += 1
         } catch {

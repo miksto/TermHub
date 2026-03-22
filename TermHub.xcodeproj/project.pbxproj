@@ -42,6 +42,7 @@
 		C6DA5396377DE1E72E2DFE62 /* TermHubTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */; };
 		C93A2680B133DEDC59A27F52 /* CommandPaletteState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1710253731113037A911775C /* CommandPaletteState.swift */; };
 		D31094FDAF7E04158A12E36A /* TerminalSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */; };
+		D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80290449765DD56337BC111 /* SessionDisplayState.swift */; };
 		DE82574D984DD29D186D830E /* FuzzyMatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ECB69224974D220FDE98A6F /* FuzzyMatchTests.swift */; };
 		E59234002788C97D87673134 /* CommandPaletteStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */; };
 		F62CE910810C831E5EB25298 /* ManagedFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */; };
@@ -88,6 +89,7 @@
 		A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceServiceTests.swift; sourceTree = "<group>"; };
 		A8DA80D5DF6673B1A0F4BC83 /* TermHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TermHub.entitlements; sourceTree = "<group>"; };
 		B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionManager.swift; sourceTree = "<group>"; };
+		B80290449765DD56337BC111 /* SessionDisplayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDisplayState.swift; sourceTree = "<group>"; };
 		B94816DB493F9BC69DC84FAD /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
 		BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffStatsText.swift; sourceTree = "<group>"; };
 		C465706A234D9B14263BEEDF /* TermHubApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermHubApp.swift; sourceTree = "<group>"; };
@@ -265,6 +267,7 @@
 				DC97B1440980E92FE85562A7 /* GitDiff.swift */,
 				3C8A71DCEDDF41556161E6B8 /* GitStatus.swift */,
 				2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */,
+				B80290449765DD56337BC111 /* SessionDisplayState.swift */,
 				FE2D21CC5CCB192AA60F30B9 /* TerminalSession.swift */,
 			);
 			path = Models;
@@ -381,6 +384,7 @@
 				54C04030545ACD76203F4E45 /* ManagedFolder.swift in Sources */,
 				21E8FE21B4A9CEB20CA876BD /* NewBranchSheet.swift in Sources */,
 				443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */,
+				D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */,
 				2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */,
 				01DD14CA14BF6A73A8AEE59E /* ShellEnvironment.swift in Sources */,
 				7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */,
