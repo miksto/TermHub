@@ -7,6 +7,7 @@ class TermHubTerminalView: LocalProcessTerminalView {
     var blockScrollEvents = false
     private nonisolated(unsafe) var flagsMonitor: Any?
     private nonisolated(unsafe) var scrollMonitor: Any?
+    private nonisolated(unsafe) var keyMonitor: Any?
 
     override func bell(source: Terminal) {
         onBell?()
@@ -43,6 +44,20 @@ class TermHubTerminalView: LocalProcessTerminalView {
     // Monitor Shift key to temporarily disable mouse reporting,
     // enabling native text selection even when tmux has mouse mode active.
     func installEventMonitors() {
+        // Shift+Enter: send LF (0x0A) instead of CR so the shell can bind it
+        // to newline insertion (e.g. `bindkey '^J' self-insert` in zsh).
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self,
+                  event.keyCode == 36,
+                  event.modifierFlags.contains(.shift),
+                  self.window != nil,
+                  event.window === self.window else {
+                return event
+            }
+            self.send([0x0A])
+            return nil
+        }
+
         flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             guard let self else { return event }
             if event.modifierFlags.contains(.shift) {
@@ -100,6 +115,10 @@ class TermHubTerminalView: LocalProcessTerminalView {
     }
 
     func removeEventMonitors() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+            self.keyMonitor = nil
+        }
         if let flagsMonitor {
             NSEvent.removeMonitor(flagsMonitor)
             self.flagsMonitor = nil
@@ -111,6 +130,9 @@ class TermHubTerminalView: LocalProcessTerminalView {
     }
 
     deinit {
+        if let monitor = keyMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
         if let monitor = flagsMonitor {
             NSEvent.removeMonitor(monitor)
         }
