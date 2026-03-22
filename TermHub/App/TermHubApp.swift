@@ -11,8 +11,10 @@ struct TermHubApp: App {
                 .onOpenURL { url in
                     handleURL(url)
                 }
+                .handlesExternalEvents(preferring: Set(arrayLiteral: "*"), allowing: Set(arrayLiteral: "*"))
         }
         .windowStyle(.hiddenTitleBar)
+        .handlesExternalEvents(matching: Set(arrayLiteral: "*"))
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Add Folder...") {
