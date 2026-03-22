@@ -25,9 +25,10 @@ A native macOS app for managing terminal sessions across multiple project folder
 | ⌘W | Close Session |
 | ⌘1–9 | Switch to Session 1–9 |
 | ⌥⌘↑/↓ | Previous / Next Session |
-| ⇧⌘D | Toggle Git Diff |
-| ⌥⌘←/→ | Previous / Next Detail Tab |
-| ⇧⌘K | Show Keyboard Shortcuts |
+| ⌘J | Jump to Notification |
+| ⌘D | Toggle Git Diff |
+| ⌥⌘←/→ | Previous / Next Tab |
+| ⌘/ | Keyboard Shortcuts |
 
 ### Claude Code integration
 
