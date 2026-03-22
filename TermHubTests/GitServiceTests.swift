@@ -15,18 +15,24 @@ struct GitServiceTests {
     @Test("worktreePath constructs correct path")
     func worktreePathConstruction() {
         let path = GitService.worktreePath(repoPath: "/Users/dev/my-repo", branch: "feature/login")
-        #expect(path == "/Users/dev/my-repo-feature-login")
+        #expect(path == "/Users/dev/my-repo-termhub/feature-login")
     }
 
     @Test("worktreePath with simple branch name")
     func worktreePathSimpleBranch() {
         let path = GitService.worktreePath(repoPath: "/Users/dev/project", branch: "hotfix")
-        #expect(path == "/Users/dev/project-hotfix")
+        #expect(path == "/Users/dev/project-termhub/hotfix")
     }
 
     @Test("worktreePath with nested slashes")
     func worktreePathNestedSlashes() {
         let path = GitService.worktreePath(repoPath: "/home/user/app", branch: "a/b/c/d")
-        #expect(path == "/home/user/app-a-b-c-d")
+        #expect(path == "/home/user/app-termhub/a-b-c-d")
+    }
+
+    @Test("worktreeContainerPath constructs correct path")
+    func worktreeContainerPath() {
+        let path = GitService.worktreeContainerPath(repoPath: "/Users/dev/my-repo")
+        #expect(path == "/Users/dev/my-repo-termhub")
     }
 }

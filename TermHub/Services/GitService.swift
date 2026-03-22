@@ -72,22 +72,39 @@ enum GitService {
         branch.replacingOccurrences(of: "/", with: "-")
     }
 
+    /// Returns the container directory for all worktrees belonging to a repo.
+    static func worktreeContainerPath(repoPath: String) -> String {
+        let repoName = (repoPath as NSString).lastPathComponent
+        let parentDir = (repoPath as NSString).deletingLastPathComponent
+        return (parentDir as NSString).appendingPathComponent("\(repoName)-termhub")
+    }
+
     /// Computes the worktree path for a given repo path and branch name.
     static func worktreePath(repoPath: String, branch: String) -> String {
         let sanitized = sanitizeBranchName(branch)
-        let repoName = (repoPath as NSString).lastPathComponent
-        let parentDir = (repoPath as NSString).deletingLastPathComponent
-        return (parentDir as NSString).appendingPathComponent("\(repoName)-\(sanitized)")
+        let container = worktreeContainerPath(repoPath: repoPath)
+        return (container as NSString).appendingPathComponent(sanitized)
+    }
+
+    /// Ensures the shared worktree container directory exists.
+    private static func ensureWorktreeContainer(repoPath: String) throws {
+        let container = worktreeContainerPath(repoPath: repoPath)
+        try FileManager.default.createDirectory(
+            atPath: container,
+            withIntermediateDirectories: true
+        )
     }
 
     static func addWorktree(repoPath: String, branch: String) throws -> String {
         let path = worktreePath(repoPath: repoPath, branch: branch)
+        try ensureWorktreeContainer(repoPath: repoPath)
         try run(["-C", repoPath, "worktree", "add", path, branch])
         return path
     }
 
     static func addWorktreeNewBranch(repoPath: String, newBranch: String) throws -> String {
         let path = worktreePath(repoPath: repoPath, branch: newBranch)
+        try ensureWorktreeContainer(repoPath: repoPath)
         try run(["-C", repoPath, "worktree", "add", "-b", newBranch, path])
         return path
     }
