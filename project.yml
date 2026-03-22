@@ -41,6 +41,7 @@ targets:
     info:
       path: TermHub/App/Info.plist
       properties:
+        LSMultipleInstancesProhibited: true
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - termhub
