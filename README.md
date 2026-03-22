@@ -6,14 +6,32 @@ A native macOS app for managing terminal sessions across multiple project folder
 
 ## Features
 
-- **Multi-folder terminal management** — Add project folders and organize terminal sessions under each one. Sessions are persisted and restored automatically.
-- **Git worktree integration** — Create worktrees from existing branches or start new ones directly from the sidebar. Worktrees are cleaned up when sessions are removed.
-- **Tmux-backed sessions** — Each terminal session is backed by a tmux session, so your work survives app restarts. Falls back to plain shell processes if tmux isn't installed.
-- **Embedded terminal** — Full terminal emulator built into the app via [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm). No need to switch to a separate terminal app.
-- **Keyboard navigation** — `Cmd+T` new shell, `Cmd+N` add folder, `Cmd+W` close session, `Cmd+Option+↑/↓` switch sessions.
-- **Bell attention notifications** — When a terminal session emits a BEL character (`\a`), a red dot appears on that session in the sidebar. The badge clears when you select the session. Useful for knowing which session needs attention without checking each one.
+- **Multi-folder terminal management** — Organize terminal sessions by project folder. Sessions persist automatically across restarts.
+- **Git worktree integration** — Create worktrees from existing branches or new ones via a built-in branch picker with fuzzy search. Inline diff viewer and per-session change indicators in the sidebar.
+- **Tmux-backed sessions** — Each session runs in tmux, so your work survives app restarts.
+- **Command palette** — `⌘P` to quickly access actions, sessions, and branches.
+- **Embedded terminal** — Full terminal emulator via [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm).
+- **Bell notifications** — Sessions that emit BEL show an attention badge in the sidebar.
+
+### Keyboard shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| ⌘P | Command Palette |
+| ⌘T | New Shell in Current Folder |
+| ⌘N | New Worktree |
+| ⌘O | Add Folder |
+| ⌘B | Switch Branch / Worktree |
+| ⌘W | Close Session |
+| ⌘1–9 | Switch to Session 1–9 |
+| ⌥⌘↑/↓ | Previous / Next Session |
+| ⇧⌘D | Toggle Git Diff |
+| ⌥⌘←/→ | Previous / Next Detail Tab |
+| ⇧⌘K | Show Keyboard Shortcuts |
 
 ### Claude Code integration
+
+#### Bell notifications
 
 To get notified in TermHub when [Claude Code](https://claude.com/claude-code) finishes, add this hook to `~/.claude/settings.json`:
 
@@ -31,6 +49,20 @@ To get notified in TermHub when [Claude Code](https://claude.com/claude-code) fi
 ```
 
 The `> /dev/tty` is required so the BEL reaches the terminal rather than being captured by Claude Code's stdout.
+
+#### URL scheme
+
+TermHub registers the `termhub://` URL scheme for creating worktree sessions externally:
+
+```
+termhub://new-worktree?repo=/path/to/repo&branch=feature/xyz&plan=/path/to/plan.md
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `repo` | Yes | Absolute path to the git repository |
+| `branch` | Yes | Branch name for the worktree |
+| `plan` | No | Path to a plan file — if provided, runs `claude` to implement it in the new session |
 
 ## Requirements
 
