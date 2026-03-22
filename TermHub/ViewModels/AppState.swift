@@ -79,10 +79,25 @@ final class AppState {
         return sessions.first { $0.id == id }
     }
 
-    /// All sessions ordered by folder for keyboard navigation.
+    /// All sessions ordered by folder for keyboard navigation (matches sidebar visual order).
     var allSessionIDsOrdered: [UUID] {
         folders.flatMap { folder in
-            folder.sessionIDs.filter { id in sessions.contains { $0.id == id } }
+            let validIDs = folder.sessionIDs.filter { id in sessions.contains { $0.id == id } }
+            let plain = validIDs.filter { id in
+                sessions.first(where: { $0.id == id })?.worktreePath == nil
+            }
+            var seenWorktrees: [String: [UUID]] = [:]
+            var worktreeOrder: [String] = []
+            for id in validIDs {
+                guard let session = sessions.first(where: { $0.id == id }),
+                      let wt = session.worktreePath else { continue }
+                if seenWorktrees[wt] == nil {
+                    worktreeOrder.append(wt)
+                }
+                seenWorktrees[wt, default: []].append(id)
+            }
+            let worktree = worktreeOrder.flatMap { seenWorktrees[$0] ?? [] }
+            return plain + worktree
         }
     }
 
