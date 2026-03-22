@@ -274,6 +274,33 @@ final class CommandPaletteState {
             })
         }
 
+        // Git Actions (only for sessions in git repos)
+        if let session = appState.selectedSession,
+           let folder = appState.folders.first(where: { $0.id == session.folderID }),
+           folder.isGitRepo {
+            let gitPath = session.workingDirectory
+
+            for gitAction in GitAction.allCases {
+                actions.append(PaletteItem(
+                    id: "action-git-\(gitAction.id)",
+                    icon: gitAction.icon,
+                    title: gitAction.title,
+                    category: "Git"
+                ) { [weak appState] in
+                    dismiss()
+                    Task.detached { [appState] in
+                        do {
+                            try gitAction.execute(path: gitPath)
+                        } catch {
+                            await MainActor.run {
+                                appState?.errorMessage = error.localizedDescription
+                            }
+                        }
+                    }
+                })
+            }
+        }
+
         // Add Folder
         actions.append(PaletteItem(
             id: "action-add-folder",

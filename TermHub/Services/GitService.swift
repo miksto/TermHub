@@ -17,6 +17,46 @@ enum GitServiceError: Error, LocalizedError {
     }
 }
 
+enum GitAction: String, CaseIterable, Sendable {
+    case pull
+    case push
+    case fetch
+    case stash
+    case stashPop
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .pull: "Git Pull"
+        case .push: "Git Push"
+        case .fetch: "Git Fetch"
+        case .stash: "Git Stash"
+        case .stashPop: "Git Stash Pop"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .pull: "arrow.down.circle"
+        case .push: "arrow.up.circle"
+        case .fetch: "arrow.triangle.2.circlepath"
+        case .stash: "archivebox"
+        case .stashPop: "archivebox.fill"
+        }
+    }
+
+    func execute(path: String) throws {
+        switch self {
+        case .pull: try GitService.pull(path: path)
+        case .push: try GitService.push(path: path)
+        case .fetch: try GitService.fetch(path: path)
+        case .stash: try GitService.stash(path: path)
+        case .stashPop: try GitService.stashPop(path: path)
+        }
+    }
+}
+
 enum GitService {
     @discardableResult
     private static func run(_ arguments: [String]) throws -> String {
@@ -174,6 +214,31 @@ enum GitService {
 
     static func deleteLocalBranch(repoPath: String, branch: String) throws {
         try run(["-C", repoPath, "branch", "-D", branch])
+    }
+
+    @discardableResult
+    static func pull(path: String) throws -> String {
+        try run(["-C", path, "pull"])
+    }
+
+    @discardableResult
+    static func push(path: String) throws -> String {
+        try run(["-C", path, "push"])
+    }
+
+    @discardableResult
+    static func fetch(path: String) throws -> String {
+        try run(["-C", path, "fetch"])
+    }
+
+    @discardableResult
+    static func stash(path: String) throws -> String {
+        try run(["-C", path, "stash"])
+    }
+
+    @discardableResult
+    static func stashPop(path: String) throws -> String {
+        try run(["-C", path, "stash", "pop"])
     }
 
     /// Returns (linesAdded, linesDeleted) for uncommitted changes (staged + unstaged).
