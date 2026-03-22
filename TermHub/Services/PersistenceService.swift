@@ -25,10 +25,12 @@ struct PersistedState: Codable {
 
 enum PersistenceService {
     static var defaultStateFileURL: URL {
-        let appSupport = FileManager.default.urls(
+        guard let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
-        ).first!
+        ).first else {
+            fatalError("Application Support directory is unavailable")
+        }
         let appDir = appSupport.appendingPathComponent("TermHub", isDirectory: true)
         return appDir.appendingPathComponent("state.json")
     }

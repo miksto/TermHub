@@ -31,16 +31,16 @@ enum GitService {
         process.standardError = errorPipe
 
         try process.run()
+
+        // Read pipe data BEFORE waitUntilExit to avoid deadlock.
+        // If the process fills the pipe buffer (~64KB), it blocks waiting
+        // for the reader to drain — while we block waiting for exit.
+        let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
+        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
 
-        let output = String(
-            data: pipe.fileHandleForReading.readDataToEndOfFile(),
-            encoding: .utf8
-        ) ?? ""
-        let errorOutput = String(
-            data: errorPipe.fileHandleForReading.readDataToEndOfFile(),
-            encoding: .utf8
-        ) ?? ""
+        let output = String(data: outputData, encoding: .utf8) ?? ""
+        let errorOutput = String(data: errorData, encoding: .utf8) ?? ""
 
         if process.terminationStatus != 0 {
             let message = errorOutput.isEmpty ? output : errorOutput

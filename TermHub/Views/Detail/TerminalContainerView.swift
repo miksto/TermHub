@@ -235,7 +235,7 @@ class TerminalContainerViewController: NSViewController {
 
         if let diff = appState.currentDiff, !diff.files.isEmpty {
             delegate.diff = diff
-            delegate.lastDiffID = diff.files.map(\.id)
+            delegate.lastDiff = diff
             delegate.rebuildRows(for: scrollView.frame.width)
             tableView?.reloadData()
         } else {

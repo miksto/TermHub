@@ -142,7 +142,7 @@ struct DiffTableView: NSViewRepresentable {
 
         let delegate = DiffTableDelegate()
         delegate.diff = diff
-        delegate.lastDiffID = diff.files.map(\.id)
+        delegate.lastDiff = diff
         delegate.rebuildRows(for: scrollView.frame.width)
         context.coordinator.delegate = delegate
         context.coordinator.scrollView = scrollView
@@ -163,11 +163,10 @@ struct DiffTableView: NSViewRepresentable {
               let delegate = context.coordinator.delegate else { return }
 
         // Only rebuild if the diff data changed
-        let newIDs = diff.files.map(\.id)
-        guard delegate.lastDiffID != newIDs else { return }
+        guard delegate.lastDiff != diff else { return }
 
         delegate.diff = diff
-        delegate.lastDiffID = newIDs
+        delegate.lastDiff = diff
         delegate.rebuildRows(for: scrollView.frame.width)
         tableView.reloadData()
     }
@@ -216,7 +215,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     var diff: GitDiff = .empty
     var rows: [DiffRow] = []
     var isSideBySide: Bool = false
-    var lastDiffID: [UUID] = []
+    var lastDiff: GitDiff = .empty
 
     func rebuildRows(for width: CGFloat) {
         isSideBySide = width >= 800

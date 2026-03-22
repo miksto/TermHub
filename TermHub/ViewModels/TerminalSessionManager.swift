@@ -7,6 +7,8 @@ final class TerminalSessionManager {
     private var delegates: [UUID: TerminalProcessDelegate] = [:]
     private var startedSessions: Set<UUID> = []
     private var destroyedSessionIDs: Set<UUID> = []
+    private var startRetryCount: [UUID: Int] = [:]
+    private static let maxStartRetries = 50
     var onBell: ((UUID) -> Void)?
     var onTitleChange: ((UUID, String) -> Void)?
 
@@ -42,6 +44,13 @@ final class TerminalSessionManager {
         guard let terminal = terminals[session.id] else { return }
         guard terminal.window != nil else {
             // Terminal not yet in window hierarchy. Retry on next run loop cycle.
+            let retries = startRetryCount[session.id, default: 0]
+            guard retries < Self.maxStartRetries else {
+                print("[TermHub] Gave up waiting for terminal window after \(retries) retries (session \(session.id))")
+                startRetryCount.removeValue(forKey: session.id)
+                return
+            }
+            startRetryCount[session.id] = retries + 1
             let session = session
             let tmuxAvailable = tmuxAvailable
             DispatchQueue.main.async { [weak self] in
@@ -49,6 +58,7 @@ final class TerminalSessionManager {
             }
             return
         }
+        startRetryCount.removeValue(forKey: session.id)
         startedSessions.insert(session.id)
 
         let shell = ShellEnvironment.defaultShell
@@ -103,6 +113,7 @@ final class TerminalSessionManager {
         }
         delegates.removeValue(forKey: sessionID)
         startedSessions.remove(sessionID)
+        startRetryCount.removeValue(forKey: sessionID)
     }
 }
 
