@@ -72,7 +72,8 @@ struct NewBranchSheet: View {
                 title: "\(folder.name) [\(trimmed)]",
                 cwd: worktreePath,
                 worktreePath: worktreePath,
-                branchName: trimmed
+                branchName: trimmed,
+                ownsBranch: true
             )
 
             dismiss()

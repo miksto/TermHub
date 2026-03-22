@@ -9,6 +9,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
     var branchName: String?
     var hasCustomTitle: Bool
     var isExternalWorktree: Bool
+    var ownsBranch: Bool
     var tmuxSessionName: String
 
     init(
@@ -20,6 +21,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         branchName: String? = nil,
         hasCustomTitle: Bool = false,
         isExternalWorktree: Bool = false,
+        ownsBranch: Bool = false,
         tmuxSessionName: String? = nil,
         folderName: String? = nil
     ) {
@@ -31,6 +33,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         self.branchName = branchName
         self.hasCustomTitle = hasCustomTitle
         self.isExternalWorktree = isExternalWorktree
+        self.ownsBranch = ownsBranch
         self.tmuxSessionName = tmuxSessionName ?? Self.generateTmuxSessionName(
             folderName: folderName ?? (workingDirectory as NSString).lastPathComponent,
             branchName: branchName,
@@ -48,6 +51,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         branchName = try container.decodeIfPresent(String.self, forKey: .branchName)
         hasCustomTitle = try container.decodeIfPresent(Bool.self, forKey: .hasCustomTitle) ?? false
         isExternalWorktree = try container.decodeIfPresent(Bool.self, forKey: .isExternalWorktree) ?? false
+        ownsBranch = try container.decodeIfPresent(Bool.self, forKey: .ownsBranch) ?? false
         tmuxSessionName = try container.decode(String.self, forKey: .tmuxSessionName)
     }
 

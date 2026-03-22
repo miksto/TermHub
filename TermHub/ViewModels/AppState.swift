@@ -171,7 +171,8 @@ final class AppState {
         cwd: String,
         worktreePath: String? = nil,
         branchName: String? = nil,
-        isExternalWorktree: Bool = false
+        isExternalWorktree: Bool = false,
+        ownsBranch: Bool = false
     ) {
         let folderName = folders.first(where: { $0.id == folderID })?.name
         let session = TerminalSession(
@@ -181,6 +182,7 @@ final class AppState {
             worktreePath: worktreePath,
             branchName: branchName,
             isExternalWorktree: isExternalWorktree,
+            ownsBranch: ownsBranch,
             folderName: folderName
         )
 
@@ -219,7 +221,7 @@ final class AppState {
                     } catch {
                         print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)")
                     }
-                    if let branch = session.branchName {
+                    if session.ownsBranch, let branch = session.branchName {
                         do {
                             try GitService.deleteLocalBranch(repoPath: repoPath, branch: branch)
                         } catch {

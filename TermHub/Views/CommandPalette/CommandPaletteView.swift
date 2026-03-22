@@ -188,7 +188,8 @@ struct CommandPaletteView: View {
                     title: "\(folder.name) / \(text)",
                     cwd: worktreePath,
                     worktreePath: worktreePath,
-                    branchName: text
+                    branchName: text,
+                    ownsBranch: true
                 )
             } catch {
                 appState.errorMessage = error.localizedDescription

@@ -139,7 +139,8 @@ struct TermHubApp: App {
             title: title,
             cwd: worktreePath,
             worktreePath: worktreePath,
-            branchName: branch
+            branchName: branch,
+            ownsBranch: true
         )
 
         if let planPath = params["plan"],
