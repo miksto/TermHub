@@ -19,6 +19,7 @@ enum PaletteMode: Sendable {
     case folderPicker(action: FolderAction)
     case branchPicker(folder: ManagedFolder)
     case textInput(prompt: String, action: TextInputAction)
+    case gitActionStatus
 }
 
 struct PaletteItem: Identifiable, Sendable {
@@ -56,6 +57,11 @@ final class CommandPaletteState {
     var isLoadingBranches: Bool = false
     var branchLoadError: String?
 
+    var gitActionTitle: String = ""
+    var isRunningGitAction: Bool = false
+    var gitActionError: String?
+    var gitActionSucceeded: Bool = false
+
     var currentMode: PaletteMode {
         modeStack.last ?? .commands
     }
@@ -74,6 +80,7 @@ final class CommandPaletteState {
                 }
             case .branchPicker(let folder): return folder.name
             case .textInput(let prompt, _): return prompt
+            case .gitActionStatus: return gitActionTitle
             }
         }
     }
@@ -120,6 +127,10 @@ final class CommandPaletteState {
         branches = []
         isLoadingBranches = false
         branchLoadError = nil
+        gitActionTitle = ""
+        isRunningGitAction = false
+        gitActionError = nil
+        gitActionSucceeded = false
     }
 
     func items(appState: AppState, dismiss: @escaping @MainActor @Sendable () -> Void) -> [PaletteItem] {
@@ -133,6 +144,8 @@ final class CommandPaletteState {
         case .branchPicker(let folder):
             return branchPickerItems(folder: folder, appState: appState, dismiss: dismiss)
         case .textInput:
+            return []
+        case .gitActionStatus:
             return []
         }
     }
@@ -286,17 +299,8 @@ final class CommandPaletteState {
                     icon: gitAction.icon,
                     title: gitAction.title,
                     category: "Git"
-                ) { [weak appState] in
-                    dismiss()
-                    Task.detached { [appState] in
-                        do {
-                            try gitAction.execute(path: gitPath)
-                        } catch {
-                            await MainActor.run {
-                                appState?.errorMessage = error.localizedDescription
-                            }
-                        }
-                    }
+                ) { [weak self] in
+                    self?.runGitAction(gitAction, path: gitPath, dismiss: dismiss)
                 })
             }
         }
@@ -430,6 +434,28 @@ final class CommandPaletteState {
         }
         .sorted { $0.1 > $1.1 }
         .map(\.0)
+    }
+
+    func runGitAction(_ action: GitAction, path: String, dismiss: @escaping @MainActor @Sendable () -> Void) {
+        gitActionTitle = action.title
+        isRunningGitAction = true
+        gitActionError = nil
+        gitActionSucceeded = false
+        pushMode(.gitActionStatus)
+
+        Task.detached { [weak self] in
+            do {
+                try action.execute(path: path)
+                await MainActor.run {
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.isRunningGitAction = false
+                    self?.gitActionError = error.localizedDescription
+                }
+            }
+        }
     }
 
     func loadBranchesAndPush(folder: ManagedFolder) {

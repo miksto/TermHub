@@ -20,6 +20,8 @@ struct CommandPaletteView: View {
             switch paletteState.currentMode {
             case .textInput(let prompt, let action):
                 textInputView(prompt: prompt, action: action)
+            case .gitActionStatus:
+                gitActionStatusView
             default:
                 itemListView(items: currentItems)
             }
@@ -126,6 +128,31 @@ struct CommandPaletteView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var gitActionStatusView: some View {
+        VStack(spacing: 8) {
+            if paletteState.isRunningGitAction {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Running \(paletteState.gitActionTitle)...")
+                    .foregroundStyle(.secondary)
+            } else if let error = paletteState.gitActionError {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.red)
+                    .font(.title2)
+                Text("\(paletteState.gitActionTitle) failed")
+                    .fontWeight(.medium)
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
     }
 
     @ViewBuilder
