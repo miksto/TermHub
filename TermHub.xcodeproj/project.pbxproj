@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		01DD14CA14BF6A73A8AEE59E /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F3949FA374894F3DD12A156 /* ShellEnvironment.swift */; };
+		06563F683F55B1D58C69C788 /* GitDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC97B1440980E92FE85562A7 /* GitDiff.swift */; };
 		11031E9388A57B9722E570AC /* BranchPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65DA0695D1865124B38B0457 /* BranchPickerSheet.swift */; };
 		14D9D109DD6048DAAF7F02E5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */; };
 		1516020445C4D4CC3CA4535A /* PersistenceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */; };
@@ -15,6 +16,7 @@
 		1DAB698DEF6120695A01F8DC /* DoubleClickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E16A5970DB7655DECDB85E /* DoubleClickView.swift */; };
 		21E8FE21B4A9CEB20CA876BD /* NewBranchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */; };
 		2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BC1F94C86B5BEF5E5C1B54 /* SessionRowView.swift */; };
+		2C73403A32C202EC6F995959 /* DetailTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1013B2E11F22771C770C920 /* DetailTab.swift */; };
 		2F71DF8FA98019B9EB9FEA80 /* FuzzyMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B36A08544BDCA24B09F7F72 /* FuzzyMatch.swift */; };
 		2FBDC520049A4B907DAB76B7 /* GitServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E184F75BBAEAD51F534B2DA4 /* GitServiceTests.swift */; };
 		3175266A96F424FC8AD47EC9 /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2D21CC5CCB192AA60F30B9 /* TerminalSession.swift */; };
@@ -23,9 +25,11 @@
 		443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
 		4D0062BE42AE108A8D2A22FE /* WorktreeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */; };
 		4F840D4B9206FEAD40353FB2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 189B8C6AC49B8C82A724EC59 /* Assets.xcassets */; };
+		53D8F6199FA9053BF347F6C9 /* GitDiffParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB18E599834BFB7B2F489CB6 /* GitDiffParserTests.swift */; };
 		54C04030545ACD76203F4E45 /* ManagedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */; };
 		5812F2FE76E7B03FD230223C /* TerminalContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */; };
 		58A799AEC2E9D7E27E33A727 /* GitStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C8A71DCEDDF41556161E6B8 /* GitStatus.swift */; };
+		5D96127D14610A10BE231105 /* DiffTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F378CF74856DCCAF1093332A /* DiffTableView.swift */; };
 		5DFB49734D63E711E22CAC08 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2305607A9F1189FC98956101 /* GitService.swift */; };
 		7320427A88D31382D529A08B /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B9D3FC1CF2381671427FFD85 /* SwiftTerm */; };
 		7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9636C089AF563FC8C56018 /* SidebarView.swift */; };
@@ -88,11 +92,15 @@
 		C465706A234D9B14263BEEDF /* TermHubApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermHubApp.swift; sourceTree = "<group>"; };
 		CE9636C089AF563FC8C56018 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		D6789CD823BD6E6D092FFA36 /* CommandPaletteOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteOverlay.swift; sourceTree = "<group>"; };
+		DC97B1440980E92FE85562A7 /* GitDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitDiff.swift; sourceTree = "<group>"; };
 		E0AC5E3E087609AE1FC208DC /* TermHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TermHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1013B2E11F22771C770C920 /* DetailTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailTab.swift; sourceTree = "<group>"; };
 		E184F75BBAEAD51F534B2DA4 /* GitServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitServiceTests.swift; sourceTree = "<group>"; };
 		E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsSheet.swift; sourceTree = "<group>"; };
+		F378CF74856DCCAF1093332A /* DiffTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffTableView.swift; sourceTree = "<group>"; };
 		F429369FC6F6D0A32E72B81C /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteStateTests.swift; sourceTree = "<group>"; };
+		FB18E599834BFB7B2F489CB6 /* GitDiffParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitDiffParserTests.swift; sourceTree = "<group>"; };
 		FE2D21CC5CCB192AA60F30B9 /* TerminalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSession.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -121,6 +129,7 @@
 		2A3275DFE89066C04675DD25 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
+				F378CF74856DCCAF1093332A /* DiffTableView.swift */,
 				8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */,
 				21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */,
 			);
@@ -238,6 +247,7 @@
 				503B8C574CFDAB867E3DA066 /* AppStateTests.swift */,
 				F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */,
 				9ECB69224974D220FDE98A6F /* FuzzyMatchTests.swift */,
+				FB18E599834BFB7B2F489CB6 /* GitDiffParserTests.swift */,
 				E184F75BBAEAD51F534B2DA4 /* GitServiceTests.swift */,
 				0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */,
 				A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */,
@@ -249,6 +259,8 @@
 		FA26D23AFE7F5CBDDCAE007C /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				E1013B2E11F22771C770C920 /* DetailTab.swift */,
+				DC97B1440980E92FE85562A7 /* GitDiff.swift */,
 				3C8A71DCEDDF41556161E6B8 /* GitStatus.swift */,
 				2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */,
 				FE2D21CC5CCB192AA60F30B9 /* TerminalSession.swift */,
@@ -354,10 +366,13 @@
 				C93A2680B133DEDC59A27F52 /* CommandPaletteState.swift in Sources */,
 				3FB6677B52F617DC7A0C82A9 /* CommandPaletteView.swift in Sources */,
 				14D9D109DD6048DAAF7F02E5 /* ContentView.swift in Sources */,
+				2C73403A32C202EC6F995959 /* DetailTab.swift in Sources */,
 				9C8CAF8F640A638B205D5C5F /* DiffStatsText.swift in Sources */,
+				5D96127D14610A10BE231105 /* DiffTableView.swift in Sources */,
 				1DAB698DEF6120695A01F8DC /* DoubleClickView.swift in Sources */,
 				9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */,
 				2F71DF8FA98019B9EB9FEA80 /* FuzzyMatch.swift in Sources */,
+				06563F683F55B1D58C69C788 /* GitDiff.swift in Sources */,
 				5DFB49734D63E711E22CAC08 /* GitService.swift in Sources */,
 				58A799AEC2E9D7E27E33A727 /* GitStatus.swift in Sources */,
 				BA1CA5ACCDAAEA3E158B39C8 /* KeyboardShortcutsSheet.swift in Sources */,
@@ -384,6 +399,7 @@
 				870E7673914A54A99132975A /* AppStateTests.swift in Sources */,
 				E59234002788C97D87673134 /* CommandPaletteStateTests.swift in Sources */,
 				DE82574D984DD29D186D830E /* FuzzyMatchTests.swift in Sources */,
+				53D8F6199FA9053BF347F6C9 /* GitDiffParserTests.swift in Sources */,
 				2FBDC520049A4B907DAB76B7 /* GitServiceTests.swift in Sources */,
 				F62CE910810C831E5EB25298 /* ManagedFolderTests.swift in Sources */,
 				1516020445C4D4CC3CA4535A /* PersistenceServiceTests.swift in Sources */,

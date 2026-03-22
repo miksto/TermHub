@@ -49,6 +49,24 @@ struct TermHubApp: App {
                 .keyboardShortcut("p", modifiers: .command)
 
 
+                Button("Toggle Git Diff") {
+                    appState.toggleDetailTab()
+                }
+                .keyboardShortcut("d", modifiers: [.command, .shift])
+                .disabled(appState.selectedSession == nil)
+
+                Button("Previous Tab") {
+                    appState.selectPreviousDetailTab()
+                }
+                .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
+                .disabled(appState.selectedSession == nil)
+
+                Button("Next Tab") {
+                    appState.selectNextDetailTab()
+                }
+                .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
+                .disabled(appState.selectedSession == nil)
+
                 Button("Previous Session") {
                     appState.selectPreviousSession()
                 }

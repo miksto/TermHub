@@ -36,6 +36,9 @@ final class AppState {
         }
     }
     var gitStatuses: [String: GitStatus] = [:]
+    var detailTabBySession: [UUID: DetailTab] = [:]
+    var currentDiff: GitDiff?
+    var isDiffLoading = false
     private var gitStatusTimer: Timer?
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
@@ -351,6 +354,67 @@ final class AppState {
         }
         guard let folder = folders.first(where: { $0.id == session.folderID }) else { return nil }
         return gitStatuses[folder.path]
+    }
+
+    var folderForSelectedSession: ManagedFolder? {
+        guard let session = selectedSession,
+              let folder = folders.first(where: { $0.id == session.folderID })
+        else { return nil }
+        return folder
+    }
+
+    var currentDetailTab: DetailTab {
+        guard let id = selectedSessionID else { return .terminal }
+        return detailTabBySession[id] ?? .terminal
+    }
+
+    func setDetailTab(_ tab: DetailTab, for sessionID: UUID) {
+        detailTabBySession[sessionID] = tab
+        if tab == .gitDiff {
+            loadDiffForCurrentSession()
+        }
+    }
+
+    func toggleDetailTab() {
+        guard let id = selectedSessionID,
+              folderForSelectedSession?.isGitRepo == true else { return }
+        let current = detailTabBySession[id] ?? .terminal
+        setDetailTab(current == .terminal ? .gitDiff : .terminal, for: id)
+    }
+
+    func selectPreviousDetailTab() {
+        guard let id = selectedSessionID else { return }
+        let current = detailTabBySession[id] ?? .terminal
+        if current == .gitDiff {
+            setDetailTab(.terminal, for: id)
+        }
+    }
+
+    func selectNextDetailTab() {
+        guard let id = selectedSessionID,
+              folderForSelectedSession?.isGitRepo == true else { return }
+        let current = detailTabBySession[id] ?? .terminal
+        if current == .terminal {
+            setDetailTab(.gitDiff, for: id)
+        }
+    }
+
+    func loadDiffForCurrentSession() {
+        guard let session = selectedSession else { return }
+        let path = session.worktreePath
+            ?? folders.first(where: { $0.id == session.folderID })?.path
+        guard let workingDir = path else { return }
+
+        isDiffLoading = true
+        Task.detached {
+            let raw = GitService.diff(path: workingDir)
+            let diff = GitService.parseDiff(raw)
+            await MainActor.run { [weak self] in
+                self?.currentDiff = diff
+                self?.isDiffLoading = false
+                NotificationCenter.default.post(name: .diffDataDidChange, object: nil)
+            }
+        }
     }
 
     private func startGitStatusPolling() {
