@@ -12,7 +12,7 @@ struct KeyboardShortcutsSheet: View {
         ("Next Session", "⌥⌘↓"),
         ("Switch to Session 1–9", "⌘1–⌘9"),
         ("Jump to Notification", "⌘J"),
-        ("Toggle Git Diff", "⌥⌘D"),
+        ("Toggle Git Diff", "⌘D"),
         ("Keyboard Shortcuts", "⌘/"),
     ]
 

@@ -73,7 +73,7 @@ struct TermHubApp: App {
                 Button("Toggle Git Diff") {
                     appState.toggleDetailTab()
                 }
-                .keyboardShortcut("d", modifiers: [.command, .option])
+                .keyboardShortcut("d", modifiers: .command)
                 .disabled(appState.selectedSession == nil)
 
                 Button("Previous Tab") {
