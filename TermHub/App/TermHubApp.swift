@@ -20,7 +20,7 @@ struct TermHubApp: App {
                 Button("Add Folder...") {
                     appState.showAddFolderPanel()
                 }
-                .keyboardShortcut("n", modifiers: .command)
+                .keyboardShortcut("o", modifiers: .command)
 
                 Button("New Shell in Current Folder") {
                     newShellInCurrentFolder()
