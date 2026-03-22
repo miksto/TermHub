@@ -40,6 +40,7 @@ final class TerminalSessionManager {
     func startProcessIfNeeded(for session: TerminalSession, tmuxAvailable: Bool) {
         guard !startedSessions.contains(session.id) else { return }
         guard let terminal = terminals[session.id] else { return }
+        guard terminal.window != nil else { return }  // Not in window hierarchy yet; retry later
         startedSessions.insert(session.id)
 
         let shell = ShellEnvironment.defaultShell

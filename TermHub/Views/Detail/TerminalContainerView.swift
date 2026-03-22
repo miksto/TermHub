@@ -54,6 +54,20 @@ class TerminalContainerViewController: NSViewController {
         self.view = containerView
     }
 
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        // Re-run with last known state now that we're in the window hierarchy.
+        // Reset version so the guard in updateTerminals allows it through.
+        let savedVersion = lastSessionListVersion
+        lastSessionListVersion = -1
+        updateTerminals(
+            selectedID: lastSelectedID,
+            tmuxAvailable: lastTmuxAvailable ?? false,
+            suppressInteraction: lastSuppressInteraction ?? false,
+            sessionListVersion: savedVersion
+        )
+    }
+
     func updateTerminals(
         selectedID: UUID?,
         tmuxAvailable: Bool,
