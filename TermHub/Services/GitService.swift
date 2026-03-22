@@ -241,12 +241,12 @@ enum GitService {
         try run(["-C", path, "stash", "pop"])
     }
 
-    /// Returns (linesAdded, linesDeleted) for uncommitted changes (staged + unstaged).
+    /// Returns (linesAdded, linesDeleted) for uncommitted changes (staged + unstaged), including untracked files.
     static func diffStats(path: String) -> (added: Int, deleted: Int) {
+        var added = 0
+        var deleted = 0
         do {
             let output = try run(["-C", path, "diff", "--numstat", "HEAD"])
-            var added = 0
-            var deleted = 0
             for line in output.components(separatedBy: "\n") where !line.isEmpty {
                 let parts = line.split(separator: "\t")
                 guard parts.count >= 2 else { continue }
@@ -254,10 +254,24 @@ enum GitService {
                 added += Int(parts[0]) ?? 0
                 deleted += Int(parts[1]) ?? 0
             }
-            return (added, deleted)
         } catch {
-            return (0, 0)
+            // no tracked changes
         }
+
+        // Count lines in untracked files as additions.
+        for file in untrackedFiles(path: path) {
+            let fullPath = (path as NSString).appendingPathComponent(file)
+            guard let data = FileManager.default.contents(atPath: fullPath),
+                  !data.prefix(min(data.count, 8192)).contains(0x00),
+                  let content = String(data: data, encoding: .utf8),
+                  !content.isEmpty
+            else { continue }
+            var lines = content.components(separatedBy: "\n")
+            if lines.last == "" { lines.removeLast() }
+            added += lines.count
+        }
+
+        return (added, deleted)
     }
 
     static func aheadBehind(path: String) -> (ahead: Int, behind: Int) {
@@ -282,13 +296,72 @@ enum GitService {
         return GitStatus(linesAdded: added, linesDeleted: deleted, ahead: ahead, behind: behind)
     }
 
-    /// Returns the raw unified diff output for uncommitted changes (staged + unstaged) vs HEAD.
-    static func diff(path: String) -> String {
+    /// Returns a list of untracked file paths (relative to the repo root), excluding ignored files.
+    static func untrackedFiles(path: String) -> [String] {
         do {
-            return try run(["-C", path, "diff", "HEAD"])
+            let output = try run(["-C", path, "ls-files", "--others", "--exclude-standard"])
+            guard !output.isEmpty else { return [] }
+            return output.components(separatedBy: "\n").filter { !$0.isEmpty }
         } catch {
-            return ""
+            return []
         }
+    }
+
+    /// Builds a synthetic unified diff string for an untracked (new) file so it appears in the diff view.
+    private static func syntheticDiffForNewFile(path repoPath: String, relativePath: String) -> String? {
+        let fullPath = (repoPath as NSString).appendingPathComponent(relativePath)
+        guard let data = FileManager.default.contents(atPath: fullPath) else { return nil }
+
+        // Skip binary files — check for null bytes in the first 8KB (same heuristic git uses).
+        let checkLength = min(data.count, 8192)
+        let isBinary = data.prefix(checkLength).contains(0x00)
+        if isBinary {
+            return """
+            diff --git a/\(relativePath) b/\(relativePath)
+            new file mode 100644
+            Binary files /dev/null and b/\(relativePath) differ
+            """
+        }
+
+        guard let content = String(data: data, encoding: .utf8) else { return nil }
+        let lines = content.components(separatedBy: "\n")
+        // Remove trailing empty element produced by a final newline
+        let effectiveLines = lines.last == "" ? Array(lines.dropLast()) : lines
+        let lineCount = effectiveLines.count
+        guard lineCount > 0 else { return nil }
+
+        var result = """
+        diff --git a/\(relativePath) b/\(relativePath)
+        new file mode 100644
+        --- /dev/null
+        +++ b/\(relativePath)
+        @@ -0,0 +1,\(lineCount) @@\n
+        """
+        result += effectiveLines.map { "+\($0)" }.joined(separator: "\n")
+        return result
+    }
+
+    /// Returns the raw unified diff output for uncommitted changes (staged + unstaged) vs HEAD,
+    /// including untracked files.
+    static func diff(path: String) -> String {
+        var output = ""
+        do {
+            output = try run(["-C", path, "diff", "HEAD"])
+        } catch {
+            // empty – no tracked changes
+        }
+
+        let untracked = untrackedFiles(path: path)
+        for file in untracked {
+            if let synth = syntheticDiffForNewFile(path: path, relativePath: file) {
+                if !output.isEmpty && !output.hasSuffix("\n") {
+                    output += "\n"
+                }
+                output += synth
+            }
+        }
+
+        return output
     }
 
     /// Parses raw unified diff output into structured `GitDiff`.
