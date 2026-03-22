@@ -28,6 +28,8 @@ A native macOS app for managing terminal sessions across multiple project folder
 | ⌘J | Jump to Notification |
 | ⌘D | Toggle Git Diff |
 | ⌥⌘←/→ | Previous / Next Tab |
+| ⌃Tab | Switch Session (MRU) |
+| ⌃⇧Tab | Switch Session (MRU, reverse) |
 | ⌘/ | Keyboard Shortcuts |
 
 ### Claude Code integration
