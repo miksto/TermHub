@@ -12,20 +12,32 @@ class TermHubTerminalView: LocalProcessTerminalView {
         onBell?()
     }
 
-    // MARK: - Diagnostic overrides (temporary — remove after debugging)
+    // Accumulate data from the process and feed it to the terminal in larger
+    // batches. SwiftTerm's LocalProcess delivers data in 4ms time-sliced chunks
+    // via drainReceivedData. Between chunks, queuePendingDisplay can fire a
+    // display update that shows a partially-drawn tmux screen (e.g. cleared top
+    // rows before the bottom rows arrive). By buffering data and flushing on a
+    // short delay, we ensure complete tmux screen updates reach the terminal
+    // together, eliminating the visible top-to-bottom redraw artifact.
+    private var pendingData: [UInt8] = []
+    private var flushScheduled = false
 
-    override open func setFrameSize(_ newSize: NSSize) {
-        let oldSize = frame.size
-        super.setFrameSize(newSize)
-        if oldSize != newSize {
-            let terminal = getTerminal()
-            print("[TermHub-DEBUG] setFrameSize old=\(oldSize) new=\(newSize) cols=\(terminal.cols) rows=\(terminal.rows) isAlt=\(terminal.isCurrentBufferAlternate)")
+    override func dataReceived(slice: ArraySlice<UInt8>) {
+        pendingData.append(contentsOf: slice)
+        if !flushScheduled {
+            flushScheduled = true
+            DispatchQueue.main.async { [weak self] in
+                self?.flushPendingData()
+            }
         }
     }
 
-    override open func scrolled(source: TerminalView, position: Double) {
-        print("[TermHub-DEBUG] scrolled position=\(position) scrollPos=\(scrollPosition) canScroll=\(canScroll)")
-        super.scrolled(source: source, position: position)
+    private func flushPendingData() {
+        flushScheduled = false
+        guard !pendingData.isEmpty else { return }
+        let data = pendingData
+        pendingData.removeAll(keepingCapacity: true)
+        feed(byteArray: data[...])
     }
 
     // Monitor Shift key to temporarily disable mouse reporting,
