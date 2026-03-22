@@ -1,6 +1,6 @@
 import Foundation
 
-/// Watches `.git` directories for filesystem changes using FSEvents
+/// Watches repository and worktree directories for filesystem changes using FSEvents
 /// and invokes a callback when modifications are detected.
 final class GitFileWatcher: @unchecked Sendable {
     private var stream: FSEventStreamRef?
@@ -14,17 +14,17 @@ final class GitFileWatcher: @unchecked Sendable {
 
     func start(paths: [String], onChange: @escaping @Sendable () -> Void) {
         queue.async { [self] in
-            let gitPaths = paths.compactMap { self.gitDirPath(for: $0) }
-            guard !gitPaths.isEmpty else { return }
+            let sorted = paths.sorted()
+            guard !sorted.isEmpty else { return }
 
             // Skip if already watching the same paths.
-            if gitPaths == self.watchedPaths, self.stream != nil {
+            if sorted == self.watchedPaths, self.stream != nil {
                 return
             }
 
             self.stop()
             self.onChange = onChange
-            self.watchedPaths = gitPaths
+            self.watchedPaths = sorted
 
             var context = FSEventStreamContext()
             context.info = Unmanaged.passUnretained(self).toOpaque()
@@ -39,7 +39,7 @@ final class GitFileWatcher: @unchecked Sendable {
                 nil,
                 callback,
                 &context,
-                gitPaths as CFArray,
+                sorted as CFArray,
                 FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
                 0.3,
                 UInt32(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagNoDefer)
@@ -83,27 +83,5 @@ final class GitFileWatcher: @unchecked Sendable {
         }
         debounceWorkItem = work
         queue.asyncAfter(deadline: .now() + Self.debounceInterval, execute: work)
-    }
-
-    private func gitDirPath(for repoPath: String) -> String? {
-        let dotGit = (repoPath as NSString).appendingPathComponent(".git")
-        var isDir: ObjCBool = false
-        if FileManager.default.fileExists(atPath: dotGit, isDirectory: &isDir) {
-            if isDir.boolValue {
-                return dotGit
-            }
-            // Worktree: .git is a file containing "gitdir: <path>"
-            if let content = try? String(contentsOfFile: dotGit, encoding: .utf8),
-               content.hasPrefix("gitdir: ")
-            {
-                let gitdir = content.dropFirst("gitdir: ".count).trimmingCharacters(in: .whitespacesAndNewlines)
-                if gitdir.hasPrefix("/") {
-                    return gitdir
-                }
-                // Relative path — resolve against repo path.
-                return (repoPath as NSString).appendingPathComponent(gitdir)
-            }
-        }
-        return nil
     }
 }

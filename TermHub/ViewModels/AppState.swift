@@ -45,7 +45,6 @@ final class AppState {
     var detailTabBySession: [UUID: DetailTab] = [:]
     var currentDiff: GitDiff?
     var isDiffLoading = false
-    private var gitStatusTimer: Timer?
     @ObservationIgnored private let gitFileWatcher = GitFileWatcher()
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
@@ -79,7 +78,8 @@ final class AppState {
             self?.handleTerminalTitleChange(sessionID: sessionID, title: title)
         }
 
-        startGitStatusPolling()
+        refreshGitStatuses()
+        updateGitFileWatcher()
     }
 
     var selectedSession: TerminalSession? {
@@ -483,16 +483,6 @@ final class AppState {
                 NotificationCenter.default.post(name: .diffDataDidChange, object: nil)
             }
         }
-    }
-
-    private func startGitStatusPolling() {
-        refreshGitStatuses()
-        gitStatusTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.refreshGitStatuses()
-            }
-        }
-        updateGitFileWatcher()
     }
 
     /// Updates the set of `.git` directories being watched for filesystem changes.
