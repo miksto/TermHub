@@ -118,6 +118,14 @@ struct BranchPickerSheet: View {
         createError = nil
 
         do {
+            // Check if the branch already has a worktree before attempting to create one
+            if let path = try GitService.findExistingWorktree(repoPath: folder.path, branch: branch) {
+                existingWorktreePath = path
+                showAttachConfirmation = true
+                isCreating = false
+                return
+            }
+
             let worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch)
 
             appState.addSession(
@@ -129,18 +137,6 @@ struct BranchPickerSheet: View {
             )
 
             dismiss()
-        } catch GitServiceError.worktreeAlreadyExists {
-            do {
-                if let path = try GitService.findExistingWorktree(repoPath: folder.path, branch: branch) {
-                    existingWorktreePath = path
-                    showAttachConfirmation = true
-                } else {
-                    createError = "A worktree for this branch already exists but could not be located."
-                }
-            } catch {
-                createError = "A worktree for this branch already exists. \(error.localizedDescription)"
-            }
-            isCreating = false
         } catch {
             createError = error.localizedDescription
             isCreating = false
