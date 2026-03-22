@@ -46,6 +46,7 @@ final class AppState {
     var currentDiff: GitDiff?
     var isDiffLoading = false
     private var gitStatusTimer: Timer?
+    @ObservationIgnored private let gitFileWatcher = GitFileWatcher()
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
     private var loadFailed = false
@@ -147,6 +148,8 @@ final class AppState {
         sessionListVersion += 1
         saveState()
 
+        updateGitFileWatcher()
+
         if selectedSessionID == nil {
             selectedSessionID = session.id
         }
@@ -163,6 +166,7 @@ final class AppState {
 
         folders.remove(at: index)
         saveState()
+        updateGitFileWatcher()
     }
 
     func addSession(
@@ -197,6 +201,9 @@ final class AppState {
         selectedSessionID = session.id
         sessionListVersion += 1
         saveState()
+        if worktreePath != nil {
+            updateGitFileWatcher()
+        }
     }
 
     func removeSession(id: UUID, parentFolderPath: String? = nil, save: Bool = true) {
@@ -256,6 +263,9 @@ final class AppState {
 
         sessionListVersion += 1
         if save { saveState() }
+        if session.worktreePath != nil {
+            updateGitFileWatcher()
+        }
     }
 
     /// Only applies the title if the user hasn't manually renamed the session.
@@ -478,6 +488,26 @@ final class AppState {
     private func startGitStatusPolling() {
         refreshGitStatuses()
         gitStatusTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshGitStatuses()
+            }
+        }
+        updateGitFileWatcher()
+    }
+
+    /// Updates the set of `.git` directories being watched for filesystem changes.
+    /// Call this whenever folders or worktree sessions are added/removed.
+    func updateGitFileWatcher() {
+        var paths: [String] = []
+        for folder in folders where folder.isGitRepo && folder.pathExists {
+            paths.append(folder.path)
+        }
+        for session in sessions {
+            if let worktreePath = session.worktreePath {
+                paths.append(worktreePath)
+            }
+        }
+        gitFileWatcher.start(paths: paths) { [weak self] in
             Task { @MainActor [weak self] in
                 self?.refreshGitStatuses()
             }

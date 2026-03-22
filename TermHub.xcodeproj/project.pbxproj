@@ -26,6 +26,7 @@
 		443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
 		4D0062BE42AE108A8D2A22FE /* WorktreeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */; };
 		4F840D4B9206FEAD40353FB2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 189B8C6AC49B8C82A724EC59 /* Assets.xcassets */; };
+		5198529BD63DD600883E60A7 /* GitFileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16E45C2731C99ADB695B3751 /* GitFileWatcher.swift */; };
 		51D692A095F5EDEB41E4963A /* BranchInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FCD6AEA3D27254627DCB74 /* BranchInfo.swift */; };
 		53D8F6199FA9053BF347F6C9 /* GitDiffParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB18E599834BFB7B2F489CB6 /* GitDiffParserTests.swift */; };
 		54C04030545ACD76203F4E45 /* ManagedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */; };
@@ -68,6 +69,7 @@
 		0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolderTests.swift; sourceTree = "<group>"; };
 		0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeHeaderView.swift; sourceTree = "<group>"; };
 		12C5380DC16B45138FCB73AA /* FolderSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSectionView.swift; sourceTree = "<group>"; };
+		16E45C2731C99ADB695B3751 /* GitFileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitFileWatcher.swift; sourceTree = "<group>"; };
 		1710253731113037A911775C /* CommandPaletteState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteState.swift; sourceTree = "<group>"; };
 		189B8C6AC49B8C82A724EC59 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalContainerView.swift; sourceTree = "<group>"; };
@@ -174,6 +176,7 @@
 		7A789E618E8F31F550725355 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				16E45C2731C99ADB695B3751 /* GitFileWatcher.swift */,
 				2305607A9F1189FC98956101 /* GitService.swift */,
 				F429369FC6F6D0A32E72B81C /* PersistenceService.swift */,
 				309C94FFFD305685DF84F204 /* TmuxService.swift */,
@@ -406,6 +409,7 @@
 				9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */,
 				2F71DF8FA98019B9EB9FEA80 /* FuzzyMatch.swift in Sources */,
 				06563F683F55B1D58C69C788 /* GitDiff.swift in Sources */,
+				5198529BD63DD600883E60A7 /* GitFileWatcher.swift in Sources */,
 				5DFB49734D63E711E22CAC08 /* GitService.swift in Sources */,
 				58A799AEC2E9D7E27E33A727 /* GitStatus.swift in Sources */,
 				BA1CA5ACCDAAEA3E158B39C8 /* KeyboardShortcutsSheet.swift in Sources */,
