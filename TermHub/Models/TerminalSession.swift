@@ -35,18 +35,6 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         )
     }
 
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        folderID = try container.decode(UUID.self, forKey: .folderID)
-        title = try container.decode(String.self, forKey: .title)
-        workingDirectory = try container.decode(String.self, forKey: .workingDirectory)
-        worktreePath = try container.decodeIfPresent(String.self, forKey: .worktreePath)
-        branchName = try container.decodeIfPresent(String.self, forKey: .branchName)
-        hasCustomTitle = try container.decodeIfPresent(Bool.self, forKey: .hasCustomTitle) ?? false
-        tmuxSessionName = try container.decode(String.self, forKey: .tmuxSessionName)
-    }
-
     /// Generates a tmux session name following the convention:
     /// - Plain shell: `mux-<foldername>-<uuid4>` (first 4 chars of UUID for uniqueness)
     /// - Worktree: `mux-<foldername>-<branch>-<uuid4>` with slashes replaced by dashes

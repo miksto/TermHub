@@ -19,7 +19,7 @@ struct TermHubApp: App {
                 .disabled(appState.selectedSession == nil)
 
                 Button("Add Folder...") {
-                    openFolderPanel()
+                    appState.showAddFolderPanel()
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
@@ -84,17 +84,6 @@ struct TermHubApp: App {
                     .keyboardShortcut(KeyEquivalent(Character("\(number)")), modifiers: .command)
                 }
             }
-        }
-    }
-
-    private func openFolderPanel() {
-        let panel = NSOpenPanel()
-        panel.title = "Choose a folder"
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        if panel.runModal() == .OK, let url = panel.url {
-            appState.addFolder(path: url.path)
         }
     }
 

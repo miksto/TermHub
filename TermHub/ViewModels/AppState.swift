@@ -21,7 +21,7 @@ final class AppState {
     var pendingWorktreeFolder: ManagedFolder?
     var pendingNewBranchFolder: ManagedFolder?
     var errorMessage: String?
-    var showingAddFolder = false
+    var pendingRemoveFolderID: UUID?
     var showKeyboardShortcuts = false
     var showCommandPalette = false
     /// Incremented only when sessions are added or removed (not on title/property changes).
@@ -42,13 +42,14 @@ final class AppState {
     private var gitStatusTimer: Timer?
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
+    private var loadFailed = false
 
     let terminalManager = TerminalSessionManager()
 
     init() {
         tmuxAvailable = TmuxService.isAvailable()
         loadState()
-        migrateTmuxSessionNames()
+        detectGitRepos()
         restoreTmuxSessions()
 
         terminalManager.onBell = { [weak self] sessionID in
@@ -101,11 +102,25 @@ final class AppState {
         }
     }
 
+    func showAddFolderPanel() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose a folder"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK, let url = panel.url {
+            addFolder(path: url.path)
+        }
+    }
+
     func addFolder(path: String) {
         guard FileManager.default.fileExists(atPath: path) else {
             errorMessage = "Folder path does not exist: \(path)"
             return
         }
+
+        // User is intentionally adding data — clear the load-failure guard so saves work again.
+        loadFailed = false
 
         let folder = ManagedFolder(path: path)
         folders.append(folder)
@@ -332,31 +347,6 @@ final class AppState {
         return siblings.first
     }
 
-    /// Migrate tmux session names from the old scheme (allowing `.` and `:`) to the new
-    /// sanitized scheme (replacing them with `_`). Renames live tmux sessions and updates
-    /// the persisted model so existing sessions are not orphaned.
-    private func migrateTmuxSessionNames() {
-        guard tmuxAvailable else { return }
-        var changed = false
-        for i in sessions.indices {
-            let oldName = sessions[i].tmuxSessionName
-            let newName = oldName
-                .replacingOccurrences(of: ".", with: "_")
-                .replacingOccurrences(of: ":", with: "_")
-            guard newName != oldName else { continue }
-            if TmuxService.sessionExists(name: oldName) {
-                do {
-                    try TmuxService.renameSession(oldName: oldName, newName: newName)
-                } catch {
-                    print("[TermHub] Failed to rename tmux session '\(oldName)' → '\(newName)': \(error)")
-                }
-            }
-            sessions[i].tmuxSessionName = newName
-            changed = true
-        }
-        if changed { saveState() }
-    }
-
     /// Re-create tmux sessions that were killed externally while the app was not running.
     private func restoreTmuxSessions() {
         guard tmuxAvailable else { return }
@@ -479,6 +469,37 @@ final class AppState {
         }
     }
 
+    /// Detects git repo status for folders that don't have it persisted yet.
+    /// Runs detection off the main thread to avoid blocking the UI at startup.
+    private func detectGitRepos() {
+        let foldersNeedingDetection = folders.enumerated().filter { !$0.element.isGitRepo && $0.element.pathExists }
+        guard !foldersNeedingDetection.isEmpty else { return }
+
+        let paths = foldersNeedingDetection.map { (index: $0.offset, path: $0.element.path) }
+        Task.detached {
+            var results: [(index: Int, isGit: Bool)] = []
+            for item in paths {
+                let isGit = GitService.isGitRepo(path: item.path)
+                if isGit {
+                    results.append((index: item.index, isGit: true))
+                }
+            }
+            let detected = results
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                var changed = false
+                for result in detected {
+                    guard result.index < self.folders.count,
+                          self.folders[result.index].path == paths[result.index].path
+                    else { continue }
+                    self.folders[result.index].isGitRepo = true
+                    changed = true
+                }
+                if changed { self.saveState() }
+            }
+        }
+    }
+
     private func loadState() {
         isLoading = true
         defer { isLoading = false }
@@ -489,11 +510,15 @@ final class AppState {
             selectedSessionID = state.selectedSessionID
             sessionListVersion += 1
         } catch {
+            loadFailed = true
+            errorMessage = "Failed to load saved state: \(error.localizedDescription). "
+                + "A backup may exist at state.json.bak in Application Support/TermHub."
             print("Failed to load state: \(error)")
         }
     }
 
     private func saveState() {
+        guard !loadFailed else { return }
         do {
             try PersistenceService.save(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID)
         } catch {

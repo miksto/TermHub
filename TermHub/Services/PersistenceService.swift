@@ -55,6 +55,15 @@ enum PersistenceService {
         } catch {
             throw PersistenceError.encodingFailed
         }
+
+        // Rotate backup before overwriting so we can recover from bad writes.
+        let fm = FileManager.default
+        let backupURL = fileURL.appendingPathExtension("bak")
+        if fm.fileExists(atPath: fileURL.path) {
+            try? fm.removeItem(at: backupURL)
+            try? fm.copyItem(at: fileURL, to: backupURL)
+        }
+
         do {
             try data.write(to: fileURL, options: .atomic)
         } catch {

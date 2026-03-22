@@ -281,8 +281,8 @@ final class CommandPaletteState {
             title: "Add Folder",
             category: "Actions"
         ) { [weak appState] in
-            appState?.showingAddFolder = true
             dismiss()
+            appState?.showAddFolderPanel()
         })
 
         // Remove Folder
@@ -295,8 +295,8 @@ final class CommandPaletteState {
                 subtitle: folder.name,
                 category: "Actions"
             ) { [weak appState] in
-                appState?.removeFolder(id: folder.id)
                 dismiss()
+                appState?.pendingRemoveFolderID = folder.id
             })
         } else if appState.folders.count > 1 {
             actions.append(PaletteItem(
@@ -353,8 +353,8 @@ final class CommandPaletteState {
                 case .newShellNewBranch:
                     self.pushMode(.textInput(prompt: "Branch name", action: .newBranch(folder: folder)))
                 case .removeFolder:
-                    appState.removeFolder(id: folder.id)
                     dismiss()
+                    appState.pendingRemoveFolderID = folder.id
                 }
             }
         }

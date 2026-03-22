@@ -58,5 +58,31 @@ struct ContentView: View {
         } message: { message in
             Text(message)
         }
+        .alert(
+            "Remove Folder",
+            isPresented: Binding(
+                get: { appState.pendingRemoveFolderID != nil },
+                set: { if !$0 { appState.pendingRemoveFolderID = nil } }
+            ),
+            presenting: appState.pendingRemoveFolderID.flatMap { id in
+                appState.folders.first(where: { $0.id == id })
+            }
+        ) { folder in
+            Button("Cancel", role: .cancel) {
+                appState.pendingRemoveFolderID = nil
+            }
+            Button("Remove", role: .destructive) {
+                appState.removeFolder(id: folder.id)
+                appState.pendingRemoveFolderID = nil
+            }
+        } message: { folder in
+            let sessionCount = appState.sessions.filter { $0.folderID == folder.id }.count
+            let worktreeCount = appState.sessions.filter { $0.folderID == folder.id && $0.worktreePath != nil }.count
+            if worktreeCount > 0 {
+                Text("This will close \(sessionCount) tmux session(s) and remove \(worktreeCount) worktree(s) for \"\(folder.name)\".")
+            } else {
+                Text("This will close \(sessionCount) tmux session(s) for \"\(folder.name)\".")
+            }
+        }
     }
 }

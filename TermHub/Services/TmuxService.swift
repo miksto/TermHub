@@ -79,10 +79,6 @@ enum TmuxService {
         try run(["kill-session", "-t", name])
     }
 
-    static func renameSession(oldName: String, newName: String) throws {
-        try run(["rename-session", "-t", oldName, newName])
-    }
-
     static func sessionExists(name: String) -> Bool {
         do {
             try run(["has-session", "-t", name])
