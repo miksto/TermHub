@@ -19,6 +19,12 @@ xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub buil
 
 # Run all tests
 xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test
+
+# Run a single test class
+xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test -only-testing:TermHubTests/AppStateTests
+
+# Run a single test method
+xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test -only-testing:TermHubTests/AppStateTests/testMethodName
 ```
 
 Slash commands: `/build`, `/test`, `/regenerate-project`.
@@ -33,14 +39,18 @@ Slash commands: `/build`, `/test`, `/regenerate-project`.
 
 **Services (stateless enums with static methods):**
 - `TmuxService` — creates/kills/attaches tmux sessions on a dedicated socket (`termhub`)
-- `GitService` — git worktree add/remove and branch listing
+- `GitService` — git worktree add/remove, branch listing, status, and diff parsing
 - `PersistenceService` — JSON serialization of folders+sessions to `~/Library/Application Support/TermHub/state.json`
 - `ShellEnvironment` — resolves user shell, PATH, and tmux binary location
+- `GitFileWatcher` — FSEvents-based watcher on `.git` directories that triggers git status refreshes with debouncing
 
 **ViewModels:**
 - `TerminalSessionManager` — manages `SwiftTerm.LocalProcessTerminalView` instances per session, handles lazy tmux attach, and forwards bell/title-change callbacks to AppState
+- `CommandPaletteState` — drives the command palette (`⌘P`): manages modes (commands, session/folder/branch picker, text input), fuzzy filtering, and action dispatch
 
-**Views:** `ContentView` (NavigationSplitView) → sidebar (`SidebarView` with `FolderSectionView`/`SessionRowView`) + detail (`TerminalContainerView` wrapping `TermHubTerminalView`). Sheets for branch picker, new branch, and keyboard shortcuts.
+**Views:** `ContentView` (NavigationSplitView) → sidebar (`SidebarView` with `FolderSectionView`/`SessionRowView`) + detail (`TerminalContainerView` wrapping `TermHubTerminalView` or `DiffTableView`). Sheets for branch picker, new branch, and keyboard shortcuts. `CommandPaletteOverlay` provides the `⌘P` palette.
+
+**URL scheme:** `termhub://new-worktree?repo=...&branch=...&plan=...` — creates a worktree session externally. If `plan` is provided, runs `claude` to implement it in the new session.
 
 ## Key Conventions
 
