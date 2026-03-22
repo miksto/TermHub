@@ -268,7 +268,23 @@ class TerminalContainerViewController: NSViewController {
         let sessions = appState.sessions
         let manager = appState.terminalManager
 
-        for session in sessions {
+        // Remove non-selected terminals from the view hierarchy so they don't
+        // participate in Auto Layout during window resize. SwiftTerm rewraps its
+        // entire scrollback buffer on every frame change, so keeping N hidden
+        // terminals as subviews causes N expensive rewraps per resize frame.
+        let activeSessionIDs = Set(sessions.map(\.id))
+        for subview in terminalContainer.subviews {
+            if let terminalView = subview as? LocalProcessTerminalView {
+                let sessionID = manager.sessionID(for: terminalView)
+                let isSelected = sessionID == selectedID
+                if !isSelected || sessionID == nil || !activeSessionIDs.contains(sessionID!) {
+                    terminalView.removeFromSuperview()
+                }
+            }
+        }
+
+        // Only add the selected terminal to the view hierarchy
+        for session in sessions where session.id == selectedID {
             guard let terminal = manager.getOrCreateTerminal(for: session, tmuxAvailable: tmuxAvailable) else {
                 continue
             }
@@ -290,24 +306,7 @@ class TerminalContainerViewController: NSViewController {
                 terminal.nativeForegroundColor = NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
             }
 
-            let isSelected = session.id == selectedID
-            let shouldHide = !isSelected
-            if terminal.isHidden != shouldHide {
-                terminal.isHidden = shouldHide
-            }
-            if isSelected {
-                manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
-            }
-        }
-
-        let activeSessionIDs = Set(sessions.map(\.id))
-        for subview in terminalContainer.subviews {
-            if let terminalView = subview as? LocalProcessTerminalView {
-                let sessionID = manager.sessionID(for: terminalView)
-                if sessionID == nil || !activeSessionIDs.contains(sessionID!) {
-                    terminalView.removeFromSuperview()
-                }
-            }
+            manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
         }
 
         updateTabState(selectedID: selectedID, suppressInteraction: suppressInteraction)

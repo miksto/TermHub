@@ -87,6 +87,10 @@ final class TerminalSessionManager {
         startedSessions.remove(sessionID)
     }
 
+    func terminal(for sessionID: UUID) -> LocalProcessTerminalView? {
+        terminals[sessionID]
+    }
+
     func sessionID(for terminal: LocalProcessTerminalView) -> UUID? {
         terminals.first { $0.value === terminal }?.key
     }
