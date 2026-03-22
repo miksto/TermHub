@@ -52,6 +52,15 @@ struct TermHubApp: App {
                 }
                 .keyboardShortcut("p", modifiers: .command)
 
+                Button("Switch Branch / Worktree…") {
+                    if let session = appState.selectedSession,
+                       let folder = appState.folders.first(where: { $0.id == session.folderID }) {
+                        appState.pendingWorktreeFolder = folder
+                    }
+                }
+                .keyboardShortcut("b", modifiers: .command)
+                .disabled(appState.selectedSession == nil)
+
 
                 Button("Toggle Git Diff") {
                     appState.toggleDetailTab()
