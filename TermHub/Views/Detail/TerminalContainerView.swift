@@ -46,6 +46,7 @@ class TerminalContainerViewController: NSViewController {
     private var lastSuppressInteraction: Bool?
     private var diffScrollView: NSScrollView?
     private var diffDelegate: DiffTableDelegate?
+    private var diffEmptyStateView: NSTextField?
     private var lastDetailTab: DetailTab = .terminal
     private var contentTopToTabBar: NSLayoutConstraint!
     private var contentTopToRoot: NSLayoutConstraint!
@@ -156,6 +157,20 @@ class TerminalContainerViewController: NSViewController {
             scrollView.bottomAnchor.constraint(equalTo: diffContainer.bottomAnchor),
         ])
 
+        // Empty state label
+        let emptyLabel = NSTextField(labelWithString: "No changes")
+        emptyLabel.font = .systemFont(ofSize: 14)
+        emptyLabel.textColor = .tertiaryLabelColor
+        emptyLabel.alignment = .center
+        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        emptyLabel.isHidden = true
+        diffContainer.addSubview(emptyLabel)
+        NSLayoutConstraint.activate([
+            emptyLabel.centerXAnchor.constraint(equalTo: diffContainer.centerXAnchor),
+            emptyLabel.centerYAnchor.constraint(equalTo: diffContainer.centerYAnchor),
+        ])
+        self.diffEmptyStateView = emptyLabel
+
         // Observe frame changes for side-by-side mode switching
         scrollView.postsFrameChangedNotifications = true
         NotificationCenter.default.addObserver(
@@ -238,11 +253,17 @@ class TerminalContainerViewController: NSViewController {
             delegate.lastDiff = diff
             delegate.rebuildRows(for: scrollView.frame.width)
             tableView?.reloadData()
+            diffEmptyStateView?.isHidden = true
         } else {
             delegate.diff = .empty
             delegate.rows = []
             tableView?.reloadData()
-            appState.loadDiffForCurrentSession()
+            // Show empty state only when not loading (i.e. diff was loaded but had no changes)
+            let hasLoadedEmpty = appState.currentDiff != nil && !appState.isDiffLoading
+            diffEmptyStateView?.isHidden = !hasLoadedEmpty
+            if appState.currentDiff == nil {
+                appState.loadDiffForCurrentSession()
+            }
         }
     }
 
