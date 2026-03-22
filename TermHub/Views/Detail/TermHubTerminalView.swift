@@ -12,6 +12,22 @@ class TermHubTerminalView: LocalProcessTerminalView {
         onBell?()
     }
 
+    // MARK: - Diagnostic overrides (temporary — remove after debugging)
+
+    override open func setFrameSize(_ newSize: NSSize) {
+        let oldSize = frame.size
+        super.setFrameSize(newSize)
+        if oldSize != newSize {
+            let terminal = getTerminal()
+            print("[TermHub-DEBUG] setFrameSize old=\(oldSize) new=\(newSize) cols=\(terminal.cols) rows=\(terminal.rows) isAlt=\(terminal.isCurrentBufferAlternate)")
+        }
+    }
+
+    override open func scrolled(source: TerminalView, position: Double) {
+        print("[TermHub-DEBUG] scrolled position=\(position) scrollPos=\(scrollPosition) canScroll=\(canScroll)")
+        super.scrolled(source: source, position: position)
+    }
+
     // Monitor Shift key to temporarily disable mouse reporting,
     // enabling native text selection even when tmux has mouse mode active.
     func installEventMonitors() {

@@ -7,6 +7,8 @@ final class TerminalSessionManager {
     private var delegates: [UUID: TerminalProcessDelegate] = [:]
     private var startedSessions: Set<UUID> = []
     private var destroyedSessionIDs: Set<UUID> = []
+    private var tmuxSessionNames: [UUID: String] = [:]
+    private var activeSearchTerm: [UUID: (term: String, caseSensitive: Bool)] = [:]
     var onBell: ((UUID) -> Void)?
     var onTitleChange: ((UUID, String) -> Void)?
 
@@ -54,6 +56,7 @@ final class TerminalSessionManager {
                     print("[TermHub] Failed to create tmux session '\(session.tmuxSessionName)': \(error)")
                 }
             }
+            tmuxSessionNames[session.id] = session.tmuxSessionName
             let cmd = TmuxService.attachCommand(name: session.tmuxSessionName)
             let executable = cmd[0]
             let args = Array(cmd.dropFirst())
@@ -84,18 +87,43 @@ final class TerminalSessionManager {
     }
 
     @discardableResult
-    func findNext(sessionID: UUID, term: String, options: SearchOptions = SearchOptions()) -> Bool {
+    func findNext(sessionID: UUID, term: String, caseSensitive: Bool = false) -> Bool {
+        if let tmuxName = tmuxSessionNames[sessionID] {
+            let prev = activeSearchTerm[sessionID]
+            if prev?.term == term && prev?.caseSensitive == caseSensitive {
+                TmuxService.searchAgain(session: tmuxName)
+            } else {
+                activeSearchTerm[sessionID] = (term, caseSensitive)
+                TmuxService.searchBackward(session: tmuxName, term: term, caseSensitive: caseSensitive)
+            }
+            return true
+        }
         guard let terminal = terminals[sessionID] else { return false }
-        return terminal.findNext(term, options: options)
+        return terminal.findNext(term, options: SearchOptions(caseSensitive: caseSensitive))
     }
 
     @discardableResult
-    func findPrevious(sessionID: UUID, term: String, options: SearchOptions = SearchOptions()) -> Bool {
+    func findPrevious(sessionID: UUID, term: String, caseSensitive: Bool = false) -> Bool {
+        if let tmuxName = tmuxSessionNames[sessionID] {
+            let prev = activeSearchTerm[sessionID]
+            if prev?.term == term && prev?.caseSensitive == caseSensitive {
+                TmuxService.searchReverse(session: tmuxName)
+            } else {
+                activeSearchTerm[sessionID] = (term, caseSensitive)
+                TmuxService.searchBackward(session: tmuxName, term: term, caseSensitive: caseSensitive)
+            }
+            return true
+        }
         guard let terminal = terminals[sessionID] else { return false }
-        return terminal.findPrevious(term, options: options)
+        return terminal.findPrevious(term, options: SearchOptions(caseSensitive: caseSensitive))
     }
 
     func clearSearch(sessionID: UUID) {
+        if let tmuxName = tmuxSessionNames[sessionID] {
+            TmuxService.cancelCopyMode(session: tmuxName)
+            activeSearchTerm.removeValue(forKey: sessionID)
+            return
+        }
         terminals[sessionID]?.clearSearch()
     }
 
@@ -107,6 +135,8 @@ final class TerminalSessionManager {
         }
         delegates.removeValue(forKey: sessionID)
         startedSessions.remove(sessionID)
+        tmuxSessionNames.removeValue(forKey: sessionID)
+        activeSearchTerm.removeValue(forKey: sessionID)
     }
 }
 

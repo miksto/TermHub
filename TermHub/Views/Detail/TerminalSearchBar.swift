@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftTerm
 
 struct TerminalSearchBar: View {
     @Environment(AppState.self) private var appState
@@ -72,14 +71,12 @@ struct TerminalSearchBar: View {
 
     private func findNext() {
         guard !searchText.isEmpty, let id = appState.selectedSessionID else { return }
-        let options = SearchOptions(caseSensitive: caseSensitive)
-        appState.terminalManager.findNext(sessionID: id, term: searchText, options: options)
+        appState.terminalManager.findNext(sessionID: id, term: searchText, caseSensitive: caseSensitive)
     }
 
     private func findPrevious() {
         guard !searchText.isEmpty, let id = appState.selectedSessionID else { return }
-        let options = SearchOptions(caseSensitive: caseSensitive)
-        appState.terminalManager.findPrevious(sessionID: id, term: searchText, options: options)
+        appState.terminalManager.findPrevious(sessionID: id, term: searchText, caseSensitive: caseSensitive)
     }
 
     private func dismiss() {
