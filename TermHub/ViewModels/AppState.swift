@@ -554,6 +554,9 @@ final class AppState {
         gitFileWatcher.start(paths: paths) { [weak self] in
             Task { @MainActor [weak self] in
                 self?.refreshGitStatuses()
+                if self?.currentDetailTab == .gitDiff {
+                    self?.loadDiffForCurrentSession()
+                }
             }
         }
     }
