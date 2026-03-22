@@ -106,6 +106,7 @@ struct FolderSectionView: View {
             }
             .padding(.top, 2)
             .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
+            .selectionDisabled()
 
             // Worktree groups
             ForEach(worktreeGroups) { group in
@@ -155,6 +156,7 @@ struct FolderSectionView: View {
                     onRequestRemoveFolder()
                 }
             }
+            .selectionDisabled()
         }
     }
 }
