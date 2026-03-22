@@ -88,6 +88,10 @@ enum TmuxService {
         }
     }
 
+    static func sendKeys(sessionName: String, text: String) throws {
+        try run(["send-keys", "-t", sessionName, text, "Enter"])
+    }
+
     static func isAvailable() -> Bool {
         return ShellEnvironment.tmuxPath != nil
     }

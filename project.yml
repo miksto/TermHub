@@ -33,12 +33,18 @@ targets:
         PRODUCT_NAME: TermHub
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
-        GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "6.0"
         CODE_SIGN_ENTITLEMENTS: TermHub/App/TermHub.entitlements
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         SWIFT_STRICT_CONCURRENCY: complete
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: TermHub/App/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - termhub
+            CFBundleURLName: com.termhub.app
     dependencies:
       - package: SwiftTerm
   TermHubTests:

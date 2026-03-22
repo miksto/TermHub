@@ -9,6 +9,7 @@ final class TerminalSessionManager {
     private var destroyedSessionIDs: Set<UUID> = []
     private var startRetryCount: [UUID: Int] = [:]
     private static let maxStartRetries = 50
+    var pendingCommands: [UUID: String] = [:]
     var onBell: ((UUID) -> Void)?
     var onTitleChange: ((UUID, String) -> Void)?
 
@@ -81,6 +82,12 @@ final class TerminalSessionManager {
                 environment: ShellEnvironment.shellEnvironment.map { "\($0.key)=\($0.value)" },
                 execName: (executable as NSString).lastPathComponent
             )
+            if let command = pendingCommands.removeValue(forKey: session.id) {
+                let tmuxName = session.tmuxSessionName
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    try? TmuxService.sendKeys(sessionName: tmuxName, text: command)
+                }
+            }
         } else {
             terminal.startProcess(
                 executable: shell,
