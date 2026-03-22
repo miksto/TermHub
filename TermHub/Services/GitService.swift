@@ -173,10 +173,14 @@ enum GitService {
         return path
     }
 
-    static func addWorktreeNewBranch(repoPath: String, newBranch: String) throws -> String {
+    static func addWorktreeNewBranch(repoPath: String, newBranch: String, startPoint: String? = nil) throws -> String {
         let path = worktreePath(repoPath: repoPath, branch: newBranch)
         try ensureWorktreeContainer(repoPath: repoPath)
-        try run(["-C", repoPath, "worktree", "add", "-b", newBranch, path])
+        var args = ["-C", repoPath, "worktree", "add", "-b", newBranch, path]
+        if let startPoint {
+            args.append(startPoint)
+        }
+        try run(args)
         return path
     }
 
@@ -241,6 +245,11 @@ enum GitService {
         try run(["-C", path, "stash", "pop"])
     }
 
+    @discardableResult
+    static func checkout(path: String, branch: String) throws -> String {
+        try run(["-C", path, "checkout", branch])
+    }
+
     /// Returns (linesAdded, linesDeleted) for uncommitted changes (staged + unstaged), including untracked files.
     static func diffStats(path: String) -> (added: Int, deleted: Int) {
         var added = 0
@@ -293,7 +302,8 @@ enum GitService {
     static func status(path: String) -> GitStatus {
         let (added, deleted) = diffStats(path: path)
         let (ahead, behind) = aheadBehind(path: path)
-        return GitStatus(linesAdded: added, linesDeleted: deleted, ahead: ahead, behind: behind)
+        let branch = currentBranch(repoPath: path)
+        return GitStatus(linesAdded: added, linesDeleted: deleted, ahead: ahead, behind: behind, currentBranch: branch)
     }
 
     /// Returns a list of untracked file paths (relative to the repo root), excluding ignored files.

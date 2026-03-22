@@ -134,6 +134,11 @@ struct FolderSectionView: View {
                         .help("Folder path no longer exists: \(folder.path)")
                 }
                 if folder.isGitRepo, let status = appState.gitStatus(forFolderPath: folder.path) {
+                    if let branch = status.currentBranch {
+                        Text(branch)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                     if status.isDirty {
                         DiffStatsText(status: status)
                     }

@@ -18,6 +18,7 @@ enum PaletteMode: Sendable {
     case sessionPicker
     case folderPicker(action: FolderAction)
     case branchPicker(folder: ManagedFolder)
+    case checkoutBranchPicker(folder: ManagedFolder)
     case textInput(prompt: String, action: TextInputAction)
     case gitActionStatus
 }
@@ -78,6 +79,7 @@ final class CommandPaletteState {
                 case .newShellNewBranch: return "New Branch"
                 case .removeFolder: return "Remove Folder"
                 }
+            case .checkoutBranchPicker(let folder): return folder.name
             case .branchPicker(let folder): return folder.name
             case .textInput(let prompt, _): return prompt
             case .gitActionStatus: return gitActionTitle
@@ -143,6 +145,8 @@ final class CommandPaletteState {
             return folderPickerItems(appState: appState, action: action, dismiss: dismiss)
         case .branchPicker(let folder):
             return branchPickerItems(folder: folder, appState: appState, dismiss: dismiss)
+        case .checkoutBranchPicker(let folder):
+            return checkoutBranchPickerItems(folder: folder, appState: appState, dismiss: dismiss)
         case .textInput:
             return []
         case .gitActionStatus:
@@ -257,6 +261,21 @@ final class CommandPaletteState {
                 category: "Actions"
             ) { [weak self] in
                 self?.pushMode(.folderPicker(action: .newShellNewBranch))
+            })
+        }
+
+        // Checkout Branch (uses the current session's folder)
+        if let session = appState.selectedSession,
+           let folder = appState.folders.first(where: { $0.id == session.folderID }),
+           folder.isGitRepo {
+            actions.append(PaletteItem(
+                id: "action-checkout-branch",
+                icon: "arrow.left.arrow.right",
+                title: "Checkout Branch",
+                subtitle: folder.name,
+                category: "Git"
+            ) { [weak self] in
+                self?.loadBranchesAndPush(folder: folder, forCheckout: true)
             })
         }
 
@@ -423,6 +442,48 @@ final class CommandPaletteState {
         return filterByQuery(items)
     }
 
+    private func checkoutBranchPickerItems(
+        folder: ManagedFolder,
+        appState: AppState,
+        dismiss: @escaping @MainActor @Sendable () -> Void
+    ) -> [PaletteItem] {
+        let currentBranch = appState.gitStatus(forFolderPath: folder.path)?.currentBranch
+        let items = branches.map { branch in
+            let isCurrent = branch == currentBranch
+            return PaletteItem(
+                id: "checkout-\(branch)",
+                icon: isCurrent ? "checkmark.circle.fill" : "arrow.triangle.branch",
+                title: branch,
+                subtitle: isCurrent ? "current" : nil
+            ) { [weak self] in
+                guard !isCurrent else {
+                    dismiss()
+                    return
+                }
+                self?.gitActionTitle = "Checkout \(branch)"
+                self?.isRunningGitAction = true
+                self?.gitActionError = nil
+                self?.pushMode(.gitActionStatus)
+
+                Task.detached { [weak self] in
+                    do {
+                        try GitService.checkout(path: folder.path, branch: branch)
+                        await MainActor.run {
+                            dismiss()
+                        }
+                    } catch {
+                        await MainActor.run { [weak self] in
+                            self?.isRunningGitAction = false
+                            self?.gitActionError = error.localizedDescription
+                        }
+                    }
+                }
+            }
+        }
+
+        return filterByQuery(items)
+    }
+
     private func filterByQuery(_ items: [PaletteItem]) -> [PaletteItem] {
         guard !query.isEmpty else { return items }
         return items.compactMap { item in
@@ -458,10 +519,14 @@ final class CommandPaletteState {
         }
     }
 
-    func loadBranchesAndPush(folder: ManagedFolder) {
+    func loadBranchesAndPush(folder: ManagedFolder, forCheckout: Bool = false) {
         isLoadingBranches = true
         branchLoadError = nil
-        pushMode(.branchPicker(folder: folder))
+        if forCheckout {
+            pushMode(.checkoutBranchPicker(folder: folder))
+        } else {
+            pushMode(.branchPicker(folder: folder))
+        }
 
         Task.detached { [weak self] in
             do {
