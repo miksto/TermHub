@@ -84,10 +84,23 @@ struct TermHubApp: App {
         guard let session = appState.selectedSession,
               let folder = appState.folders.first(where: { $0.id == session.folderID })
         else { return }
+
+        let title: String
+        let cwd: String
+        if let worktreePath = session.worktreePath {
+            title = "\(folder.name) [\(session.branchName ?? "worktree")]"
+            cwd = worktreePath
+        } else {
+            title = "\(folder.name) – Shell"
+            cwd = folder.path
+        }
+
         appState.addSession(
             folderID: folder.id,
-            title: "\(folder.name) – Shell",
-            cwd: folder.path
+            title: title,
+            cwd: cwd,
+            worktreePath: session.worktreePath,
+            branchName: session.branchName
         )
     }
 }

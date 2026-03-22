@@ -7,6 +7,42 @@ struct FolderSectionView: View {
 
     @State private var isExpanded = true
 
+    private struct WorktreeGroup: Identifiable {
+        let worktreePath: String
+        let branchName: String
+        let sessionIDs: [UUID]
+        var id: String { worktreePath }
+    }
+
+    private var plainSessionIDs: [UUID] {
+        folder.sessionIDs.filter { id in
+            appState.sessions.first(where: { $0.id == id })?.worktreePath == nil
+        }
+    }
+
+    private var worktreeGroups: [WorktreeGroup] {
+        var seen: [String: Int] = [:]
+        var groups: [WorktreeGroup] = []
+        for sessionID in folder.sessionIDs {
+            guard let session = appState.sessions.first(where: { $0.id == sessionID }),
+                  let wt = session.worktreePath else { continue }
+            if let idx = seen[wt] {
+                groups[idx] = WorktreeGroup(
+                    worktreePath: groups[idx].worktreePath,
+                    branchName: groups[idx].branchName,
+                    sessionIDs: groups[idx].sessionIDs + [sessionID]
+                )
+            } else {
+                seen[wt] = groups.count
+                groups.append(WorktreeGroup(
+                    worktreePath: wt,
+                    branchName: session.branchName ?? "worktree",
+                    sessionIDs: [sessionID]
+                ))
+            }
+        }
+        return groups
+    }
 
     private func aheadBehindText(_ status: GitStatus) -> String {
         var parts: [String] = []
@@ -17,18 +53,16 @@ struct FolderSectionView: View {
 
     var body: some View {
         Section(isExpanded: $isExpanded) {
-            ForEach(folder.sessionIDs, id: \.self) { sessionID in
+            // Plain shell sessions
+            ForEach(plainSessionIDs, id: \.self) { sessionID in
                 SessionRowView(sessionID: sessionID, onRemove: {
                     appState.removeSession(id: sessionID)
                 })
                 .tag(sessionID)
                 .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
             }
-            .onMove { from, to in
-                appState.moveSession(fromOffsets: from, toOffset: to, inFolderID: folder.id)
-            }
 
-            // Action buttons row below sessions
+            // Action buttons for folder-level actions
             HStack(spacing: 6) {
                 Button {
                     if !folder.pathExists {
@@ -67,9 +101,26 @@ struct FolderSectionView: View {
                     .controlSize(.small)
                 }
             }
-            .moveDisabled(true)
             .padding(.top, 2)
             .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
+
+            // Worktree groups
+            ForEach(worktreeGroups) { group in
+                WorktreeHeaderView(
+                    folderID: folder.id,
+                    worktreePath: group.worktreePath,
+                    branchName: group.branchName
+                )
+                .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
+
+                ForEach(group.sessionIDs, id: \.self) { sessionID in
+                    SessionRowView(sessionID: sessionID, onRemove: {
+                        appState.removeSession(id: sessionID)
+                    })
+                    .tag(sessionID)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 28, bottom: 0, trailing: 0))
+                }
+            }
         } header: {
             HStack {
                 Label(folder.name, systemImage: "folder")

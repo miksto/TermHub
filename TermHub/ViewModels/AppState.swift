@@ -165,12 +165,17 @@ final class AppState {
             print("[TermHub] Failed to kill tmux session '\(session.tmuxSessionName)': \(error)")
         }
         if let worktreePath = session.worktreePath {
-            let folderPath = parentFolderPath ?? folders.first(where: { $0.id == session.folderID })?.path
-            if let repoPath = folderPath {
-                do {
-                    try GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath)
-                } catch {
-                    print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)")
+            let otherSessionUsesWorktree = sessions.contains {
+                $0.id != id && $0.worktreePath == worktreePath
+            }
+            if !otherSessionUsesWorktree {
+                let folderPath = parentFolderPath ?? folders.first(where: { $0.id == session.folderID })?.path
+                if let repoPath = folderPath {
+                    do {
+                        try GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath)
+                    } catch {
+                        print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)")
+                    }
                 }
             }
         }
@@ -225,11 +230,6 @@ final class AppState {
         saveState()
     }
 
-    func moveSession(fromOffsets source: IndexSet, toOffset destination: Int, inFolderID folderID: UUID) {
-        guard let index = folders.firstIndex(where: { $0.id == folderID }) else { return }
-        folders[index].sessionIDs.move(fromOffsets: source, toOffset: destination)
-        saveState()
-    }
 
     func renameSession(id: UUID, newTitle: String) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }

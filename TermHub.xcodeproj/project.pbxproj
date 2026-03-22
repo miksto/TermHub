@@ -21,6 +21,7 @@
 		3ABEE09ECFA59D8269E25998 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04093E0C76CFF2730B42B826 /* AppState.swift */; };
 		3FB6677B52F617DC7A0C82A9 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94816DB493F9BC69DC84FAD /* CommandPaletteView.swift */; };
 		443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
+		4D0062BE42AE108A8D2A22FE /* WorktreeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */; };
 		4F840D4B9206FEAD40353FB2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 189B8C6AC49B8C82A724EC59 /* Assets.xcassets */; };
 		54C04030545ACD76203F4E45 /* ManagedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */; };
 		5812F2FE76E7B03FD230223C /* TerminalContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */; };
@@ -57,6 +58,7 @@
 /* Begin PBXFileReference section */
 		04093E0C76CFF2730B42B826 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolderTests.swift; sourceTree = "<group>"; };
+		0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeHeaderView.swift; sourceTree = "<group>"; };
 		12C5380DC16B45138FCB73AA /* FolderSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSectionView.swift; sourceTree = "<group>"; };
 		1710253731113037A911775C /* CommandPaletteState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteState.swift; sourceTree = "<group>"; };
 		189B8C6AC49B8C82A724EC59 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -173,6 +175,7 @@
 				12C5380DC16B45138FCB73AA /* FolderSectionView.swift */,
 				66BC1F94C86B5BEF5E5C1B54 /* SessionRowView.swift */,
 				CE9636C089AF563FC8C56018 /* SidebarView.swift */,
+				0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */,
 			);
 			path = Sidebar;
 			sourceTree = "<group>";
@@ -370,6 +373,7 @@
 				3175266A96F424FC8AD47EC9 /* TerminalSession.swift in Sources */,
 				F8BC8AFAE178685B5122ACFA /* TerminalSessionManager.swift in Sources */,
 				952771C820508D521A3947CE /* TmuxService.swift in Sources */,
+				4D0062BE42AE108A8D2A22FE /* WorktreeHeaderView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -47,10 +47,6 @@ struct SessionRowView: View {
                     }
                 }
                 Spacer()
-                if session.worktreePath != nil,
-                   let status = appState.gitStatus(forSession: session), status.isDirty {
-                    DiffStatsText(status: status)
-                }
                 if appState.sessionsNeedingAttention.contains(sessionID) {
                     Circle()
                         .fill(.red)
