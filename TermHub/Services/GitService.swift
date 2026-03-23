@@ -227,7 +227,16 @@ enum GitService {
 
     @discardableResult
     static func push(path: String) throws -> String {
-        try run(["-C", path, "push"])
+        // Check if the current branch has an upstream configured
+        let hasUpstream = (try? run(["-C", path, "rev-parse", "--abbrev-ref", "@{u}"])) != nil
+        if hasUpstream {
+            return try run(["-C", path, "push"])
+        } else {
+            guard let branch = currentBranch(repoPath: path) else {
+                return try run(["-C", path, "push"])
+            }
+            return try run(["-C", path, "push", "--set-upstream", "origin", branch])
+        }
     }
 
     @discardableResult
