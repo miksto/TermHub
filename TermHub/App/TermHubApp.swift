@@ -27,6 +27,12 @@ struct TermHubApp: App {
                 }
                 .keyboardShortcut("t", modifiers: .command)
                 .disabled(appState.selectedSession == nil)
+
+                Button("New Sandbox Shell in Current Folder") {
+                    newShellInCurrentFolder(sandbox: true)
+                }
+                .keyboardShortcut("t", modifiers: [.command, .option])
+                .disabled(appState.selectedSession == nil || appState.folderForSelectedSession?.hasSandbox != true)
             }
 
             CommandGroup(replacing: .saveItem) {
@@ -171,10 +177,12 @@ struct TermHubApp: App {
         }
     }
 
-    private func newShellInCurrentFolder() {
+    private func newShellInCurrentFolder(sandbox: Bool = false) {
         guard let session = appState.selectedSession,
               let folder = appState.folders.first(where: { $0.id == session.folderID })
         else { return }
+
+        let useSandbox = sandbox && folder.hasSandbox
 
         let title: String
         let cwd: String
@@ -191,7 +199,8 @@ struct TermHubApp: App {
             title: title,
             cwd: cwd,
             worktreePath: session.worktreePath,
-            branchName: session.branchName
+            branchName: session.branchName,
+            isSandboxSession: useSandbox
         )
     }
 }

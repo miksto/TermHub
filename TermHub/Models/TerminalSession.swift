@@ -10,6 +10,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
     var hasCustomTitle: Bool
     var isExternalWorktree: Bool
     var ownsBranch: Bool
+    var isSandboxSession: Bool
     var tmuxSessionName: String
 
     init(
@@ -22,6 +23,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         hasCustomTitle: Bool = false,
         isExternalWorktree: Bool = false,
         ownsBranch: Bool = false,
+        isSandboxSession: Bool = false,
         tmuxSessionName: String? = nil,
         folderName: String? = nil
     ) {
@@ -34,6 +36,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         self.hasCustomTitle = hasCustomTitle
         self.isExternalWorktree = isExternalWorktree
         self.ownsBranch = ownsBranch
+        self.isSandboxSession = isSandboxSession
         self.tmuxSessionName = tmuxSessionName ?? Self.generateTmuxSessionName(
             folderName: folderName ?? (workingDirectory as NSString).lastPathComponent,
             branchName: branchName,
@@ -52,6 +55,7 @@ struct TerminalSession: Identifiable, Codable, Hashable {
         hasCustomTitle = try container.decodeIfPresent(Bool.self, forKey: .hasCustomTitle) ?? false
         isExternalWorktree = try container.decodeIfPresent(Bool.self, forKey: .isExternalWorktree) ?? false
         ownsBranch = try container.decodeIfPresent(Bool.self, forKey: .ownsBranch) ?? false
+        isSandboxSession = try container.decodeIfPresent(Bool.self, forKey: .isSandboxSession) ?? false
         tmuxSessionName = try container.decode(String.self, forKey: .tmuxSessionName)
     }
 

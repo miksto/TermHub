@@ -54,6 +54,12 @@ struct SessionRowView: View {
                     }
                 }
                 Spacer()
+                if session.isSandboxSession {
+                    Image(systemName: "shippingbox")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .help("Sandbox session")
+                }
                 if appState.sessionsNeedingAttention.contains(sessionID) {
                     Circle()
                         .fill(.red)

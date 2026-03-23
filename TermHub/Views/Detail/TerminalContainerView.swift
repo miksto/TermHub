@@ -378,7 +378,8 @@ class TerminalContainerViewController: NSViewController {
             }
 
             (terminal as? TermHubTerminalView)?.isVisible = true
-            manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
+            let folder = appState.folders.first { $0.id == session.folderID }
+            manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable, sandboxName: folder?.sandboxName)
         }
 
         updateTabState(selectedID: selectedID, suppressInteraction: suppressInteraction)

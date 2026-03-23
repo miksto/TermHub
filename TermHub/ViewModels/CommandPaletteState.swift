@@ -6,11 +6,13 @@ enum FolderAction: Sendable {
     case newShellFromBranch
     case newShellNewBranch
     case removeFolder
+    case configureSandbox
 }
 
 enum TextInputAction: Sendable {
     case renameSession(sessionID: UUID)
     case newBranch(folder: ManagedFolder)
+    case configureSandbox(folderID: UUID)
 }
 
 enum PaletteMode: Sendable {
@@ -79,6 +81,7 @@ final class CommandPaletteState {
                 case .newShellFromBranch: return "Branch Session"
                 case .newShellNewBranch: return "New Branch"
                 case .removeFolder: return "Remove Folder"
+                case .configureSandbox: return "Docker Sandbox"
                 }
             case .checkoutBranchPicker(let folder): return folder.name
             case .branchPicker(let folder): return folder.name
@@ -365,6 +368,29 @@ final class CommandPaletteState {
             })
         }
 
+        // Configure Docker Sandbox
+        if appState.folders.count == 1 {
+            let folder = appState.folders[0]
+            actions.append(PaletteItem(
+                id: "action-configure-sandbox",
+                icon: "shippingbox",
+                title: "Configure Docker Sandbox",
+                subtitle: folder.sandboxName ?? "Not configured",
+                category: "Actions"
+            ) { [weak self] in
+                self?.pushMode(.textInput(prompt: "Sandbox name", action: .configureSandbox(folderID: folder.id)))
+            })
+        } else if appState.folders.count > 1 {
+            actions.append(PaletteItem(
+                id: "action-configure-sandbox",
+                icon: "shippingbox",
+                title: "Configure Docker Sandbox",
+                category: "Actions"
+            ) { [weak self] in
+                self?.pushMode(.folderPicker(action: .configureSandbox))
+            })
+        }
+
         // Show Keyboard Shortcuts
         actions.append(PaletteItem(
             id: "action-keyboard-shortcuts",
@@ -411,6 +437,8 @@ final class CommandPaletteState {
                 case .removeFolder:
                     dismiss()
                     appState.pendingRemoveFolderID = folder.id
+                case .configureSandbox:
+                    self.pushMode(.textInput(prompt: "Sandbox name", action: .configureSandbox(folderID: folder.id)))
                 }
             }
         }

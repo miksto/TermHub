@@ -225,6 +225,9 @@ struct CommandPaletteView: View {
                 appState.errorMessage = error.localizedDescription
             }
             dismiss()
+        case .configureSandbox(let folderID):
+            appState.setSandboxName(text, forFolder: folderID)
+            dismiss()
         }
     }
 }

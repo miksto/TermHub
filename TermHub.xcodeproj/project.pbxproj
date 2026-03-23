@@ -41,6 +41,7 @@
 		952771C820508D521A3947CE /* TmuxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C94FFFD305685DF84F204 /* TmuxService.swift */; };
 		9C8CAF8F640A638B205D5C5F /* DiffStatsText.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */; };
 		9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C5380DC16B45138FCB73AA /* FolderSectionView.swift */; };
+		A05F2B6731E1397B48995382 /* DockerSandboxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1622DA6DFD20CF131CA7C123 /* DockerSandboxService.swift */; };
 		B3051C5B1DD678028A3D3CB6 /* CommandPaletteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6874B0A2FAAF08F0DA5DE1CA /* CommandPaletteRowView.swift */; };
 		BA1CA5ACCDAAEA3E158B39C8 /* KeyboardShortcutsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */; };
 		C6DA5396377DE1E72E2DFE62 /* TermHubTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */; };
@@ -70,6 +71,7 @@
 		0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolderTests.swift; sourceTree = "<group>"; };
 		0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeHeaderView.swift; sourceTree = "<group>"; };
 		12C5380DC16B45138FCB73AA /* FolderSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSectionView.swift; sourceTree = "<group>"; };
+		1622DA6DFD20CF131CA7C123 /* DockerSandboxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockerSandboxService.swift; sourceTree = "<group>"; };
 		16E45C2731C99ADB695B3751 /* GitFileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitFileWatcher.swift; sourceTree = "<group>"; };
 		1710253731113037A911775C /* CommandPaletteState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteState.swift; sourceTree = "<group>"; };
 		189B8C6AC49B8C82A724EC59 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -178,6 +180,7 @@
 		7A789E618E8F31F550725355 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				1622DA6DFD20CF131CA7C123 /* DockerSandboxService.swift */,
 				16E45C2731C99ADB695B3751 /* GitFileWatcher.swift */,
 				2305607A9F1189FC98956101 /* GitService.swift */,
 				F429369FC6F6D0A32E72B81C /* PersistenceService.swift */,
@@ -408,6 +411,7 @@
 				2C73403A32C202EC6F995959 /* DetailTab.swift in Sources */,
 				9C8CAF8F640A638B205D5C5F /* DiffStatsText.swift in Sources */,
 				5D96127D14610A10BE231105 /* DiffTableView.swift in Sources */,
+				A05F2B6731E1397B48995382 /* DockerSandboxService.swift in Sources */,
 				1DAB698DEF6120695A01F8DC /* DoubleClickView.swift in Sources */,
 				9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */,
 				2F71DF8FA98019B9EB9FEA80 /* FuzzyMatch.swift in Sources */,

@@ -33,6 +33,7 @@ final class AppState {
     var pendingNewBranchFolder: ManagedFolder?
     var errorMessage: String?
     var pendingRemoveFolderID: UUID?
+    var pendingSandboxConfigFolderID: UUID?
     var showKeyboardShortcuts = false
     var showCommandPalette = false
     /// Incremented only when sessions are added or removed (not on title/property changes).
@@ -184,7 +185,8 @@ final class AppState {
         worktreePath: String? = nil,
         branchName: String? = nil,
         isExternalWorktree: Bool = false,
-        ownsBranch: Bool = false
+        ownsBranch: Bool = false,
+        isSandboxSession: Bool = false
     ) {
         let folderName = folders.first(where: { $0.id == folderID })?.name
         let session = TerminalSession(
@@ -195,6 +197,7 @@ final class AppState {
             branchName: branchName,
             isExternalWorktree: isExternalWorktree,
             ownsBranch: ownsBranch,
+            isSandboxSession: isSandboxSession,
             folderName: folderName
         )
 
@@ -303,6 +306,12 @@ final class AppState {
             renamingSessionID = nil
             renamingEditText = ""
         }
+    }
+
+    func setSandboxName(_ name: String?, forFolder folderID: UUID) {
+        guard let index = folders.firstIndex(where: { $0.id == folderID }) else { return }
+        folders[index].sandboxName = name
+        saveState()
     }
 
     func moveFolder(fromOffsets source: IndexSet, toOffset destination: Int) {
@@ -452,14 +461,24 @@ final class AppState {
     /// and kill orphaned tmux sessions that no longer have a matching app session.
     private func restoreTmuxSessions() {
         guard tmuxAvailable else { return }
-        let sessionsSnapshot = sessions.map { (name: $0.tmuxSessionName, cwd: $0.worktreePath ?? $0.workingDirectory) }
+        let sessionsSnapshot = sessions.map { session -> (name: String, cwd: String, shellCommand: String?) in
+            let cwd = session.worktreePath ?? session.workingDirectory
+            let shellCommand: String? = if session.isSandboxSession,
+                let folder = folders.first(where: { $0.id == session.folderID }),
+                let sandboxName = folder.sandboxName {
+                DockerSandboxService.execCommand(sandboxName: sandboxName, cwd: cwd)
+            } else {
+                nil
+            }
+            return (name: session.tmuxSessionName, cwd: cwd, shellCommand: shellCommand)
+        }
         let knownNames = Set(sessionsSnapshot.map(\.name))
         Task.detached {
             // Restore missing sessions
             for session in sessionsSnapshot {
                 if !TmuxService.sessionExists(name: session.name) {
                     do {
-                        try TmuxService.createSession(name: session.name, cwd: session.cwd)
+                        try TmuxService.createSession(name: session.name, cwd: session.cwd, shellCommand: session.shellCommand)
                     } catch {
                         print("[TermHub] Failed to restore tmux session '\(session.name)': \(error)")
                     }

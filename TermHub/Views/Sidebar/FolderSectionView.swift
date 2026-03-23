@@ -72,10 +72,12 @@ struct FolderSectionView: View {
                         appState.errorMessage = "Cannot create session: folder path no longer exists at \(folder.path)"
                         return
                     }
+                    let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
                     appState.addSession(
                         folderID: folder.id,
                         title: "\(folder.name) – Shell",
-                        cwd: folder.path
+                        cwd: folder.path,
+                        isSandboxSession: sandbox
                     )
                 } label: {
                     Label("Shell", systemImage: "terminal")
@@ -130,6 +132,11 @@ struct FolderSectionView: View {
             HStack {
                 Label(folder.name, systemImage: "folder")
                     .font(.headline)
+                if folder.hasSandbox {
+                    Image(systemName: "shippingbox")
+                        .foregroundStyle(.secondary)
+                        .help("Docker Sandbox: \(folder.sandboxName!)")
+                }
                 if !folder.pathExists {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.yellow)
@@ -153,6 +160,17 @@ struct FolderSectionView: View {
                 Spacer()
             }
             .contextMenu {
+                if folder.hasSandbox {
+                    Label("Sandbox: \(folder.sandboxName!)", systemImage: "shippingbox")
+                    Button("Clear Docker Sandbox") {
+                        appState.setSandboxName(nil, forFolder: folder.id)
+                    }
+                    Divider()
+                }
+                Button("Configure Docker Sandbox...") {
+                    appState.pendingSandboxConfigFolderID = folder.id
+                }
+                Divider()
                 Button("Remove Folder", role: .destructive) {
                     onRequestRemoveFolder()
                 }

@@ -65,8 +65,12 @@ enum TmuxService {
         didConfigureServer = true
     }
 
-    static func createSession(name: String, cwd: String) throws {
-        try run(["new-session", "-d", "-s", name, "-c", cwd])
+    static func createSession(name: String, cwd: String, shellCommand: String? = nil) throws {
+        if let shellCommand {
+            try run(["new-session", "-d", "-s", name, shellCommand])
+        } else {
+            try run(["new-session", "-d", "-s", name, "-c", cwd])
+        }
         try ensureServerConfigured()
     }
 

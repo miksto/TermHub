@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(AppState.self) private var appState
     @State private var keyMonitor: Any?
     @State private var flagsMonitor: Any?
+    @State private var sandboxNameInput: String = ""
 
     var body: some View {
         ZStack {
@@ -91,6 +92,33 @@ struct ContentView: View {
                 Text("This will close \(sessionCount) tmux session(s) and remove \(worktreeCount) worktree(s) for \"\(folder.name)\".")
             } else {
                 Text("This will close \(sessionCount) tmux session(s) for \"\(folder.name)\".")
+            }
+        }
+        .alert(
+            "Configure Docker Sandbox",
+            isPresented: Binding(
+                get: { appState.pendingSandboxConfigFolderID != nil },
+                set: { if !$0 { appState.pendingSandboxConfigFolderID = nil } }
+            ),
+            presenting: appState.pendingSandboxConfigFolderID.flatMap { id in
+                appState.folders.first(where: { $0.id == id })
+            }
+        ) { folder in
+            TextField("Sandbox name", text: $sandboxNameInput)
+            Button("Cancel", role: .cancel) {
+                appState.pendingSandboxConfigFolderID = nil
+            }
+            Button("Save") {
+                let trimmed = sandboxNameInput.trimmingCharacters(in: .whitespaces)
+                appState.setSandboxName(trimmed.isEmpty ? nil : trimmed, forFolder: folder.id)
+                appState.pendingSandboxConfigFolderID = nil
+            }
+        } message: { folder in
+            Text("Enter the Docker sandbox name for \"\(folder.name)\".")
+        }
+        .onChange(of: appState.pendingSandboxConfigFolderID) { _, newValue in
+            if let id = newValue, let folder = appState.folders.first(where: { $0.id == id }) {
+                sandboxNameInput = folder.sandboxName ?? ""
             }
         }
         .onAppear { installSessionSwitcherMonitors() }

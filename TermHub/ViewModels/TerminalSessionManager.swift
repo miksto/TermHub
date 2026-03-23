@@ -39,7 +39,7 @@ final class TerminalSessionManager {
     }
 
     /// Start the shell/tmux process. Must be called after the view is in the window hierarchy.
-    func startProcessIfNeeded(for session: TerminalSession, tmuxAvailable: Bool) {
+    func startProcessIfNeeded(for session: TerminalSession, tmuxAvailable: Bool, sandboxName: String? = nil) {
         guard !startedSessions.contains(session.id) else { return }
         guard let terminal = terminals[session.id] else { return }
         guard terminal.window != nil else {
@@ -53,8 +53,9 @@ final class TerminalSessionManager {
             startRetryCount[session.id] = retries + 1
             let session = session
             let tmuxAvailable = tmuxAvailable
+            let sandboxName = sandboxName
             DispatchQueue.main.async { [weak self] in
-                self?.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
+                self?.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable, sandboxName: sandboxName)
             }
             return
         }
@@ -68,13 +69,18 @@ final class TerminalSessionManager {
             let tmuxSessionName = session.tmuxSessionName
             let pendingCommand = pendingCommands.removeValue(forKey: session.id)
             let env = ShellEnvironment.shellEnvironment
+            let sandboxCmd: String? = if session.isSandboxSession, let sandboxName {
+                DockerSandboxService.execCommand(sandboxName: sandboxName, cwd: cwd)
+            } else {
+                nil
+            }
 
             // Run blocking tmux process calls off the main thread to avoid
             // re-entrant run-loop spinning during SwiftUI layout updates.
             Task.detached {
                 if !TmuxService.sessionExists(name: tmuxSessionName) {
                     do {
-                        try TmuxService.createSession(name: tmuxSessionName, cwd: cwd)
+                        try TmuxService.createSession(name: tmuxSessionName, cwd: cwd, shellCommand: sandboxCmd)
                     } catch {
                         print("[TermHub] Failed to create tmux session '\(tmuxSessionName)': \(error)")
                     }
