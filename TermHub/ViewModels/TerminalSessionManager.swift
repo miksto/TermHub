@@ -81,6 +81,10 @@ final class TerminalSessionManager {
                 }
 
                 await MainActor.run {
+                    // Suppress rendering during the initial tmux buffer replay
+                    // so the terminal appears at the bottom instantly.
+                    (terminal as? TermHubTerminalView)?.suppressRendering = true
+
                     let cmd = TmuxService.attachCommand(name: tmuxSessionName)
                     let executable = cmd[0]
                     let args = Array(cmd.dropFirst())

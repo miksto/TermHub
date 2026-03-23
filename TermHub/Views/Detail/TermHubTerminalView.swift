@@ -5,6 +5,13 @@ class TermHubTerminalView: LocalProcessTerminalView {
     var onBell: (() -> Void)?
     /// When true, scroll events are consumed and not forwarded to the terminal.
     var blockScrollEvents = false
+    /// When true, the terminal just started a process and is receiving the
+    /// initial burst of data (e.g. tmux replaying its buffer). Data is parsed
+    /// but not rendered. Once no new data arrives for a short period, this
+    /// flips to false and a single redraw shows the final state instantly.
+    var suppressRendering: Bool = false
+    private var suppressionSettleTimer: Timer?
+
     /// Controls whether terminal rendering is active.
     /// Hidden terminals still parse data (keeping the buffer current) but skip
     /// all display work (feedPrepare/feedFinish/queuePendingDisplay/updateDisplay).
@@ -103,7 +110,25 @@ class TermHubTerminalView: LocalProcessTerminalView {
     override func dataReceived(slice: ArraySlice<UInt8>) {
         pendingData.append(contentsOf: slice)
 
-        if isVisible {
+        if suppressRendering {
+            // During initial burst: parse data without rendering, and reset
+            // the settle timer. Once data stops arriving, we redraw once.
+            suppressionSettleTimer?.invalidate()
+            suppressionSettleTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: false) { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.finishSuppression()
+                }
+            }
+            // Flush parse-only on a short timer to keep buffer current.
+            if slowFlushTimer == nil {
+                slowFlushTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: false) { [weak self] _ in
+                    DispatchQueue.main.async {
+                        self?.slowFlushTimer = nil
+                        self?.flushPendingDataParseOnly()
+                    }
+                }
+            }
+        } else if isVisible {
             guard !flushScheduled else { return }
             flushScheduled = true
 
@@ -135,6 +160,17 @@ class TermHubTerminalView: LocalProcessTerminalView {
                 }
             }
         }
+    }
+
+    /// End the suppression period: parse any remaining data, then redraw once.
+    private func finishSuppression() {
+        suppressRendering = false
+        suppressionSettleTimer?.invalidate()
+        suppressionSettleTimer = nil
+        // Parse any remaining data without rendering.
+        flushPendingDataParseOnly()
+        // Single redraw to show the final buffer state.
+        needsDisplay = true
     }
 
     /// Flush with full rendering (visible terminals).
