@@ -130,7 +130,10 @@ class TerminalContainerViewController: NSViewController {
         scrollView.drawsBackground = false
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
-        let tableView = ArrowCursorTableView()
+        let delegate = DiffTableDelegate()
+
+        let tableView = SelectableDiffTableView()
+        tableView.diffDelegate = delegate
         tableView.style = .plain
         tableView.backgroundColor = .clear
         tableView.headerView = nil
@@ -144,7 +147,6 @@ class TerminalContainerViewController: NSViewController {
         tableView.addTableColumn(column)
         scrollView.documentView = tableView
 
-        let delegate = DiffTableDelegate()
         tableView.dataSource = delegate
         tableView.delegate = delegate
         self.diffDelegate = delegate
@@ -515,9 +517,302 @@ class DetailTabBarNSView: NSView {
     }
 }
 
-private class ArrowCursorTableView: NSTableView {
+class SelectableDiffTableView: NSTableView {
+    weak var diffDelegate: DiffTableDelegate?
+    private var autoScrollTimer: Timer?
+    private var lastDragPoint: NSPoint?
+
     override func resetCursorRects() {
-        addCursorRect(visibleRect, cursor: .arrow)
+        if diffDelegate?.rows.isEmpty ?? true {
+            addCursorRect(visibleRect, cursor: .arrow)
+        } else {
+            addCursorRect(visibleRect, cursor: .iBeam)
+        }
+    }
+
+    // MARK: - Mouse Handling
+
+    override func mouseDown(with event: NSEvent) {
+        guard let diffDelegate else { return }
+        let point = convert(event.locationInWindow, from: nil)
+        let rowIndex = row(at: point)
+
+        let oldSelection = diffDelegate.selection
+
+        guard rowIndex >= 0, rowIndex < diffDelegate.rows.count, isContentRow(rowIndex) else {
+            diffDelegate.selection = nil
+            updateSelectionDisplay(oldSelection: oldSelection, newSelection: nil)
+            return
+        }
+
+        let side = selectionSide(at: point)
+        let charOff = charOffset(at: point, forRow: rowIndex, side: side)
+        let pos = DiffTextPosition(row: rowIndex, charOffset: charOff)
+        diffDelegate.selection = DiffSelection(side: side, anchor: pos, extent: pos)
+        updateSelectionDisplay(oldSelection: oldSelection, newSelection: diffDelegate.selection)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        lastDragPoint = point
+        updateSelectionExtent(at: point)
+        handleAutoScroll(at: point)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        stopAutoScroll()
+        lastDragPoint = nil
+
+        if let sel = diffDelegate?.selection, sel.anchor == sel.extent {
+            let old = sel
+            diffDelegate?.selection = nil
+            updateSelectionDisplay(oldSelection: old, newSelection: nil)
+        }
+    }
+
+    // MARK: - Copy
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers == "c" {
+            if let text = selectedText() {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                return true
+            }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
+    private func selectedText() -> String? {
+        guard let diffDelegate, let sel = diffDelegate.selection else { return nil }
+        let start = sel.start
+        let end = sel.end
+        guard start < end else { return nil }
+
+        var lines: [String] = []
+        for row in start.row...end.row {
+            guard let text = contentText(forRow: row, side: sel.side) else { continue }
+
+            let startIdx = text.index(
+                text.startIndex,
+                offsetBy: min(row == start.row ? start.charOffset : 0, text.count)
+            )
+            let endIdx = text.index(
+                text.startIndex,
+                offsetBy: min(row == end.row ? end.charOffset : text.count, text.count)
+            )
+
+            guard startIdx < endIdx else { continue }
+            lines.append(String(text[startIdx..<endIdx]))
+        }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+    }
+
+    // MARK: - Selection Helpers
+
+    private func selectionSide(at point: NSPoint) -> DiffSelectionSide {
+        guard let diffDelegate, diffDelegate.isSideBySide else { return .unified }
+        let half = floor(bounds.width / 2)
+        return point.x < half ? .left : .right
+    }
+
+    private func isContentRow(_ row: Int) -> Bool {
+        guard let diffDelegate, row >= 0, row < diffDelegate.rows.count else { return false }
+        switch diffDelegate.rows[row].kind {
+        case .unifiedLine, .sideBySideLine: return true
+        default: return false
+        }
+    }
+
+    private func contentText(forRow row: Int, side: DiffSelectionSide) -> String? {
+        guard let diffDelegate, row >= 0, row < diffDelegate.rows.count else { return nil }
+        switch diffDelegate.rows[row].kind {
+        case .unifiedLine(let line):
+            return line.content
+        case .sideBySideLine(let old, let new):
+            switch side {
+            case .left: return old?.content
+            case .right: return new?.content
+            case .unified: return nil
+            }
+        default:
+            return nil
+        }
+    }
+
+    private func charOffset(at point: NSPoint, forRow rowIndex: Int, side: DiffSelectionSide) -> Int {
+        guard let diffDelegate else { return 0 }
+        let rowRect = rect(ofRow: rowIndex)
+        let localY = point.y - rowRect.minY
+        let gw = DiffMetrics.gutterWidth
+        let pw = DiffMetrics.prefixWidth
+
+        let contentStartX: CGFloat
+        let contentWidth: CGFloat
+
+        switch side {
+        case .unified:
+            contentStartX = gw * 2 + pw
+            contentWidth = bounds.width - contentStartX - 4
+        case .left:
+            contentStartX = gw + pw
+            let half = floor(bounds.width / 2)
+            contentWidth = half - gw - pw - 4
+        case .right:
+            let half = floor(bounds.width / 2)
+            contentStartX = half + 1 + gw + pw
+            contentWidth = bounds.width - half - 1 - gw - pw - 4
+        }
+
+        let relativeX = point.x - contentStartX
+        let text = contentText(forRow: rowIndex, side: side) ?? ""
+
+        if !diffDelegate.lineWrapping || text.isEmpty {
+            let offset = Int(floor(relativeX / DiffFonts.monoCharWidth))
+            return max(0, min(offset, text.count))
+        } else {
+            let storage = NSTextStorage(string: text, attributes: [.font: DiffFonts.mono])
+            let layoutManager = NSLayoutManager()
+            let container = NSTextContainer(size: NSSize(width: contentWidth, height: .greatestFiniteMagnitude))
+            container.lineFragmentPadding = 0
+            layoutManager.addTextContainer(container)
+            storage.addLayoutManager(layoutManager)
+            layoutManager.ensureLayout(for: container)
+
+            let hitPoint = NSPoint(x: max(0, relativeX), y: max(0, localY - 2))
+            let index = layoutManager.characterIndex(
+                for: hitPoint, in: container,
+                fractionOfDistanceBetweenInsertionPoints: nil
+            )
+            return max(0, min(index, text.count))
+        }
+    }
+
+    private func updateSelectionExtent(at point: NSPoint) {
+        guard let diffDelegate, var sel = diffDelegate.selection else { return }
+        let oldSelection = sel
+
+        var rowIndex = row(at: point)
+        if rowIndex < 0 {
+            rowIndex = 0
+        } else if rowIndex >= diffDelegate.rows.count {
+            rowIndex = diffDelegate.rows.count - 1
+        }
+
+        // Find nearest content row
+        if !isContentRow(rowIndex) {
+            let goingDown = rowIndex >= sel.anchor.row
+            if goingDown {
+                var r = rowIndex
+                while r < diffDelegate.rows.count && !isContentRow(r) { r += 1 }
+                if r >= diffDelegate.rows.count {
+                    r = rowIndex
+                    while r >= 0 && !isContentRow(r) { r -= 1 }
+                }
+                rowIndex = max(0, r)
+            } else {
+                var r = rowIndex
+                while r >= 0 && !isContentRow(r) { r -= 1 }
+                if r < 0 {
+                    r = rowIndex
+                    while r < diffDelegate.rows.count && !isContentRow(r) { r += 1 }
+                }
+                rowIndex = min(diffDelegate.rows.count - 1, r)
+            }
+        }
+
+        guard isContentRow(rowIndex) else { return }
+        let charOff = charOffset(at: point, forRow: rowIndex, side: sel.side)
+        sel.extent = DiffTextPosition(row: rowIndex, charOffset: charOff)
+        diffDelegate.selection = sel
+        updateSelectionDisplay(oldSelection: oldSelection, newSelection: sel)
+    }
+
+    private func updateSelectionDisplay(oldSelection: DiffSelection?, newSelection: DiffSelection?) {
+        guard let diffDelegate else { return }
+
+        var minRow = Int.max
+        var maxRow = -1
+        if let old = oldSelection {
+            minRow = min(minRow, old.start.row)
+            maxRow = max(maxRow, old.end.row)
+        }
+        if let new = newSelection {
+            minRow = min(minRow, new.start.row)
+            maxRow = max(maxRow, new.end.row)
+        }
+        guard minRow <= maxRow else { return }
+
+        let visibleRange = rows(in: visibleRect)
+        let visEnd = visibleRange.location + visibleRange.length
+        for r in max(minRow, visibleRange.location)..<min(maxRow + 1, visEnd) {
+            guard let cellView = view(atColumn: 0, row: r, makeIfNecessary: false) else { continue }
+            let selRange = diffDelegate.selectionRange(forRow: r)
+
+            if let unified = cellView as? UnifiedLineDrawView {
+                unified.selectionStartChar = selRange?.start
+                unified.selectionEndChar = selRange?.end
+                unified.needsDisplay = true
+            } else if let sbs = cellView as? SideBySideLineDrawView {
+                sbs.selectionSide = newSelection?.side
+                sbs.selectionStartChar = selRange?.start
+                sbs.selectionEndChar = selRange?.end
+                sbs.needsDisplay = true
+            }
+        }
+    }
+
+    // MARK: - Auto-scroll
+
+    private func handleAutoScroll(at point: NSPoint) {
+        guard let clipView = enclosingScrollView?.contentView else { return }
+        let visibleRect = clipView.bounds
+        let localY = convert(point, to: clipView).y
+
+        if localY < visibleRect.minY + 30 || localY > visibleRect.maxY - 30 {
+            if autoScrollTimer == nil {
+                autoScrollTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+                    MainActor.assumeIsolated {
+                        self?.performAutoScroll()
+                    }
+                }
+            }
+        } else {
+            stopAutoScroll()
+        }
+    }
+
+    private func performAutoScroll() {
+        guard let scrollView = enclosingScrollView,
+              let window else { return }
+        let clipView = scrollView.contentView
+        let mouseInWindow = window.mouseLocationOutsideOfEventStream
+        let mouseInClip = clipView.convert(mouseInWindow, from: nil)
+        let visibleRect = clipView.bounds
+
+        let scrollAmount: CGFloat
+        if mouseInClip.y < visibleRect.minY + 30 {
+            scrollAmount = -20
+        } else if mouseInClip.y > visibleRect.maxY - 30 {
+            scrollAmount = 20
+        } else {
+            stopAutoScroll()
+            return
+        }
+
+        var origin = visibleRect.origin
+        origin.y += scrollAmount
+        origin.y = max(0, min(origin.y, frame.height - visibleRect.height))
+        clipView.scroll(to: origin)
+        scrollView.reflectScrolledClipView(clipView)
+
+        let mouseInTable = convert(mouseInWindow, from: nil)
+        updateSelectionExtent(at: mouseInTable)
+    }
+
+    private func stopAutoScroll() {
+        autoScrollTimer?.invalidate()
+        autoScrollTimer = nil
     }
 }
 

@@ -19,9 +19,33 @@ struct DiffRow {
     let fileIndex: Int
 }
 
+// MARK: - Selection Model
+
+enum DiffSelectionSide {
+    case left, right, unified
+}
+
+struct DiffTextPosition: Comparable {
+    let row: Int
+    let charOffset: Int
+
+    static func < (lhs: DiffTextPosition, rhs: DiffTextPosition) -> Bool {
+        (lhs.row, lhs.charOffset) < (rhs.row, rhs.charOffset)
+    }
+}
+
+struct DiffSelection {
+    let side: DiffSelectionSide
+    let anchor: DiffTextPosition
+    var extent: DiffTextPosition
+
+    var start: DiffTextPosition { min(anchor, extent) }
+    var end: DiffTextPosition { max(anchor, extent) }
+}
+
 // MARK: - Row Heights
 
-private enum DiffMetrics {
+enum DiffMetrics {
     static let lineRowHeight: CGFloat = 20
     static let fileHeaderRowHeight: CGFloat = 28
     static let hunkHeaderRowHeight: CGFloat = 22
@@ -223,6 +247,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     var lastDiff: GitDiff = .empty
     var lastWidth: CGFloat = 0
     var lineWrapping: Bool = true
+    var selection: DiffSelection?
     /// Cached row heights keyed by row index, invalidated on width/row changes.
     private var heightCache: [Int: CGFloat] = [:]
 
@@ -231,6 +256,49 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         isSideBySide = width >= 800
         rows = DiffRowBuilder.buildRows(from: diff, sideBySide: isSideBySide)
         heightCache.removeAll(keepingCapacity: true)
+        selection = nil
+    }
+
+    func selectionRange(forRow row: Int) -> (start: Int, end: Int)? {
+        guard let sel = selection else { return nil }
+        let start = sel.start
+        let end = sel.end
+        guard row >= start.row, row <= end.row else { return nil }
+
+        let content: String?
+        switch rows[row].kind {
+        case .unifiedLine(let line):
+            content = line.content
+        case .sideBySideLine(let old, let new):
+            switch sel.side {
+            case .left: content = old?.content
+            case .right: content = new?.content
+            case .unified: content = nil
+            }
+        default:
+            return nil
+        }
+        guard let text = content else { return nil }
+
+        let startChar: Int
+        let endChar: Int
+
+        if row == start.row && row == end.row {
+            startChar = start.charOffset
+            endChar = end.charOffset
+        } else if row == start.row {
+            startChar = start.charOffset
+            endChar = text.count
+        } else if row == end.row {
+            startChar = 0
+            endChar = end.charOffset
+        } else {
+            startChar = 0
+            endChar = text.count
+        }
+
+        guard startChar < endChar else { return nil }
+        return (startChar, endChar)
     }
 
     func invalidateHeightCache() {
@@ -323,6 +391,9 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
                 ?? UnifiedLineDrawView(identifier: id)
             cell.line = line
             cell.lineWrapping = lineWrapping
+            let selRange = selectionRange(forRow: row)
+            cell.selectionStartChar = selRange?.start
+            cell.selectionEndChar = selRange?.end
             cell.needsDisplay = true
             return cell
 
@@ -333,6 +404,10 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
             cell.oldLine = old
             cell.newLine = new
             cell.lineWrapping = lineWrapping
+            let selRange = selectionRange(forRow: row)
+            cell.selectionSide = selection?.side
+            cell.selectionStartChar = selRange?.start
+            cell.selectionEndChar = selRange?.end
             cell.needsDisplay = true
             return cell
 
@@ -400,7 +475,7 @@ private enum DiffColors {
 // MARK: - Fonts
 
 @MainActor
-private enum DiffFonts {
+enum DiffFonts {
     static let mono = NSFont(name: "Source Code Pro", size: 12)
         ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
     static let monoSmall = NSFont(name: "Source Code Pro", size: 11)
@@ -420,7 +495,7 @@ private enum DiffFonts {
 // MARK: - Draw Helpers
 
 @MainActor
-private enum DiffDrawing {
+enum DiffDrawing {
     static func drawGutterText(_ text: String, in rect: NSRect, font: NSFont, color: NSColor, wrap: Bool) {
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
         let size = (text as NSString).size(withAttributes: attrs)
@@ -464,6 +539,53 @@ private enum DiffDrawing {
                 in: NSRect(x: rect.minX, y: y, width: rect.width, height: size.height),
                 withAttributes: attrs
             )
+        }
+    }
+
+    static func drawSelectionHighlight(
+        text: String, contentRect: NSRect, startChar: Int, endChar: Int,
+        font: NSFont, wrap: Bool
+    ) {
+        let clampedStart = max(0, startChar)
+        let clampedEnd = min(text.count, endChar)
+        guard clampedStart < clampedEnd else { return }
+
+        NSColor.selectedTextBackgroundColor.withAlphaComponent(0.35).setFill()
+
+        if !wrap {
+            let charWidth = DiffFonts.monoCharWidth
+            let x1 = contentRect.minX + CGFloat(clampedStart) * charWidth
+            let x2 = contentRect.minX + CGFloat(clampedEnd) * charWidth
+            NSRect(
+                x: x1, y: contentRect.minY,
+                width: min(x2, contentRect.maxX) - x1, height: contentRect.height
+            ).fill()
+        } else {
+            let storage = NSTextStorage(string: text, attributes: [.font: font])
+            let layoutManager = NSLayoutManager()
+            let container = NSTextContainer(size: NSSize(width: contentRect.width, height: .greatestFiniteMagnitude))
+            container.lineFragmentPadding = 0
+            layoutManager.addTextContainer(container)
+            storage.addLayoutManager(layoutManager)
+            layoutManager.ensureLayout(for: container)
+
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: NSRange(location: clampedStart, length: clampedEnd - clampedStart),
+                actualCharacterRange: nil
+            )
+            layoutManager.enumerateEnclosingRects(
+                forGlyphRange: glyphRange,
+                withinSelectedGlyphRange: glyphRange,
+                in: container
+            ) { rect, _ in
+                let highlightRect = NSRect(
+                    x: contentRect.minX + rect.minX,
+                    y: contentRect.minY + 2 + rect.minY,
+                    width: rect.width,
+                    height: rect.height
+                )
+                highlightRect.fill()
+            }
         }
     }
 
@@ -613,9 +735,11 @@ private class HunkHeaderDrawView: NSView {
 
 // MARK: - Unified Line Cell (draw-based)
 
-private class UnifiedLineDrawView: NSView {
+class UnifiedLineDrawView: NSView {
     var line: DiffLine?
     var lineWrapping: Bool = false
+    var selectionStartChar: Int?
+    var selectionEndChar: Int?
 
     init(identifier: NSUserInterfaceItemIdentifier) {
         super.init(frame: .zero)
@@ -665,15 +789,27 @@ private class UnifiedLineDrawView: NSView {
         let contentX = gw * 2 + pw
         let contentRect = NSRect(x: contentX, y: 0, width: bounds.width - contentX - 4, height: bounds.height)
         DiffDrawing.drawText(line.content, in: contentRect, font: font, color: fg, wrap: wrap)
+
+        // Selection highlight
+        if let startChar = selectionStartChar, let endChar = selectionEndChar {
+            DiffDrawing.drawSelectionHighlight(
+                text: line.content, contentRect: contentRect,
+                startChar: startChar, endChar: endChar,
+                font: font, wrap: wrap
+            )
+        }
     }
 }
 
 // MARK: - Side-by-Side Line Cell (draw-based)
 
-private class SideBySideLineDrawView: NSView {
+class SideBySideLineDrawView: NSView {
     var oldLine: DiffLine?
     var newLine: DiffLine?
     var lineWrapping: Bool = false
+    var selectionSide: DiffSelectionSide?
+    var selectionStartChar: Int?
+    var selectionEndChar: Int?
 
     init(identifier: NSUserInterfaceItemIdentifier) {
         super.init(frame: .zero)
@@ -699,6 +835,36 @@ private class SideBySideLineDrawView: NSView {
         // Right side
         let rightRect = NSRect(x: half + 1, y: 0, width: bounds.width - half - 1, height: bounds.height)
         DiffDrawing.drawLineSide(line: newLine, isOld: false, in: rightRect, font: font, gutterFont: font, wrap: lineWrapping)
+
+        // Selection highlight
+        if let startChar = selectionStartChar, let endChar = selectionEndChar, let side = selectionSide {
+            let gw = DiffMetrics.gutterWidth
+            let pw = DiffMetrics.prefixWidth
+            let text: String?
+            let contentRect: NSRect
+
+            switch side {
+            case .left:
+                text = oldLine?.content
+                let contentX = gw + pw
+                contentRect = NSRect(x: contentX, y: 0, width: half - gw - pw - 4, height: bounds.height)
+            case .right:
+                text = newLine?.content
+                let contentX = half + 1 + gw + pw
+                contentRect = NSRect(x: contentX, y: 0, width: bounds.width - half - 1 - gw - pw - 4, height: bounds.height)
+            case .unified:
+                text = nil
+                contentRect = .zero
+            }
+
+            if let text, !contentRect.isEmpty {
+                DiffDrawing.drawSelectionHighlight(
+                    text: text, contentRect: contentRect,
+                    startChar: startChar, endChar: endChar,
+                    font: font, wrap: lineWrapping
+                )
+            }
+        }
     }
 }
 
