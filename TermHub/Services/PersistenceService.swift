@@ -25,6 +25,10 @@ struct PersistedState: Codable {
 }
 
 enum PersistenceService {
+    /// Serial queue for background file I/O to avoid concurrent writes.
+    static let writeQueue = DispatchQueue(label: "com.termhub.persistence-write")
+
+
     static var defaultStateFileURL: URL {
         guard let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
@@ -36,18 +40,11 @@ enum PersistenceService {
         return appDir.appendingPathComponent("state.json")
     }
 
-    static func save(
-        folders: [ManagedFolder],
-        sessions: [TerminalSession],
-        selectedSessionID: UUID? = nil,
-        sessionMRUOrder: [UUID] = [],
-        to url: URL? = nil
-    ) throws {
+    static func save(state: PersistedState, to url: URL? = nil) throws {
         let fileURL = url ?? defaultStateFileURL
         let dir = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        let state = PersistedState(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID, sessionMRUOrder: sessionMRUOrder)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
@@ -58,7 +55,6 @@ enum PersistenceService {
             throw PersistenceError.encodingFailed
         }
 
-        // Rotate backup before overwriting so we can recover from bad writes.
         let fm = FileManager.default
         let backupURL = fileURL.appendingPathExtension("bak")
         if fm.fileExists(atPath: fileURL.path) {
@@ -71,6 +67,17 @@ enum PersistenceService {
         } catch {
             throw PersistenceError.fileSystemError(error)
         }
+    }
+
+    static func save(
+        folders: [ManagedFolder],
+        sessions: [TerminalSession],
+        selectedSessionID: UUID? = nil,
+        sessionMRUOrder: [UUID] = [],
+        to url: URL? = nil
+    ) throws {
+        let state = PersistedState(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID, sessionMRUOrder: sessionMRUOrder)
+        try save(state: state, to: url)
     }
 
     static func load(

@@ -55,6 +55,7 @@ final class AppState {
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
     private var loadFailed = false
+    @ObservationIgnored private var debouncedSaveWorkItem: DispatchWorkItem?
 
     let terminalManager = TerminalSessionManager()
 
@@ -291,7 +292,7 @@ final class AppState {
         guard sessions[index].title != trimmed else { return }
         sessions[index].title = trimmed
         displayStates[sessionID]?.title = trimmed
-        saveState()
+        scheduleSave()
     }
 
     func startRenamingSession(id: UUID) {
@@ -575,13 +576,33 @@ final class AppState {
 
         let paths = pathsToCheck
         Task.detached {
+            // Run git status calls in parallel instead of sequentially.
             var statuses: [String: GitStatus] = [:]
-            for path in paths {
-                statuses[path] = GitService.status(path: path)
+            await withTaskGroup(of: (String, GitStatus).self) { group in
+                for path in paths {
+                    group.addTask { (path, GitService.status(path: path)) }
+                }
+                for await (path, status) in group {
+                    statuses[path] = status
+                }
             }
             let result = statuses
             await MainActor.run { @MainActor [weak self] in
-                self?.gitStatuses = result
+                guard let self else { return }
+                // Only update entries that changed to avoid unnecessary observation triggers.
+                var changed = false
+                for (path, status) in result {
+                    if self.gitStatuses[path] != status {
+                        self.gitStatuses[path] = status
+                        changed = true
+                    }
+                }
+                // Remove stale entries for paths no longer tracked.
+                for key in self.gitStatuses.keys where result[key] == nil {
+                    self.gitStatuses.removeValue(forKey: key)
+                    changed = true
+                }
+                _ = changed
             }
         }
     }
@@ -644,10 +665,31 @@ final class AppState {
 
     private func saveState() {
         guard !loadFailed else { return }
-        do {
-            try PersistenceService.save(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID, sessionMRUOrder: sessionMRUOrder)
-        } catch {
-            print("Failed to save state: \(error)")
+        // Snapshot data on the main thread, then encode + write on a background queue.
+        let state = PersistedState(
+            folders: folders,
+            sessions: sessions,
+            selectedSessionID: selectedSessionID,
+            sessionMRUOrder: sessionMRUOrder
+        )
+        PersistenceService.writeQueue.async {
+            do {
+                try PersistenceService.save(state: state)
+            } catch {
+                print("Failed to save state: \(error)")
+            }
         }
+    }
+
+    /// Debounced save for high-frequency changes like terminal title updates.
+    private func scheduleSave() {
+        debouncedSaveWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.saveState()
+            }
+        }
+        debouncedSaveWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
     }
 }

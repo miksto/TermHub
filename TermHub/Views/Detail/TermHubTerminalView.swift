@@ -5,6 +5,22 @@ class TermHubTerminalView: LocalProcessTerminalView {
     var onBell: (() -> Void)?
     /// When true, scroll events are consumed and not forwarded to the terminal.
     var blockScrollEvents = false
+    /// Controls whether data is flushed immediately or on a 1s timer.
+    /// Event monitors are also installed/removed based on this flag.
+    var isVisible: Bool = false {
+        didSet {
+            guard isVisible != oldValue else { return }
+            if isVisible {
+                installEventMonitors()
+                // Flush any data that accumulated while hidden.
+                if !pendingData.isEmpty {
+                    flushPendingData()
+                }
+            } else {
+                removeEventMonitors()
+            }
+        }
+    }
     private nonisolated(unsafe) var flagsMonitor: Any?
     private nonisolated(unsafe) var scrollMonitor: Any?
     private nonisolated(unsafe) var keyMonitor: Any?
@@ -74,19 +90,34 @@ class TermHubTerminalView: LocalProcessTerminalView {
     // together, eliminating the visible top-to-bottom redraw artifact.
     private var pendingData: [UInt8] = []
     private var flushScheduled = false
+    private var slowFlushTimer: Timer?
 
     override func dataReceived(slice: ArraySlice<UInt8>) {
         pendingData.append(contentsOf: slice)
-        if !flushScheduled {
-            flushScheduled = true
-            DispatchQueue.main.async { [weak self] in
-                self?.flushPendingData()
+        if isVisible {
+            if !flushScheduled {
+                flushScheduled = true
+                DispatchQueue.main.async { [weak self] in
+                    self?.flushPendingData()
+                }
+            }
+        } else {
+            // Non-visible: flush on a 1s timer to reduce main-thread work.
+            if slowFlushTimer == nil {
+                slowFlushTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+                    DispatchQueue.main.async {
+                        self?.slowFlushTimer = nil
+                        self?.flushPendingData()
+                    }
+                }
             }
         }
     }
 
     private func flushPendingData() {
         flushScheduled = false
+        slowFlushTimer?.invalidate()
+        slowFlushTimer = nil
         guard !pendingData.isEmpty else { return }
         let data = pendingData
         pendingData.removeAll(keepingCapacity: true)

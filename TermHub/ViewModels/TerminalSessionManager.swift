@@ -29,7 +29,6 @@ final class TerminalSessionManager {
                 self?.onBell?(sessionID)
             }
         }
-        terminal.installEventMonitors()
 
         let delegate = TerminalProcessDelegate(manager: self, sessionID: sessionID)
         delegates[sessionID] = delegate

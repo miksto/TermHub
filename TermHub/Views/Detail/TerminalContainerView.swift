@@ -346,6 +346,7 @@ class TerminalContainerViewController: NSViewController {
                 let sessionID = manager.sessionID(for: terminalView)
                 let isSelected = sessionID == selectedID
                 if !isSelected || sessionID == nil || !activeSessionIDs.contains(sessionID!) {
+                    (terminalView as? TermHubTerminalView)?.isVisible = false
                     terminalView.removeFromSuperview()
                 }
             }
@@ -374,6 +375,7 @@ class TerminalContainerViewController: NSViewController {
                 terminal.nativeForegroundColor = NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
             }
 
+            (terminal as? TermHubTerminalView)?.isVisible = true
             manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
         }
 
