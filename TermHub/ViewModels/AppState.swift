@@ -448,11 +448,14 @@ final class AppState {
         return siblings.first
     }
 
-    /// Re-create tmux sessions that were killed externally while the app was not running.
+    /// Re-create tmux sessions that were killed externally while the app was not running,
+    /// and kill orphaned tmux sessions that no longer have a matching app session.
     private func restoreTmuxSessions() {
         guard tmuxAvailable else { return }
         let sessionsSnapshot = sessions.map { (name: $0.tmuxSessionName, cwd: $0.worktreePath ?? $0.workingDirectory) }
+        let knownNames = Set(sessionsSnapshot.map(\.name))
         Task.detached {
+            // Restore missing sessions
             for session in sessionsSnapshot {
                 if !TmuxService.sessionExists(name: session.name) {
                     do {
@@ -460,6 +463,17 @@ final class AppState {
                     } catch {
                         print("[TermHub] Failed to restore tmux session '\(session.name)': \(error)")
                     }
+                }
+            }
+
+            // Kill orphaned sessions on the termhub socket
+            let allTmuxSessions = TmuxService.listSessions()
+            let orphans = allTmuxSessions.filter { !knownNames.contains($0) }
+            if !orphans.isEmpty {
+                print("[TermHub] Cleaning up \(orphans.count) orphaned tmux session(s)")
+                for name in orphans {
+                    do { try TmuxService.killSession(name: name) }
+                    catch { print("[TermHub] Failed to kill orphaned session '\(name)': \(error)") }
                 }
             }
         }

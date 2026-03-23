@@ -94,6 +94,14 @@ enum TmuxService {
         try run(["send-keys", "-t", sessionName, text, "Enter"])
     }
 
+    /// Returns the names of all sessions on the termhub socket.
+    static func listSessions() -> [String] {
+        guard let output = try? run(["list-sessions", "-F", "#{session_name}"]) else {
+            return []
+        }
+        return output.components(separatedBy: "\n").filter { !$0.isEmpty }
+    }
+
     static func isAvailable() -> Bool {
         return ShellEnvironment.tmuxPath != nil
     }
