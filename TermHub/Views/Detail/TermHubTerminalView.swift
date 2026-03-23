@@ -9,6 +9,58 @@ class TermHubTerminalView: LocalProcessTerminalView {
     private nonisolated(unsafe) var scrollMonitor: Any?
     private nonisolated(unsafe) var keyMonitor: Any?
 
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        registerForDraggedTypes([.fileURL])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+
+    // MARK: - Drag and drop
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        if sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) {
+            return .copy
+        }
+        return []
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        if sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) {
+            return .copy
+        }
+        return []
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard let urls = sender.draggingPasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL] else {
+            return false
+        }
+        let paths = urls.map { shellEscape($0.path) }.joined(separator: " ")
+        // Use the system paste mechanism so SwiftTerm handles bracketed paste mode.
+        let pasteboard = NSPasteboard.general
+        let previousContents = pasteboard.string(forType: .string)
+        pasteboard.clearContents()
+        pasteboard.setString(paths, forType: .string)
+        paste(self)
+        // Restore previous pasteboard contents.
+        pasteboard.clearContents()
+        if let previousContents {
+            pasteboard.setString(previousContents, forType: .string)
+        }
+        return true
+    }
+
+    private func shellEscape(_ path: String) -> String {
+        "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
     override func bell(source: Terminal) {
         onBell?()
     }
