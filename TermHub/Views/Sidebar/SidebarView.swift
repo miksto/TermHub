@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SidebarView: View {
     @Environment(AppState.self) private var appState
+    @State private var optionKeyDown = false
+    @State private var flagsMonitor: Any?
 
     var body: some View {
         @Bindable var state = appState
@@ -10,6 +12,7 @@ struct SidebarView: View {
                 ForEach(appState.folders) { folder in
                     FolderSectionView(
                         folder: folder,
+                        optionKeyDown: optionKeyDown,
                         onRequestRemoveFolder: {
                             appState.pendingRemoveFolderID = folder.id
                         }
@@ -32,6 +35,19 @@ struct SidebarView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .contentShape(Rectangle())
+        }
+        .onAppear {
+            guard flagsMonitor == nil else { return }
+            flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
+                optionKeyDown = event.modifierFlags.contains(.option)
+                return event
+            }
+        }
+        .onDisappear {
+            if let monitor = flagsMonitor {
+                NSEvent.removeMonitor(monitor)
+                flagsMonitor = nil
+            }
         }
         .sheet(
             isPresented: Binding(

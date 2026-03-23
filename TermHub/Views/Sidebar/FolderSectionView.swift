@@ -3,6 +3,7 @@ import SwiftUI
 struct FolderSectionView: View {
     @Environment(AppState.self) private var appState
     let folder: ManagedFolder
+    var optionKeyDown: Bool = false
     var onRequestRemoveFolder: () -> Void
 
     @State private var isExpanded = true
@@ -44,6 +45,10 @@ struct FolderSectionView: View {
         return groups
     }
 
+    private var showSandboxIndicator: Bool {
+        folder.hasSandbox && optionKeyDown
+    }
+
     private func aheadBehindText(_ status: GitStatus) -> String {
         var parts: [String] = []
         if status.ahead > 0 { parts.append("↑\(status.ahead)") }
@@ -80,8 +85,7 @@ struct FolderSectionView: View {
                         isSandboxSession: sandbox
                     )
                 } label: {
-                    Label("Shell", systemImage: "terminal")
-                        .font(.caption)
+                    SandboxButtonLabel("Shell", systemImage: "terminal", showSandbox: showSandboxIndicator)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -90,8 +94,7 @@ struct FolderSectionView: View {
                     Button {
                         appState.pendingWorktreeFolder = folder
                     } label: {
-                        Label("Branch", systemImage: "arrow.triangle.branch")
-                            .font(.caption)
+                        SandboxButtonLabel("Branch", systemImage: "arrow.triangle.branch", showSandbox: showSandboxIndicator)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -99,8 +102,7 @@ struct FolderSectionView: View {
                     Button {
                         appState.pendingNewBranchFolder = folder
                     } label: {
-                        Label("New", systemImage: "plus")
-                            .font(.caption)
+                        SandboxButtonLabel("New", systemImage: "plus", showSandbox: showSandboxIndicator)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -176,6 +178,30 @@ struct FolderSectionView: View {
                 }
             }
             .selectionDisabled()
+        }
+    }
+}
+
+private struct SandboxButtonLabel: View {
+    let title: String
+    let systemImage: String
+    let showSandbox: Bool
+
+    init(_ title: String, systemImage: String, showSandbox: Bool) {
+        self.title = title
+        self.systemImage = systemImage
+        self.showSandbox = showSandbox
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Label(title, systemImage: systemImage)
+                .font(.caption)
+            if showSandbox {
+                Image(systemName: "shippingbox")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }
