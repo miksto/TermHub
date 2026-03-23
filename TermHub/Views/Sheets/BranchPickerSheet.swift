@@ -233,28 +233,38 @@ struct BranchPickerSheet: View {
     private func loadBranches() {
         isLoading = true
         loadError = nil
-        do {
-            let currentBranch = GitService.currentBranch(repoPath: folder.path)
-            let branchesWithDates = try GitService.listBranchesWithDates(repoPath: folder.path)
 
-            let activeBranches = Set(
-                appState.sessions
-                    .filter { $0.folderID == folder.id }
-                    .compactMap(\.branchName)
-            )
+        let folderPath = folder.path
+        let folderID = folder.id
+        let activeBranches = Set(
+            appState.sessions
+                .filter { $0.folderID == folderID }
+                .compactMap(\.branchName)
+        )
 
-            branches = branchesWithDates.map { entry in
-                BranchInfo(
-                    name: entry.branch,
-                    lastCommitDate: entry.date,
-                    isCurrentBranch: entry.branch == currentBranch,
-                    hasActiveSession: activeBranches.contains(entry.branch)
-                )
+        Task.detached {
+            do {
+                let currentBranch = GitService.currentBranch(repoPath: folderPath)
+                let branchesWithDates = try GitService.listBranchesWithDates(repoPath: folderPath)
+                let result = branchesWithDates.map { entry in
+                    BranchInfo(
+                        name: entry.branch,
+                        lastCommitDate: entry.date,
+                        isCurrentBranch: entry.branch == currentBranch,
+                        hasActiveSession: activeBranches.contains(entry.branch)
+                    )
+                }
+                await MainActor.run {
+                    branches = result
+                    isLoading = false
+                }
+            } catch {
+                let msg = error.localizedDescription
+                await MainActor.run {
+                    loadError = msg
+                    isLoading = false
+                }
             }
-            isLoading = false
-        } catch {
-            loadError = error.localizedDescription
-            isLoading = false
         }
     }
 
@@ -267,28 +277,41 @@ struct BranchPickerSheet: View {
         isCreating = true
         createError = nil
 
-        do {
-            if let path = try GitService.findExistingWorktree(repoPath: folder.path, branch: branch.name) {
-                existingWorktreePath = path
-                showAttachConfirmation = true
-                isCreating = false
-                return
+        let folderPath = folder.path
+        let folderID = folder.id
+        let folderName = folder.name
+        let branchName = branch.name
+
+        Task.detached {
+            do {
+                if let path = try GitService.findExistingWorktree(repoPath: folderPath, branch: branchName) {
+                    await MainActor.run {
+                        existingWorktreePath = path
+                        showAttachConfirmation = true
+                        isCreating = false
+                    }
+                    return
+                }
+
+                let worktreePath = try GitService.addWorktree(repoPath: folderPath, branch: branchName)
+
+                await MainActor.run {
+                    appState.addSession(
+                        folderID: folderID,
+                        title: "\(folderName) [\(branchName)]",
+                        cwd: worktreePath,
+                        worktreePath: worktreePath,
+                        branchName: branchName
+                    )
+                    dismiss()
+                }
+            } catch {
+                let msg = error.localizedDescription
+                await MainActor.run {
+                    createError = msg
+                    isCreating = false
+                }
             }
-
-            let worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch.name)
-
-            appState.addSession(
-                folderID: folder.id,
-                title: "\(folder.name) [\(branch.name)]",
-                cwd: worktreePath,
-                worktreePath: worktreePath,
-                branchName: branch.name
-            )
-
-            dismiss()
-        } catch {
-            createError = error.localizedDescription
-            isCreating = false
         }
     }
 

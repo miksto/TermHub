@@ -1,5 +1,9 @@
 import Foundation
 
+// All methods in GitService are synchronous and perform blocking I/O
+// (Process + waitUntilExit). They must NEVER be called from the main thread.
+// Use Task.detached {} when calling from @MainActor contexts.
+
 enum GitServiceError: Error, LocalizedError {
     case commandFailed(String)
     case notAGitRepo

@@ -83,15 +83,24 @@ struct NewBranchSheet: View {
 
     private func loadBranches() {
         isLoading = true
-        do {
-            let branches = try GitService.listBranches(repoPath: folder.path)
-            let current = GitService.currentBranch(repoPath: folder.path)
-            availableBranches = branches
-            baseBranch = current ?? branches.first ?? ""
-        } catch {
-            availableBranches = []
+        let folderPath = folder.path
+
+        Task.detached {
+            do {
+                let branches = try GitService.listBranches(repoPath: folderPath)
+                let current = GitService.currentBranch(repoPath: folderPath)
+                await MainActor.run {
+                    availableBranches = branches
+                    baseBranch = current ?? branches.first ?? ""
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    availableBranches = []
+                    isLoading = false
+                }
+            }
         }
-        isLoading = false
     }
 
     private func createWorktreeWithNewBranch() {
@@ -101,30 +110,41 @@ struct NewBranchSheet: View {
         isCreating = true
         errorMessage = nil
 
-        do {
-            let startPoint = baseBranch.isEmpty ? nil : baseBranch
-            let worktreePath = try GitService.addWorktreeNewBranch(
-                repoPath: folder.path,
-                newBranch: trimmed,
-                startPoint: startPoint
-            )
+        let folderPath = folder.path
+        let folderID = folder.id
+        let folderName = folder.name
+        let startPoint = baseBranch.isEmpty ? nil : baseBranch
 
-            appState.addSession(
-                folderID: folder.id,
-                title: "\(folder.name) [\(trimmed)]",
-                cwd: worktreePath,
-                worktreePath: worktreePath,
-                branchName: trimmed,
-                ownsBranch: true
-            )
-
-            dismiss()
-        } catch GitServiceError.worktreeAlreadyExists {
-            errorMessage = "A branch or worktree with this name already exists."
-            isCreating = false
-        } catch {
-            errorMessage = error.localizedDescription
-            isCreating = false
+        Task.detached {
+            do {
+                let worktreePath = try GitService.addWorktreeNewBranch(
+                    repoPath: folderPath,
+                    newBranch: trimmed,
+                    startPoint: startPoint
+                )
+                await MainActor.run {
+                    appState.addSession(
+                        folderID: folderID,
+                        title: "\(folderName) [\(trimmed)]",
+                        cwd: worktreePath,
+                        worktreePath: worktreePath,
+                        branchName: trimmed,
+                        ownsBranch: true
+                    )
+                    dismiss()
+                }
+            } catch GitServiceError.worktreeAlreadyExists {
+                await MainActor.run {
+                    errorMessage = "A branch or worktree with this name already exists."
+                    isCreating = false
+                }
+            } catch {
+                let msg = error.localizedDescription
+                await MainActor.run {
+                    errorMessage = msg
+                    isCreating = false
+                }
+            }
         }
     }
 }

@@ -1,5 +1,9 @@
 import Foundation
 
+// All methods in TmuxService are synchronous and perform blocking I/O
+// (Process + waitUntilExit). They must NEVER be called from the main thread.
+// Use Task.detached {} when calling from @MainActor contexts.
+
 enum TmuxServiceError: Error, LocalizedError {
     case tmuxNotFound
     case commandFailed(String)

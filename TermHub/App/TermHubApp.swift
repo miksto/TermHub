@@ -139,28 +139,35 @@ struct TermHubApp: App {
             return
         }
 
-        let worktreePath: String
-        do {
-            worktreePath = try GitService.addWorktreeNewBranch(repoPath: repoPath, newBranch: branch)
-        } catch {
-            appState.errorMessage = "Failed to create worktree: \(error.localizedDescription)"
-            return
-        }
+        let folderID = folder.id
+        let folderName = folder.name
+        let plan = params["plan"]
 
-        let title = "\(folder.name) [\(branch)]"
-        appState.addSession(
-            folderID: folder.id,
-            title: title,
-            cwd: worktreePath,
-            worktreePath: worktreePath,
-            branchName: branch,
-            ownsBranch: true
-        )
-
-        if let planPath = params["plan"],
-           let sessionID = appState.selectedSessionID {
-            let command = "claude \"Implement the plan in \(planPath)\""
-            appState.terminalManager.pendingCommands[sessionID] = command
+        Task.detached {
+            do {
+                let worktreePath = try GitService.addWorktreeNewBranch(repoPath: repoPath, newBranch: branch)
+                await MainActor.run { [weak appState] in
+                    guard let appState else { return }
+                    let title = "\(folderName) [\(branch)]"
+                    appState.addSession(
+                        folderID: folderID,
+                        title: title,
+                        cwd: worktreePath,
+                        worktreePath: worktreePath,
+                        branchName: branch,
+                        ownsBranch: true
+                    )
+                    if let plan, let sessionID = appState.selectedSessionID {
+                        let command = "claude \"Implement the plan in \(plan)\""
+                        appState.terminalManager.pendingCommands[sessionID] = command
+                    }
+                }
+            } catch {
+                let msg = error.localizedDescription
+                await MainActor.run { [weak appState] in
+                    appState?.errorMessage = "Failed to create worktree: \(msg)"
+                }
+            }
         }
     }
 

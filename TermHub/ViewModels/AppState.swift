@@ -216,45 +216,20 @@ final class AppState {
     }
 
     func removeSession(id: UUID, parentFolderPath: String? = nil, save: Bool = true) {
-        // Find the session before removing
         guard let session = sessions.first(where: { $0.id == id }) else { return }
 
-        // Perform tmux + worktree cleanup (best-effort)
-        do {
-            try TmuxService.killSession(name: session.tmuxSessionName)
-        } catch {
-            print("[TermHub] Failed to kill tmux session '\(session.tmuxSessionName)': \(error)")
+        // Capture cleanup info before mutating state
+        let tmuxName = session.tmuxSessionName
+        let worktreePath = session.worktreePath
+        let isExternal = session.isExternalWorktree
+        let ownsBranch = session.ownsBranch
+        let branchName = session.branchName
+        let otherSessionUsesWorktree = sessions.contains {
+            $0.id != id && $0.worktreePath == worktreePath
         }
-        if let worktreePath = session.worktreePath, !session.isExternalWorktree {
-            let otherSessionUsesWorktree = sessions.contains {
-                $0.id != id && $0.worktreePath == worktreePath
-            }
-            if !otherSessionUsesWorktree {
-                let folderPath = parentFolderPath ?? folders.first(where: { $0.id == session.folderID })?.path
-                if let repoPath = folderPath {
-                    do {
-                        try GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath)
-                    } catch {
-                        print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)")
-                    }
-                    if session.ownsBranch, let branch = session.branchName {
-                        do {
-                            try GitService.deleteLocalBranch(repoPath: repoPath, branch: branch)
-                        } catch {
-                            print("[TermHub] Failed to delete branch '\(branch)': \(error)")
-                        }
-                    }
-                    // Remove the container directory if it's now empty
-                    let container = GitService.worktreeContainerPath(repoPath: repoPath)
-                    let fm = FileManager.default
-                    if let contents = try? fm.contentsOfDirectory(atPath: container), contents.isEmpty {
-                        try? fm.removeItem(atPath: container)
-                    }
-                }
-            }
-        }
+        let repoPath = parentFolderPath ?? folders.first(where: { $0.id == session.folderID })?.path
 
-        // Auto-select next sibling before removing
+        // UI state mutations (stay on MainActor)
         if selectedSessionID == id {
             selectedSessionID = nextSessionID(after: id, inFolderOf: session)
         }
@@ -266,15 +241,36 @@ final class AppState {
         sessionMRUOrder.removeAll { $0 == id }
         sessions.removeAll { $0.id == id }
 
-        // Remove from folder's sessionIDs
         for i in folders.indices {
             folders[i].sessionIDs.removeAll { $0 == id }
         }
 
         sessionListVersion += 1
         if save { saveState() }
-        if session.worktreePath != nil {
+        if worktreePath != nil {
             updateGitFileWatcher()
+        }
+
+        // Background cleanup (blocking I/O — best-effort)
+        Task.detached {
+            do { try TmuxService.killSession(name: tmuxName) }
+            catch { print("[TermHub] Failed to kill tmux session '\(tmuxName)': \(error)") }
+
+            if let worktreePath, !isExternal, !otherSessionUsesWorktree, let repoPath {
+                do { try GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath) }
+                catch { print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)") }
+
+                if ownsBranch, let branchName {
+                    do { try GitService.deleteLocalBranch(repoPath: repoPath, branch: branchName) }
+                    catch { print("[TermHub] Failed to delete branch '\(branchName)': \(error)") }
+                }
+
+                let container = GitService.worktreeContainerPath(repoPath: repoPath)
+                let fm = FileManager.default
+                if let contents = try? fm.contentsOfDirectory(atPath: container), contents.isEmpty {
+                    try? fm.removeItem(atPath: container)
+                }
+            }
         }
     }
 
@@ -455,13 +451,15 @@ final class AppState {
     /// Re-create tmux sessions that were killed externally while the app was not running.
     private func restoreTmuxSessions() {
         guard tmuxAvailable else { return }
-        for session in sessions {
-            let cwd = session.worktreePath ?? session.workingDirectory
-            if !TmuxService.sessionExists(name: session.tmuxSessionName) {
-                do {
-                    try TmuxService.createSession(name: session.tmuxSessionName, cwd: cwd)
-                } catch {
-                    print("[TermHub] Failed to restore tmux session '\(session.tmuxSessionName)': \(error)")
+        let sessionsSnapshot = sessions.map { (name: $0.tmuxSessionName, cwd: $0.worktreePath ?? $0.workingDirectory) }
+        Task.detached {
+            for session in sessionsSnapshot {
+                if !TmuxService.sessionExists(name: session.name) {
+                    do {
+                        try TmuxService.createSession(name: session.name, cwd: session.cwd)
+                    } catch {
+                        print("[TermHub] Failed to restore tmux session '\(session.name)': \(error)")
+                    }
                 }
             }
         }

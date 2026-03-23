@@ -5,17 +5,22 @@ class TermHubTerminalView: LocalProcessTerminalView {
     var onBell: (() -> Void)?
     /// When true, scroll events are consumed and not forwarded to the terminal.
     var blockScrollEvents = false
-    /// Controls whether data is flushed immediately or on a 1s timer.
+    /// Controls whether terminal rendering is active.
+    /// Hidden terminals still parse data (keeping the buffer current) but skip
+    /// all display work (feedPrepare/feedFinish/queuePendingDisplay/updateDisplay).
     /// Event monitors are also installed/removed based on this flag.
     var isVisible: Bool = false {
         didSet {
             guard isVisible != oldValue else { return }
             if isVisible {
                 installEventMonitors()
-                // Flush any data that accumulated while hidden.
+                // Flush any data that accumulated while hidden, with rendering.
                 if !pendingData.isEmpty {
                     flushPendingData()
                 }
+                // The buffer is already up-to-date (hidden terminals parse data),
+                // so a single redraw is enough to show current content.
+                needsDisplay = true
             } else {
                 removeEventMonitors()
             }
@@ -81,39 +86,58 @@ class TermHubTerminalView: LocalProcessTerminalView {
         onBell?()
     }
 
-    // Accumulate data from the process and feed it to the terminal in larger
-    // batches. SwiftTerm's LocalProcess delivers data in 4ms time-sliced chunks
-    // via drainReceivedData. Between chunks, queuePendingDisplay can fire a
-    // display update that shows a partially-drawn tmux screen (e.g. cleared top
-    // rows before the bottom rows arrive). By buffering data and flushing on a
-    // short delay, we ensure complete tmux screen updates reach the terminal
-    // together, eliminating the visible top-to-bottom redraw artifact.
+    // Accumulate data from the process and feed it to the terminal in batches.
+    //
+    // Visible terminals: throttled to ~60fps, uses self.feed() which parses
+    // data AND triggers rendering (feedPrepare/feedFinish/queuePendingDisplay).
+    //
+    // Hidden terminals: flushed on a 1s timer, uses getTerminal().feed() which
+    // only parses data (updates buffer, fires bell callbacks) without any
+    // display work. This keeps the buffer current so switching is instant.
     private var pendingData: [UInt8] = []
     private var flushScheduled = false
+    private var lastFlushTime: UInt64 = 0
     private var slowFlushTimer: Timer?
+    private static let flushIntervalNs: UInt64 = 16_000_000 // ~60fps
 
     override func dataReceived(slice: ArraySlice<UInt8>) {
         pendingData.append(contentsOf: slice)
+
         if isVisible {
-            if !flushScheduled {
-                flushScheduled = true
+            guard !flushScheduled else { return }
+            flushScheduled = true
+
+            let now = DispatchTime.now().uptimeNanoseconds
+            let elapsed = now - lastFlushTime
+            if elapsed >= Self.flushIntervalNs {
+                // Enough time has passed — flush immediately (keeps typing snappy).
                 DispatchQueue.main.async { [weak self] in
+                    self?.flushPendingData()
+                }
+            } else {
+                // Throttle: wait for the remainder of the frame interval.
+                let remaining = Self.flushIntervalNs - elapsed
+                DispatchQueue.main.asyncAfter(
+                    deadline: .now() + .nanoseconds(Int(remaining))
+                ) { [weak self] in
                     self?.flushPendingData()
                 }
             }
         } else {
-            // Non-visible: flush on a 1s timer to reduce main-thread work.
+            // Hidden: parse on a 1s timer to keep the buffer current
+            // without doing any rendering work.
             if slowFlushTimer == nil {
                 slowFlushTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
                     DispatchQueue.main.async {
                         self?.slowFlushTimer = nil
-                        self?.flushPendingData()
+                        self?.flushPendingDataParseOnly()
                     }
                 }
             }
         }
     }
 
+    /// Flush with full rendering (visible terminals).
     private func flushPendingData() {
         flushScheduled = false
         slowFlushTimer?.invalidate()
@@ -121,7 +145,18 @@ class TermHubTerminalView: LocalProcessTerminalView {
         guard !pendingData.isEmpty else { return }
         let data = pendingData
         pendingData.removeAll(keepingCapacity: true)
+        lastFlushTime = DispatchTime.now().uptimeNanoseconds
         feed(byteArray: data[...])
+    }
+
+    /// Flush with parsing only, no rendering (hidden terminals).
+    /// Updates the terminal buffer and fires callbacks (e.g. bell)
+    /// but skips feedPrepare/feedFinish/queuePendingDisplay/updateDisplay.
+    private func flushPendingDataParseOnly() {
+        guard !pendingData.isEmpty else { return }
+        let data = pendingData
+        pendingData.removeAll(keepingCapacity: true)
+        getTerminal().feed(buffer: data[...])
     }
 
     // Monitor Shift key to temporarily disable mouse reporting,
