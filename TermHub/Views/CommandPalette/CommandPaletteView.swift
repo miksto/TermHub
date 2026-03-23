@@ -138,6 +138,9 @@ struct CommandPaletteView: View {
                     .controlSize(.small)
                 Text("Running \(paletteState.gitActionTitle)...")
                     .foregroundStyle(.secondary)
+                Text(paletteState.gitActionCommand)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.tertiary)
             } else if let error = paletteState.gitActionError {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.red)

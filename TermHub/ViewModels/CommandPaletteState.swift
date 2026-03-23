@@ -59,6 +59,7 @@ final class CommandPaletteState {
     var branchLoadError: String?
 
     var gitActionTitle: String = ""
+    var gitActionCommand: String = ""
     var isRunningGitAction: Bool = false
     var gitActionError: String?
     var gitActionSucceeded: Bool = false
@@ -130,6 +131,7 @@ final class CommandPaletteState {
         isLoadingBranches = false
         branchLoadError = nil
         gitActionTitle = ""
+        gitActionCommand = ""
         isRunningGitAction = false
         gitActionError = nil
         gitActionSucceeded = false
@@ -461,6 +463,7 @@ final class CommandPaletteState {
                     return
                 }
                 self?.gitActionTitle = "Checkout \(branch)"
+                self?.gitActionCommand = "git checkout \(branch)"
                 self?.isRunningGitAction = true
                 self?.gitActionError = nil
                 self?.pushMode(.gitActionStatus)
@@ -499,12 +502,17 @@ final class CommandPaletteState {
 
     func runGitAction(_ action: GitAction, path: String, dismiss: @escaping @MainActor @Sendable () -> Void) {
         gitActionTitle = action.title
+        gitActionCommand = ""
         isRunningGitAction = true
         gitActionError = nil
         gitActionSucceeded = false
         pushMode(.gitActionStatus)
 
         Task.detached { [weak self] in
+            let command = action.command(path: path)
+            await MainActor.run { [weak self] in
+                self?.gitActionCommand = command
+            }
             do {
                 try action.execute(path: path)
                 await MainActor.run {

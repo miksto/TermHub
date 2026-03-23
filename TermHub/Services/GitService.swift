@@ -46,6 +46,17 @@ enum GitAction: String, CaseIterable, Sendable {
         }
     }
 
+    /// Returns the exact git command that will be run for the given path.
+    func command(path: String) -> String {
+        switch self {
+        case .pull: return "git pull"
+        case .push: return GitService.pushCommand(path: path)
+        case .fetch: return "git fetch"
+        case .stash: return "git stash"
+        case .stashPop: return "git stash pop"
+        }
+    }
+
     func execute(path: String) throws {
         switch self {
         case .pull: try GitService.pull(path: path)
@@ -225,9 +236,20 @@ enum GitService {
         try run(["-C", path, "pull"])
     }
 
+    /// Returns the command string that `push` will execute, without actually running it.
+    static func pushCommand(path: String) -> String {
+        let hasUpstream = (try? run(["-C", path, "rev-parse", "--abbrev-ref", "@{u}"])) != nil
+        if hasUpstream {
+            return "git push"
+        } else if let branch = currentBranch(repoPath: path) {
+            return "git push --set-upstream origin \(branch)"
+        } else {
+            return "git push"
+        }
+    }
+
     @discardableResult
     static func push(path: String) throws -> String {
-        // Check if the current branch has an upstream configured
         let hasUpstream = (try? run(["-C", path, "rev-parse", "--abbrev-ref", "@{u}"])) != nil
         if hasUpstream {
             return try run(["-C", path, "push"])
