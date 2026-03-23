@@ -314,11 +314,15 @@ final class CommandPaletteState {
            folder.isGitRepo {
             let gitPath = session.workingDirectory
 
+            let branchName = appState.gitStatus(forSession: session)?.currentBranch
+
             for gitAction in GitAction.allCases {
+                let subtitle: String? = (gitAction == .push) ? branchName : nil
                 actions.append(PaletteItem(
                     id: "action-git-\(gitAction.id)",
                     icon: gitAction.icon,
                     title: gitAction.title,
+                    subtitle: subtitle,
                     category: "Git"
                 ) { [weak self] in
                     self?.runGitAction(gitAction, path: gitPath, dismiss: dismiss)
