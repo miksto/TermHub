@@ -116,6 +116,7 @@ struct FolderSectionView: View {
                     branchName: group.branchName
                 )
                 .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
+                .selectionDisabled()
 
                 ForEach(group.sessionIDs, id: \.self) { sessionID in
                     SessionRowView(sessionID: sessionID, onRemove: {
