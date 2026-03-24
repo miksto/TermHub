@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftTerm
 
@@ -23,6 +24,12 @@ final class TerminalSessionManager {
         }
 
         let terminal = TermHubTerminalView(frame: .init(x: 0, y: 0, width: 800, height: 600))
+        let terminalFont = NSFont(name: "SF Mono", size: 13)
+            ?? NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        terminal.font = terminalFont
+        terminal.nativeBackgroundColor = NSColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0)
+        terminal.nativeForegroundColor = NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
+
         let sessionID = session.id
         terminal.onBell = { [weak self] in
             Task { @MainActor in

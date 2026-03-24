@@ -369,12 +369,6 @@ class TerminalContainerViewController: NSViewController {
                     terminal.topAnchor.constraint(equalTo: terminalContainer.topAnchor, constant: inset),
                     terminal.bottomAnchor.constraint(equalTo: terminalContainer.bottomAnchor, constant: -inset),
                 ])
-
-                let terminalFont = NSFont(name: "SF Mono", size: 13)
-                    ?? NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-                terminal.font = terminalFont
-                terminal.nativeBackgroundColor = NSColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0)
-                terminal.nativeForegroundColor = NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
             }
 
             (terminal as? TermHubTerminalView)?.isVisible = true
