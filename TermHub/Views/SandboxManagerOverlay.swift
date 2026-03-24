@@ -258,16 +258,17 @@ struct SandboxManagerOverlay: View {
                 .frame(width: 120, alignment: .leading)
 
             // Sessions
-            Group {
+            VStack(alignment: .leading, spacing: 2) {
                 if sandboxSessions.isEmpty {
                     Text("—")
                         .foregroundStyle(.secondary)
                 } else {
-                    Text(sandboxSessions.map(\.title).joined(separator: ", "))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .help(sandboxSessions.map(\.title).joined(separator: "\n"))
+                    ForEach(sandboxSessions) { session in
+                        Text(session.title)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
