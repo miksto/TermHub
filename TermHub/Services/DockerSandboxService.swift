@@ -110,7 +110,7 @@ enum DockerSandboxService {
 
     /// Creates a new sandbox for the given agent with workspace paths.
     static func createSandbox(name: String, agent: String = "claude", workspaces: [String]) throws {
-        let args = ["create", agent] + workspaces + ["--name", name]
+        let args = ["create", "--name", name, agent] + workspaces
         try run(args)
     }
 
