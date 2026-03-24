@@ -6,6 +6,11 @@ struct SandboxManagerOverlay: View {
     @State private var showCreateForm = false
     @State private var newSandboxName = ""
     @State private var newSandboxWorkspaces: [String] = []
+    @State private var panelSize = CGSize(width: 760, height: 500)
+    @State private var dragStartSize = CGSize.zero
+
+    private let minSize = CGSize(width: 500, height: 350)
+    private let maxSize = CGSize(width: 1200, height: 900)
 
     var body: some View {
         ZStack {
@@ -21,11 +26,44 @@ struct SandboxManagerOverlay: View {
                 }
 
             panel
-                .frame(width: 760, height: 500)
+                .frame(width: panelSize.width, height: panelSize.height)
                 .background(.ultraThickMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(radius: 30, y: 10)
+                .overlay(alignment: .bottomTrailing) {
+                    resizeHandle
+                }
         }
+    }
+
+    private var resizeHandle: some View {
+        Image(systemName: "arrow.up.left.and.arrow.down.right")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(.tertiary)
+            .frame(width: 16, height: 16)
+            .padding(6)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        if dragStartSize == .zero {
+                            dragStartSize = panelSize
+                        }
+                        let newWidth = max(minSize.width, min(maxSize.width, dragStartSize.width + value.translation.width))
+                        let newHeight = max(minSize.height, min(maxSize.height, dragStartSize.height + value.translation.height))
+                        panelSize = CGSize(width: newWidth, height: newHeight)
+                    }
+                    .onEnded { _ in
+                        dragStartSize = .zero
+                    }
+            )
+            .onHover { isHovered in
+                if isHovered {
+                    NSCursor(image: NSImage(systemSymbolName: "arrow.up.left.and.arrow.down.right", accessibilityDescription: nil)!, hotSpot: NSPoint(x: 8, y: 8)).push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
     }
 
     private var panel: some View {
