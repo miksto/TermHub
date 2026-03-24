@@ -121,7 +121,8 @@ struct FolderSectionView: View {
                 WorktreeHeaderView(
                     folderID: folder.id,
                     worktreePath: group.worktreePath,
-                    branchName: group.branchName
+                    branchName: group.branchName,
+                    optionKeyDown: optionKeyDown
                 )
                 .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
                 .selectionDisabled()
@@ -186,7 +187,7 @@ struct FolderSectionView: View {
     }
 }
 
-private struct SandboxButtonLabel: View {
+struct SandboxButtonLabel: View {
     let title: String
     let systemImage: String
     let showSandbox: Bool

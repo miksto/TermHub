@@ -5,12 +5,21 @@ struct WorktreeHeaderView: View {
     let folderID: UUID
     let worktreePath: String
     let branchName: String
+    var optionKeyDown: Bool = false
 
     private func aheadBehindText(_ status: GitStatus) -> String {
         var parts: [String] = []
         if status.ahead > 0 { parts.append("↑\(status.ahead)") }
         if status.behind > 0 { parts.append("↓\(status.behind)") }
         return parts.joined(separator: " ")
+    }
+
+    private var folder: ManagedFolder? {
+        appState.folders.first(where: { $0.id == folderID })
+    }
+
+    private var showSandboxIndicator: Bool {
+        folder?.hasSandbox == true && optionKeyDown
     }
 
     var body: some View {
@@ -32,17 +41,22 @@ struct WorktreeHeaderView: View {
             }
             Spacer()
             Button {
-                guard let folder = appState.folders.first(where: { $0.id == folderID }) else { return }
+                guard let folder else { return }
+                let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
                 appState.addSession(
                     folderID: folderID,
                     title: "\(folder.name) [\(branchName)]",
                     cwd: worktreePath,
                     worktreePath: worktreePath,
-                    branchName: branchName
+                    branchName: branchName,
+                    isSandboxSession: sandbox
                 )
             } label: {
-                Label("Shell", systemImage: "terminal")
-                    .font(.caption)
+                SandboxButtonLabel(
+                    "Shell",
+                    systemImage: "terminal",
+                    showSandbox: showSandboxIndicator
+                )
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
