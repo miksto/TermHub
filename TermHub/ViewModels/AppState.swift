@@ -402,6 +402,7 @@ final class AppState {
     }
 
     private func startSandboxPolling() {
+        sandboxRefreshTimer?.invalidate()
         sandboxRefreshTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, self.folders.contains(where: { $0.hasSandbox }) else { return }

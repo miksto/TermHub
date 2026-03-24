@@ -63,6 +63,10 @@ class TerminalContainerViewController: NSViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     override func loadView() {
         let bgColor = NSColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0)
 
