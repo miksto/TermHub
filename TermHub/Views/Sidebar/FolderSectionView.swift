@@ -173,13 +173,15 @@ struct SandboxButtonLabel: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Label(title, systemImage: systemImage)
-                .font(.caption)
+            Image(systemName: systemImage)
+                .frame(width: 18)
+            Text(title)
             if showSandbox {
                 Image(systemName: "shippingbox")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         }
+        .font(.caption)
     }
 }

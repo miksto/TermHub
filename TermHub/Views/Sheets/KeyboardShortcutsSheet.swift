@@ -7,7 +7,9 @@ struct KeyboardShortcutsSheet: View {
         ("Command Palette", "⌘P"),
         ("New Shell in Current Folder", "⌘T"),
         ("New Sandboxed Shell", "⌥⌘T"),
-        ("Add Folder", "⌘N"),
+        ("Add Folder", "⌘O"),
+        ("New Worktree", "⌘N"),
+        ("Switch Branch / Worktree", "⌘B"),
         ("Close Session", "⌘W"),
         ("Switch Session (MRU)", "⌃Tab"),
         ("Switch Session (MRU, reverse)", "⌃⇧Tab"),
@@ -24,7 +26,6 @@ struct KeyboardShortcutsSheet: View {
     private let optionModifiers: [(description: String, keys: String)] = [
         ("Show sandbox indicators", "Hold ⌥"),
         ("New shell as sandboxed", "⌥ + click shell button"),
-        ("New worktree as sandboxed", "⌥ + create worktree"),
     ]
 
     @ViewBuilder
@@ -49,27 +50,30 @@ struct KeyboardShortcutsSheet: View {
                 .padding(.top, 20)
                 .padding(.bottom, 16)
 
-            Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 10) {
-                ForEach(shortcuts, id: \.description) { shortcut in
-                    shortcutRow(shortcut)
+            ScrollView {
+                VStack(spacing: 0) {
+                    Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 10) {
+                        ForEach(shortcuts, id: \.description) { shortcut in
+                            shortcutRow(shortcut)
+                        }
+                    }
+                    .padding(.horizontal, 32)
+
+                    Text("Option Key Modifiers")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 20)
+                        .padding(.bottom, 8)
+
+                    Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 10) {
+                        ForEach(optionModifiers, id: \.description) { shortcut in
+                            shortcutRow(shortcut)
+                        }
+                    }
+                    .padding(.horizontal, 32)
                 }
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, 32)
-
-            Text("Option Key Modifiers")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
-                .padding(.top, 20)
-                .padding(.bottom, 8)
-
-            Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 10) {
-                ForEach(optionModifiers, id: \.description) { shortcut in
-                    shortcutRow(shortcut)
-                }
-            }
-            .padding(.horizontal, 32)
-
-            Spacer()
 
             Button("OK") { dismiss() }
                 .keyboardShortcut(.defaultAction)
