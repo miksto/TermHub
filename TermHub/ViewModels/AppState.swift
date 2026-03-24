@@ -34,6 +34,15 @@ final class AppState {
     var errorMessage: String?
     var pendingRemoveFolderID: UUID?
     var showKeyboardShortcuts = false
+    var pendingSandboxPickerContext: SandboxPickerContext?
+
+    struct SandboxPickerContext {
+        let folderID: UUID
+        let folderName: String
+        let cwd: String
+        let worktreePath: String?
+        let branchName: String?
+    }
     var showCommandPalette = false
     /// Incremented only when sessions are added or removed (not on title/property changes).
     /// Used by TerminalContainerView to avoid re-evaluation on every session mutation.

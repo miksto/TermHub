@@ -19,6 +19,22 @@ struct ContentView: View {
             )) {
                 KeyboardShortcutsSheet()
             }
+            .sheet(
+                isPresented: Binding(
+                    get: { appState.pendingSandboxPickerContext != nil },
+                    set: { if !$0 { appState.pendingSandboxPickerContext = nil } }
+                )
+            ) {
+                if let ctx = appState.pendingSandboxPickerContext {
+                    ShellSandboxPickerSheet(
+                        folderID: ctx.folderID,
+                        folderName: ctx.folderName,
+                        cwd: ctx.cwd,
+                        worktreePath: ctx.worktreePath,
+                        branchName: ctx.branchName
+                    )
+                }
+            }
             .modifier(ContentViewAlerts())
             .onAppear { installSessionSwitcherMonitors() }
             .onDisappear { removeSessionSwitcherMonitors() }

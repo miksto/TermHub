@@ -208,17 +208,26 @@ struct TermHubApp: App {
               let folder = appState.folders.first(where: { $0.id == session.folderID })
         else { return }
 
+        let cwd: String
+        if let worktreePath = session.worktreePath {
+            cwd = worktreePath
+        } else {
+            cwd = folder.path
+        }
+
         let sandboxName: String?
         if pickSandbox && !appState.sandboxes.isEmpty {
             if appState.sandboxes.count == 1 {
                 sandboxName = appState.sandboxes[0].name
             } else {
-                // Multiple sandboxes — trigger the picker via pending state
-                // For Cmd+Option+T with multiple sandboxes, we need a sheet.
-                // We'll reuse the FolderSectionView picker approach via AppState.
-                // For now, use the first sandbox as a fallback.
-                // TODO: This needs a sheet presentation from TermHubApp level
-                sandboxName = appState.sandboxes[0].name
+                appState.pendingSandboxPickerContext = AppState.SandboxPickerContext(
+                    folderID: folder.id,
+                    folderName: folder.name,
+                    cwd: cwd,
+                    worktreePath: session.worktreePath,
+                    branchName: session.branchName
+                )
+                return
             }
         } else {
             // Inherit sandbox from current session
@@ -226,13 +235,10 @@ struct TermHubApp: App {
         }
 
         let title: String
-        let cwd: String
-        if let worktreePath = session.worktreePath {
+        if session.worktreePath != nil {
             title = "\(folder.name) [\(session.branchName ?? "worktree")]"
-            cwd = worktreePath
         } else {
             title = "\(folder.name) – Shell"
-            cwd = folder.path
         }
 
         appState.addSession(
