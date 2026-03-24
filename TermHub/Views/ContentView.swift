@@ -75,6 +75,14 @@ struct ContentView: View {
 
     private func installSessionSwitcherMonitors() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Escape dismisses overlays before the terminal can consume it
+            if event.keyCode == 53 {
+                if appState.showSandboxManager {
+                    appState.showSandboxManager = false
+                    return nil
+                }
+            }
+
             // Ctrl+Tab (keyCode 48 = Tab)
             guard event.keyCode == 48,
                   event.modifierFlags.contains(.control) else {
