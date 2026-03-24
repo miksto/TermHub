@@ -292,7 +292,7 @@ struct SandboxManagerOverlay: View {
             // Name
             HStack(spacing: 8) {
                 Circle()
-                    .fill(statusColor(info: entry.info))
+                    .fill(statusColor(entry: entry))
                     .frame(width: 10, height: 10)
                 Text(entry.name)
                     .lineLimit(1)
@@ -300,7 +300,7 @@ struct SandboxManagerOverlay: View {
             .frame(width: 170, alignment: .leading)
 
             // Status
-            Text(statusText(info: entry.info))
+            Text(statusText(entry: entry))
                 .foregroundStyle(.secondary)
                 .frame(width: 90, alignment: .leading)
 
@@ -402,15 +402,17 @@ struct SandboxManagerOverlay: View {
         }
     }
 
-    private func statusColor(info: SandboxInfo?) -> Color {
-        guard let info else { return .orange }
+    private func statusColor(entry: SandboxEntry) -> Color {
+        if appState.sandboxOperationInProgress.contains(entry.name) { return .blue }
+        guard let info = entry.info else { return .orange }
         if info.isRunning { return .green }
         if info.isStopped { return .gray }
         return .orange
     }
 
-    private func statusText(info: SandboxInfo?) -> String {
-        guard let info else { return "Not Created" }
+    private func statusText(entry: SandboxEntry) -> String {
+        if appState.sandboxOperationInProgress.contains(entry.name), entry.info == nil { return "Creating…" }
+        guard let info = entry.info else { return "Not Created" }
         if info.isRunning { return "Running" }
         if info.isStopped { return "Stopped" }
         return info.status.capitalized
@@ -445,6 +447,12 @@ struct SandboxManagerOverlay: View {
                 entries.append(SandboxEntry(name: name, info: nil, linkedFolders: [folder]))
                 seenNames.insert(name)
             }
+        }
+
+        // Show placeholder rows for sandboxes being created
+        for name in appState.sandboxOperationInProgress where !seenNames.contains(name) {
+            entries.append(SandboxEntry(name: name, info: nil, linkedFolders: []))
+            seenNames.insert(name)
         }
 
         return entries
