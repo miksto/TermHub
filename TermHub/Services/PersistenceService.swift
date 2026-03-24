@@ -24,12 +24,18 @@ struct PersistedState: Codable {
     var sessionMRUOrder: [UUID]?
 }
 
-enum PersistenceService {
-    /// Serial queue for background file I/O to avoid concurrent writes.
-    static let writeQueue = DispatchQueue(label: "com.termhub.persistence-write")
+/// Abstraction over state persistence so AppState can be tested without touching disk.
+protocol StatePersistence: Sendable {
+    func save(state: PersistedState) throws
+    func load() throws -> PersistedState
+    func scheduleWrite(_ work: @escaping @Sendable () -> Void)
+}
 
+/// Production persistence: reads/writes JSON to ~/Library/Application Support/TermHub/state.json.
+final class DiskPersistence: StatePersistence {
+    private let writeQueue = DispatchQueue(label: "com.termhub.persistence-write")
 
-    static var defaultStateFileURL: URL {
+    private var stateFileURL: URL {
         guard let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
@@ -40,9 +46,37 @@ enum PersistenceService {
         return appDir.appendingPathComponent("state.json")
     }
 
-    static func save(state: PersistedState, to url: URL? = nil) throws {
-        let fileURL = url ?? defaultStateFileURL
-        let dir = fileURL.deletingLastPathComponent()
+    func save(state: PersistedState) throws {
+        try PersistenceService.save(state: state, to: stateFileURL)
+    }
+
+    func load() throws -> PersistedState {
+        let result = try PersistenceService.load(from: stateFileURL)
+        return PersistedState(
+            folders: result.folders,
+            sessions: result.sessions,
+            selectedSessionID: result.selectedSessionID,
+            sessionMRUOrder: result.sessionMRUOrder
+        )
+    }
+
+    func scheduleWrite(_ work: @escaping @Sendable () -> Void) {
+        writeQueue.async { work() }
+    }
+}
+
+/// No-op persistence for tests — never touches the file system.
+final class NullPersistence: StatePersistence {
+    func save(state: PersistedState) throws {}
+    func load() throws -> PersistedState {
+        PersistedState(folders: [], sessions: [], selectedSessionID: nil, sessionMRUOrder: nil)
+    }
+    func scheduleWrite(_ work: @escaping @Sendable () -> Void) {}
+}
+
+enum PersistenceService {
+    static func save(state: PersistedState, to url: URL) throws {
+        let dir = url.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
         let encoder = JSONEncoder()
@@ -56,14 +90,14 @@ enum PersistenceService {
         }
 
         let fm = FileManager.default
-        let backupURL = fileURL.appendingPathExtension("bak")
-        if fm.fileExists(atPath: fileURL.path) {
+        let backupURL = url.appendingPathExtension("bak")
+        if fm.fileExists(atPath: url.path) {
             try? fm.removeItem(at: backupURL)
-            try? fm.copyItem(at: fileURL, to: backupURL)
+            try? fm.copyItem(at: url, to: backupURL)
         }
 
         do {
-            try data.write(to: fileURL, options: .atomic)
+            try data.write(to: url, options: .atomic)
         } catch {
             throw PersistenceError.fileSystemError(error)
         }
@@ -74,21 +108,20 @@ enum PersistenceService {
         sessions: [TerminalSession],
         selectedSessionID: UUID? = nil,
         sessionMRUOrder: [UUID] = [],
-        to url: URL? = nil
+        to url: URL
     ) throws {
         let state = PersistedState(folders: folders, sessions: sessions, selectedSessionID: selectedSessionID, sessionMRUOrder: sessionMRUOrder)
         try save(state: state, to: url)
     }
 
     static func load(
-        from url: URL? = nil
+        from url: URL
     ) throws -> (folders: [ManagedFolder], sessions: [TerminalSession], selectedSessionID: UUID?, sessionMRUOrder: [UUID]) {
-        let fileURL = url ?? defaultStateFileURL
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        guard FileManager.default.fileExists(atPath: url.path) else {
             return (folders: [], sessions: [], selectedSessionID: nil, sessionMRUOrder: [])
         }
         do {
-            let data = try Data(contentsOf: fileURL)
+            let data = try Data(contentsOf: url)
             let state = try JSONDecoder().decode(PersistedState.self, from: data)
             return (folders: state.folders, sessions: state.sessions, selectedSessionID: state.selectedSessionID, sessionMRUOrder: state.sessionMRUOrder ?? [])
         } catch {

@@ -4,7 +4,7 @@ import Foundation
 // (Process + waitUntilExit). They must NEVER be called from the main thread.
 // Use Task.detached {} when calling from @MainActor contexts.
 
-enum TmuxServiceError: Error, LocalizedError {
+enum TmuxServiceError: Error, LocalizedError, Equatable {
     case tmuxNotFound
     case commandFailed(String)
 
@@ -21,38 +21,30 @@ enum TmuxServiceError: Error, LocalizedError {
 enum TmuxService {
     private static let socketName = "termhub"
     nonisolated(unsafe) private static var didConfigureServer = false
+    nonisolated(unsafe) static var commandRunner: CommandRunner = ProcessCommandRunner()
+    /// Override for testing. When set, bypasses ShellEnvironment.tmuxPath.
+    nonisolated(unsafe) static var tmuxPathOverride: String?
+
+    private static var resolvedTmuxPath: String? {
+        tmuxPathOverride ?? ShellEnvironment.tmuxPath
+    }
 
     @discardableResult
     private static func run(_ arguments: [String]) throws -> String {
-        guard let tmux = ShellEnvironment.tmuxPath else {
+        guard let tmux = resolvedTmuxPath else {
             throw TmuxServiceError.tmuxNotFound
         }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: tmux)
-        process.arguments = ["-L", socketName] + arguments
-        process.environment = ShellEnvironment.shellEnvironment
+        let result = commandRunner.run(
+            executablePath: tmux,
+            arguments: ["-L", socketName] + arguments,
+            environment: ShellEnvironment.shellEnvironment
+        )
 
-        let pipe = Pipe()
-        let errorPipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = errorPipe
-
-        try process.run()
-
-        // Read pipe data BEFORE waitUntilExit to avoid deadlock.
-        // If the process fills the pipe buffer (~64KB), it blocks waiting
-        // for the reader to drain — while we block waiting for exit.
-        let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
-        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-
-        let output = String(data: outputData, encoding: .utf8) ?? ""
-        let errorOutput = String(data: errorData, encoding: .utf8) ?? ""
-
-        if process.terminationStatus != 0 {
-            throw TmuxServiceError.commandFailed(errorOutput.isEmpty ? output : errorOutput)
+        if result.exitCode != 0 {
+            let message = result.errorOutput.isEmpty ? result.output : result.errorOutput
+            throw TmuxServiceError.commandFailed(message)
         }
-        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+        return result.output.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func ensureServerConfigured() throws {
@@ -75,7 +67,7 @@ enum TmuxService {
     }
 
     static func attachCommand(name: String) -> [String] {
-        guard let tmux = ShellEnvironment.tmuxPath else {
+        guard let tmux = resolvedTmuxPath else {
             return [ShellEnvironment.defaultShell]
         }
         return [tmux, "-L", socketName, "attach-session", "-t", name]
@@ -107,7 +99,11 @@ enum TmuxService {
     }
 
     static func isAvailable() -> Bool {
-        return ShellEnvironment.tmuxPath != nil
+        return resolvedTmuxPath != nil
     }
 
+    /// Reset internal state for testing.
+    static func resetForTesting() {
+        didConfigureServer = false
+    }
 }

@@ -5,16 +5,9 @@ import Testing
 @Suite("AppState Tests")
 struct AppStateTests {
 
-    /// Helper to create an AppState and clear the auto-loaded state so tests start clean.
     @MainActor
     private func makeCleanAppState() -> AppState {
-        let state = AppState()
-        // Clear any persisted state loaded during init
-        state.folders = []
-        state.sessions = []
-        state.selectedSessionID = nil
-        state.errorMessage = nil
-        return state
+        AppState(persistence: NullPersistence())
     }
 
     @Test("addFolder with existing path creates folder and default session")

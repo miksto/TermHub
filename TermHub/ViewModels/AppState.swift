@@ -69,11 +69,13 @@ final class AppState {
     private var isLoading = false
     private var loadFailed = false
     @ObservationIgnored private var debouncedSaveWorkItem: DispatchWorkItem?
+    @ObservationIgnored private let persistence: StatePersistence
 
     let terminalManager = TerminalSessionManager()
 
-    init() {
+    init(persistence: StatePersistence? = nil) {
         let isTestHost = ProcessInfo.processInfo.isRunningTests
+        self.persistence = persistence ?? (isTestHost ? NullPersistence() : DiskPersistence())
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
         loadState()
         if !isTestHost {
@@ -771,7 +773,7 @@ final class AppState {
         isLoading = true
         defer { isLoading = false }
         do {
-            let state = try PersistenceService.load()
+            let state = try persistence.load()
             folders = state.folders
             sessions = state.sessions
             for session in sessions {
@@ -779,7 +781,7 @@ final class AppState {
             }
             // Restore MRU order, falling back to sidebar order for sessions not in the persisted list.
             let validSessionIDs = Set(sessions.map(\.id))
-            let persisted = state.sessionMRUOrder.filter { validSessionIDs.contains($0) }
+            let persisted = (state.sessionMRUOrder ?? []).filter { validSessionIDs.contains($0) }
             let missing = allSessionIDsOrdered.filter { !persisted.contains($0) }
             sessionMRUOrder = persisted + missing
             selectedSessionID = state.selectedSessionID
@@ -801,9 +803,10 @@ final class AppState {
             selectedSessionID: selectedSessionID,
             sessionMRUOrder: sessionMRUOrder
         )
-        PersistenceService.writeQueue.async {
+        let persistence = self.persistence
+        persistence.scheduleWrite {
             do {
-                try PersistenceService.save(state: state)
+                try persistence.save(state: state)
             } catch {
                 print("Failed to save state: \(error)")
             }

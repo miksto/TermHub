@@ -28,7 +28,7 @@ enum SandboxAgent: String, CaseIterable, Sendable {
     }
 }
 
-enum DockerSandboxError: Error, LocalizedError {
+enum DockerSandboxError: Error, LocalizedError, Equatable {
     case dockerNotFound
     case commandFailed(String)
 
@@ -44,6 +44,13 @@ enum DockerSandboxError: Error, LocalizedError {
 
 enum DockerSandboxService {
     static let dockerPath: String? = resolveDockerPath()
+    nonisolated(unsafe) static var commandRunner: CommandRunner = ProcessCommandRunner()
+    /// Override for testing. When set, bypasses the resolved dockerPath.
+    nonisolated(unsafe) static var dockerPathOverride: String?
+
+    private static var resolvedDockerPath: String? {
+        dockerPathOverride ?? dockerPath
+    }
 
     /// Docker sandbox names must start with an alphanumeric character and contain only `[a-zA-Z0-9_.-]`.
     static func isValidSandboxName(_ name: String) -> Bool {
@@ -53,7 +60,7 @@ enum DockerSandboxService {
 
     /// Returns the shell command string for tmux to execute inside a sandbox.
     static func execCommand(sandboxName: String, cwd: String) -> String {
-        guard let docker = dockerPath else {
+        guard let docker = resolvedDockerPath else {
             return "echo 'docker not found'; exit 1"
         }
         guard isValidSandboxName(sandboxName) else {
@@ -67,33 +74,20 @@ enum DockerSandboxService {
 
     @discardableResult
     private static func run(_ arguments: [String]) throws -> String {
-        guard let docker = dockerPath else {
+        guard let docker = resolvedDockerPath else {
             throw DockerSandboxError.dockerNotFound
         }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: docker)
-        process.arguments = ["sandbox"] + arguments
-        process.environment = ShellEnvironment.shellEnvironment
+        let result = commandRunner.run(
+            executablePath: docker,
+            arguments: ["sandbox"] + arguments,
+            environment: ShellEnvironment.shellEnvironment
+        )
 
-        let pipe = Pipe()
-        let errorPipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = errorPipe
-
-        try process.run()
-
-        // Read pipe data BEFORE waitUntilExit to avoid deadlock.
-        let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
-        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-
-        let output = String(data: outputData, encoding: .utf8) ?? ""
-        let errorOutput = String(data: errorData, encoding: .utf8) ?? ""
-
-        if process.terminationStatus != 0 {
-            throw DockerSandboxError.commandFailed(errorOutput.isEmpty ? output : errorOutput)
+        if result.exitCode != 0 {
+            let message = result.errorOutput.isEmpty ? result.output : result.errorOutput
+            throw DockerSandboxError.commandFailed(message)
         }
-        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+        return result.output.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Lists all Docker sandboxes. Returns empty array on failure.

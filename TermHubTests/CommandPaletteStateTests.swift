@@ -222,11 +222,6 @@ struct CommandPaletteStateTests {
 
     @MainActor
     private func makeCleanAppState() -> AppState {
-        let state = AppState()
-        state.folders = []
-        state.sessions = []
-        state.selectedSessionID = nil
-        state.errorMessage = nil
-        return state
+        AppState(persistence: NullPersistence())
     }
 }

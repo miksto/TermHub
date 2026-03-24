@@ -4,7 +4,7 @@ import Foundation
 // (Process + waitUntilExit). They must NEVER be called from the main thread.
 // Use Task.detached {} when calling from @MainActor contexts.
 
-enum GitServiceError: Error, LocalizedError {
+enum GitServiceError: Error, LocalizedError, Equatable {
     case commandFailed(String)
     case notAGitRepo
     case worktreeAlreadyExists
@@ -73,38 +73,24 @@ enum GitAction: String, CaseIterable, Sendable {
 }
 
 enum GitService {
+    nonisolated(unsafe) static var commandRunner: CommandRunner = ProcessCommandRunner()
+
     @discardableResult
     private static func run(_ arguments: [String]) throws -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = arguments
-        process.environment = ShellEnvironment.shellEnvironment
+        let result = commandRunner.run(
+            executablePath: "/usr/bin/git",
+            arguments: arguments,
+            environment: ShellEnvironment.shellEnvironment
+        )
 
-        let pipe = Pipe()
-        let errorPipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = errorPipe
-
-        try process.run()
-
-        // Read pipe data BEFORE waitUntilExit to avoid deadlock.
-        // If the process fills the pipe buffer (~64KB), it blocks waiting
-        // for the reader to drain — while we block waiting for exit.
-        let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
-        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-
-        let output = String(data: outputData, encoding: .utf8) ?? ""
-        let errorOutput = String(data: errorData, encoding: .utf8) ?? ""
-
-        if process.terminationStatus != 0 {
-            let message = errorOutput.isEmpty ? output : errorOutput
+        if result.exitCode != 0 {
+            let message = result.errorOutput.isEmpty ? result.output : result.errorOutput
             if message.contains("already exists") {
                 throw GitServiceError.worktreeAlreadyExists
             }
             throw GitServiceError.commandFailed(message)
         }
-        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+        return result.output.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static func isGitRepo(path: String) -> Bool {
