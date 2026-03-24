@@ -56,7 +56,7 @@ struct SidebarView: View {
             )
         ) {
             if let folder = appState.pendingWorktreeFolder {
-                BranchPickerSheet(folder: folder, isSandboxSession: appState.pendingWorktreeSandbox)
+                BranchPickerSheet(folder: folder, isSandboxSession: appState.pendingWorktreeSandbox, sandboxName: folder.sandboxName)
             }
         }
         .sheet(
@@ -66,7 +66,7 @@ struct SidebarView: View {
             )
         ) {
             if let folder = appState.pendingNewBranchFolder {
-                NewBranchSheet(folder: folder, isSandboxSession: appState.pendingWorktreeSandbox)
+                NewBranchSheet(folder: folder, isSandboxSession: appState.pendingWorktreeSandbox, sandboxName: folder.sandboxName)
             }
         }
     }

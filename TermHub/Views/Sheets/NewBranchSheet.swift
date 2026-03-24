@@ -6,6 +6,7 @@ struct NewBranchSheet: View {
 
     let folder: ManagedFolder
     var isSandboxSession: Bool = false
+    var sandboxName: String?
 
     @State private var branchName = ""
     @State private var baseBranch = ""
@@ -22,6 +23,12 @@ struct NewBranchSheet: View {
         VStack(spacing: 16) {
             Text("New Branch Worktree")
                 .font(.headline)
+
+            if isSandboxSession, let sandboxName {
+                Label("Sandbox: \(sandboxName)", systemImage: "shippingbox")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Branch name:")

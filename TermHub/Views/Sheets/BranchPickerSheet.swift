@@ -6,6 +6,7 @@ struct BranchPickerSheet: View {
 
     let folder: ManagedFolder
     var isSandboxSession: Bool = false
+    var sandboxName: String?
 
     @State private var branches: [BranchInfo] = []
     @State private var searchText = ""
@@ -46,7 +47,14 @@ struct BranchPickerSheet: View {
             Text("Worktree from Branch")
                 .font(.headline)
                 .padding(.top, 16)
-                .padding(.bottom, 8)
+                .padding(.bottom, isSandboxSession ? 4 : 8)
+
+            if isSandboxSession, let sandboxName {
+                Label("Sandbox: \(sandboxName)", systemImage: "shippingbox")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 8)
+            }
 
             if isLoading {
                 ProgressView("Loading branches...")
