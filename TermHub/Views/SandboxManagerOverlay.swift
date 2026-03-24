@@ -243,13 +243,19 @@ struct SandboxManagerOverlay: View {
         } else {
             VStack(spacing: 0) {
                 // Column headers
-                HStack(spacing: 0) {
-                    columnHeader("Name", width: 170, leading: true)
-                    columnHeader("Status", width: 90)
-                    columnHeader("Agent", width: 80)
-                    columnHeader("Folders", width: 120)
-                    columnHeader("Sessions", width: nil)
-                    columnHeader("Actions", width: 100)
+                HStack(spacing: 12) {
+                    columnHeader("Name")
+                        .frame(width: 130, alignment: .leading)
+                    columnHeader("Status")
+                        .frame(width: 60, alignment: .leading)
+                    columnHeader("Agent")
+                        .frame(width: 50, alignment: .leading)
+                    columnHeader("Folders")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    columnHeader("Sessions")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    columnHeader("Actions")
+                        .frame(width: 50, alignment: .trailing)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
@@ -270,25 +276,17 @@ struct SandboxManagerOverlay: View {
         }
     }
 
-    private func columnHeader(_ title: String, width: CGFloat?, leading: Bool = false) -> some View {
-        Group {
-            if let width {
-                Text(title)
-                    .frame(width: width, alignment: leading ? .leading : .leading)
-            } else {
-                Text(title)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .font(.caption.weight(.medium))
-        .foregroundStyle(.secondary)
+    private func columnHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
     }
 
     private func tableRow(_ entry: SandboxEntry) -> some View {
         let isInProgress = appState.sandboxOperationInProgress.contains(entry.name)
         let sandboxSessions = sessionsForSandbox(entry)
 
-        return HStack(spacing: 0) {
+        return HStack(spacing: 12) {
             // Name
             HStack(spacing: 8) {
                 Circle()
@@ -297,24 +295,34 @@ struct SandboxManagerOverlay: View {
                 Text(entry.name)
                     .lineLimit(1)
             }
-            .frame(width: 170, alignment: .leading)
+            .frame(width: 130, alignment: .leading)
 
             // Status
             Text(statusText(entry: entry))
                 .foregroundStyle(.secondary)
-                .frame(width: 90, alignment: .leading)
+                .frame(width: 60, alignment: .leading)
 
             // Agent
             Text(entry.info?.agent ?? "—")
                 .foregroundStyle(.secondary)
-                .frame(width: 80, alignment: .leading)
+                .frame(width: 50, alignment: .leading)
 
-            // Folder
-            Text(entry.linkedFolders.isEmpty ? "—" : entry.linkedFolders.map(\.name).joined(separator: ", "))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(width: 120, alignment: .leading)
+            // Folders (workspaces from Docker)
+            VStack(alignment: .leading, spacing: 2) {
+                let workspaces = entry.info?.workspaces ?? []
+                if workspaces.isEmpty {
+                    Text("—")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(workspaces, id: \.self) { path in
+                        Text(path)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             // Sessions
             VStack(alignment: .leading, spacing: 2) {
@@ -334,7 +342,7 @@ struct SandboxManagerOverlay: View {
 
             // Actions
             actionsCell(entry: entry, isInProgress: isInProgress)
-                .frame(width: 100, alignment: .trailing)
+                .frame(width: 50, alignment: .trailing)
         }
         .font(.callout)
         .padding(.horizontal, 20)
@@ -419,8 +427,9 @@ struct SandboxManagerOverlay: View {
 
     private func shortenPath(_ path: String) -> String {
         let home = FileManager.default.homeDirectoryForCurrentUser.path()
-        if path.hasPrefix(home) {
-            return "~" + path.dropFirst(home.count)
+        let normalizedHome = home.hasSuffix("/") ? String(home.dropLast()) : home
+        if path.hasPrefix(normalizedHome) {
+            return "~" + path.dropFirst(normalizedHome.count)
         }
         return path
     }
@@ -435,7 +444,7 @@ struct SandboxManagerOverlay: View {
         var entries: [SandboxEntry] = []
         var seenNames: Set<String> = []
 
-        // Build a map of sandbox name → folders that have sessions using it
+        // Build a map of sandbox name → folders from active sessions
         var sandboxFolderMap: [String: Set<UUID>] = [:]
         for session in appState.sessions {
             if let name = session.sandboxName {
