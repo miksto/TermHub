@@ -4,6 +4,30 @@ import Foundation
 // and perform blocking I/O. They must NEVER be called from the main thread.
 // Use Task.detached {} when calling from @MainActor contexts.
 
+enum SandboxAgent: String, CaseIterable, Sendable {
+    case claude
+    case copilot
+    case codex
+    case gemini
+    case cagent
+    case kiro
+    case opencode
+    case shell
+
+    var displayName: String {
+        switch self {
+        case .claude: "Claude Code"
+        case .copilot: "GitHub Copilot"
+        case .codex: "Codex"
+        case .gemini: "Gemini"
+        case .cagent: "Docker Agent"
+        case .kiro: "Kiro"
+        case .opencode: "OpenCode"
+        case .shell: "Shell"
+        }
+    }
+}
+
 enum DockerSandboxError: Error, LocalizedError {
     case dockerNotFound
     case commandFailed(String)

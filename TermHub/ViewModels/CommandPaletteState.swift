@@ -13,7 +13,6 @@ enum FolderAction: Sendable {
 enum TextInputAction: Sendable {
     case renameSession(sessionID: UUID)
     case newBranch(folder: ManagedFolder)
-    case configureSandbox(folderID: UUID)
 }
 
 enum PaletteMode: Sendable {
@@ -23,6 +22,7 @@ enum PaletteMode: Sendable {
     case branchPicker(folder: ManagedFolder)
     case checkoutBranchPicker(folder: ManagedFolder)
     case textInput(prompt: String, action: TextInputAction)
+    case sandboxPicker(folderID: UUID)
     case gitActionStatus
 }
 
@@ -87,6 +87,7 @@ final class CommandPaletteState {
             case .checkoutBranchPicker(let folder): return folder.name
             case .branchPicker(let folder): return folder.name
             case .textInput(let prompt, _): return prompt
+            case .sandboxPicker: return "Select Sandbox"
             case .gitActionStatus: return gitActionTitle
             }
         }
@@ -153,6 +154,8 @@ final class CommandPaletteState {
             return branchPickerItems(folder: folder, appState: appState, dismiss: dismiss)
         case .checkoutBranchPicker(let folder):
             return checkoutBranchPickerItems(folder: folder, appState: appState, dismiss: dismiss)
+        case .sandboxPicker(let folderID):
+            return sandboxPickerItems(folderID: folderID, appState: appState, dismiss: dismiss)
         case .textInput:
             return []
         case .gitActionStatus:
@@ -379,8 +382,7 @@ final class CommandPaletteState {
                 subtitle: folder.sandboxName ?? "Not configured",
                 category: "Actions"
             ) { [weak self] in
-                self?.pushMode(.textInput(prompt: "Sandbox name", action: .configureSandbox(folderID: folder.id)))
-                self?.query = folder.sandboxName ?? ""
+                self?.pushMode(.sandboxPicker(folderID: folder.id))
             })
         } else if appState.folders.count > 1 {
             actions.append(PaletteItem(
@@ -440,8 +442,7 @@ final class CommandPaletteState {
                     dismiss()
                     appState.pendingRemoveFolderID = folder.id
                 case .configureSandbox:
-                    self.pushMode(.textInput(prompt: "Sandbox name", action: .configureSandbox(folderID: folder.id)))
-                    self.query = folder.sandboxName ?? ""
+                    self.pushMode(.sandboxPicker(folderID: folder.id))
                 }
             }
         }
@@ -519,6 +520,44 @@ final class CommandPaletteState {
                     }
                 }
             }
+        }
+
+        return filterByQuery(items)
+    }
+
+    private func sandboxPickerItems(
+        folderID: UUID,
+        appState: AppState,
+        dismiss: @escaping @MainActor @Sendable () -> Void
+    ) -> [PaletteItem] {
+        let folder = appState.folders.first { $0.id == folderID }
+        let currentSandbox = folder?.sandboxName
+
+        var items: [PaletteItem] = []
+
+        // "None" option to unlink
+        items.append(PaletteItem(
+            id: "sandbox-none",
+            icon: currentSandbox == nil ? "checkmark.circle.fill" : "xmark.circle",
+            title: "None",
+            subtitle: currentSandbox == nil ? "current" : "Remove sandbox"
+        ) { [weak appState] in
+            appState?.setSandboxName(nil, forFolder: folderID)
+            dismiss()
+        })
+
+        // Available sandboxes
+        for sandbox in appState.sandboxes {
+            let isCurrent = sandbox.name == currentSandbox
+            items.append(PaletteItem(
+                id: "sandbox-\(sandbox.name)",
+                icon: isCurrent ? "checkmark.circle.fill" : "shippingbox",
+                title: sandbox.name,
+                subtitle: "\(sandbox.agent) · \(sandbox.isRunning ? "Running" : sandbox.status.capitalized)"
+            ) { [weak appState] in
+                appState?.setSandboxName(sandbox.name, forFolder: folderID)
+                dismiss()
+            })
         }
 
         return filterByQuery(items)

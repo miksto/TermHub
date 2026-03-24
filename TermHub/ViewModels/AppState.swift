@@ -339,15 +339,15 @@ final class AppState {
         }
     }
 
-    func createSandbox(name: String, workspacePath: String) {
-        createSandbox(name: name, workspaces: [workspacePath])
+    func createSandbox(name: String, agent: SandboxAgent = .claude, workspacePath: String) {
+        createSandbox(name: name, agent: agent, workspaces: [workspacePath])
     }
 
-    func createSandbox(name: String, workspaces: [String]) {
+    func createSandbox(name: String, agent: SandboxAgent = .claude, workspaces: [String]) {
         sandboxOperationInProgress.insert(name)
         Task.detached {
             do {
-                try DockerSandboxService.createSandbox(name: name, workspaces: workspaces)
+                try DockerSandboxService.createSandbox(name: name, agent: agent.rawValue, workspaces: workspaces)
             } catch {
                 let msg = error.localizedDescription
                 await MainActor.run { [weak self] in

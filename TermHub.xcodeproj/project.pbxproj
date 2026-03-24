@@ -26,6 +26,7 @@
 		3FB6677B52F617DC7A0C82A9 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94816DB493F9BC69DC84FAD /* CommandPaletteView.swift */; };
 		443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
 		4D0062BE42AE108A8D2A22FE /* WorktreeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */; };
+		4EAFE057C6ABF330A21E0262 /* SandboxPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78850034F1F4AB68C28F9C5 /* SandboxPickerSheet.swift */; };
 		4F840D4B9206FEAD40353FB2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 189B8C6AC49B8C82A724EC59 /* Assets.xcassets */; };
 		5198529BD63DD600883E60A7 /* GitFileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16E45C2731C99ADB695B3751 /* GitFileWatcher.swift */; };
 		51D692A095F5EDEB41E4963A /* BranchInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FCD6AEA3D27254627DCB74 /* BranchInfo.swift */; };
@@ -105,6 +106,7 @@
 		A8DA80D5DF6673B1A0F4BC83 /* TermHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TermHub.entitlements; sourceTree = "<group>"; };
 		B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSwitcherOverlay.swift; sourceTree = "<group>"; };
 		B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionManager.swift; sourceTree = "<group>"; };
+		B78850034F1F4AB68C28F9C5 /* SandboxPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxPickerSheet.swift; sourceTree = "<group>"; };
 		B80290449765DD56337BC111 /* SessionDisplayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDisplayState.swift; sourceTree = "<group>"; };
 		B94816DB493F9BC69DC84FAD /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
 		BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffStatsText.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 				65DA0695D1865124B38B0457 /* BranchPickerSheet.swift */,
 				E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */,
 				53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */,
+				B78850034F1F4AB68C28F9C5 /* SandboxPickerSheet.swift */,
 			);
 			path = Sheets;
 			sourceTree = "<group>";
@@ -431,6 +434,7 @@
 				443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */,
 				DF329A05696DA897A6979706 /* SandboxInfo.swift in Sources */,
 				14DE91FA5EE1F434A6FCF007 /* SandboxManagerOverlay.swift in Sources */,
+				4EAFE057C6ABF330A21E0262 /* SandboxPickerSheet.swift in Sources */,
 				D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */,
 				2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */,
 				F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */,

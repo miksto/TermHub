@@ -131,7 +131,6 @@ struct ContentView: View {
 
 private struct ContentViewAlerts: ViewModifier {
     @Environment(AppState.self) private var appState
-    @State private var sandboxNameInput: String = ""
 
     func body(content: Content) -> some View {
         content
@@ -175,35 +174,16 @@ private struct ContentViewAlerts: ViewModifier {
                     Text("This will close \(sessionCount) tmux session(s) for \"\(folder.name)\".")
                 }
             }
-            .alert(
-                "Configure Docker Sandbox",
+            .sheet(
                 isPresented: Binding(
                     get: { appState.pendingSandboxConfigFolderID != nil },
                     set: { if !$0 { appState.pendingSandboxConfigFolderID = nil } }
-                ),
-                presenting: appState.pendingSandboxConfigFolderID.flatMap { id in
-                    appState.folders.first(where: { $0.id == id })
-                }
-            ) { folder in
-                TextField("Sandbox name", text: $sandboxNameInput)
-                Button("Cancel", role: .cancel) {
-                    appState.pendingSandboxConfigFolderID = nil
-                }
-                Button("Save") {
-                    let trimmed = sandboxNameInput.trimmingCharacters(in: .whitespaces)
-                    if !trimmed.isEmpty && !DockerSandboxService.isValidSandboxName(trimmed) {
-                        appState.errorMessage = "Invalid sandbox name. Use only letters, numbers, dots, hyphens, and underscores."
-                    } else {
-                        appState.setSandboxName(trimmed.isEmpty ? nil : trimmed, forFolder: folder.id)
-                    }
-                    appState.pendingSandboxConfigFolderID = nil
-                }
-            } message: { folder in
-                Text("Enter the Docker sandbox name for \"\(folder.name)\".")
-            }
-            .onChange(of: appState.pendingSandboxConfigFolderID) { _, newValue in
-                if let id = newValue, let folder = appState.folders.first(where: { $0.id == id }) {
-                    sandboxNameInput = folder.sandboxName ?? ""
+                )
+            ) {
+                if let folderID = appState.pendingSandboxConfigFolderID,
+                   let folder = appState.folders.first(where: { $0.id == folderID }) {
+                    SandboxPickerSheet(folder: folder)
+                        .environment(appState)
                 }
             }
     }
