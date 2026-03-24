@@ -7,8 +7,6 @@ struct WorktreeHeaderView: View {
     let branchName: String
     var optionKeyDown: Bool = false
 
-    @State private var pendingShellSandboxPicker = false
-
     private func aheadBehindText(_ status: GitStatus) -> String {
         var parts: [String] = []
         if status.ahead > 0 { parts.append("↑\(status.ahead)") }
@@ -18,10 +16,6 @@ struct WorktreeHeaderView: View {
 
     private var folder: ManagedFolder? {
         appState.folders.first(where: { $0.id == folderID })
-    }
-
-    private var showSandboxIndicator: Bool {
-        !appState.sandboxes.isEmpty && optionKeyDown
     }
 
     var body: some View {
@@ -42,49 +36,15 @@ struct WorktreeHeaderView: View {
                 }
             }
             Spacer()
-            Button {
-                guard let folder else { return }
-                if NSEvent.modifierFlags.contains(.option) && !appState.sandboxes.isEmpty {
-                    if appState.sandboxes.count == 1 {
-                        appState.addSession(
-                            folderID: folderID,
-                            title: "\(folder.name) [\(branchName)]",
-                            cwd: worktreePath,
-                            worktreePath: worktreePath,
-                            branchName: branchName,
-                            sandboxName: appState.sandboxes[0].name
-                        )
-                    } else {
-                        pendingShellSandboxPicker = true
-                    }
-                } else {
-                    appState.addSession(
-                        folderID: folderID,
-                        title: "\(folder.name) [\(branchName)]",
-                        cwd: worktreePath,
-                        worktreePath: worktreePath,
-                        branchName: branchName
-                    )
-                }
-            } label: {
-                SandboxButtonLabel(
-                    "Shell",
-                    systemImage: "terminal",
-                    showSandbox: showSandboxIndicator
-                )
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-        .padding(.top, 6)
-        .sheet(isPresented: $pendingShellSandboxPicker) {
-            ShellSandboxPickerSheet(
+            ShellSplitButton(
                 folderID: folderID,
                 folderName: folder?.name ?? "",
                 cwd: worktreePath,
                 worktreePath: worktreePath,
-                branchName: branchName
+                branchName: branchName,
+                optionKeyDown: optionKeyDown
             )
         }
+        .padding(.top, 6)
     }
 }

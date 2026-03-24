@@ -45,9 +45,6 @@ struct FolderSectionView: View {
         return groups
     }
 
-    private var showSandboxIndicator: Bool {
-        !appState.sandboxes.isEmpty && optionKeyDown
-    }
 
     private func aheadBehindText(_ status: GitStatus) -> String {
         var parts: [String] = []
@@ -55,10 +52,6 @@ struct FolderSectionView: View {
         if status.behind > 0 { parts.append("↓\(status.behind)") }
         return parts.joined(separator: " ")
     }
-
-    @State private var pendingShellSandboxFolderPath: String?
-    @State private var pendingShellSandboxWorktree: String?
-    @State private var pendingShellSandboxBranch: String?
 
     var body: some View {
         // Read sessionListVersion to re-evaluate when sessions are added/removed.
@@ -76,36 +69,13 @@ struct FolderSectionView: View {
 
             // Action buttons for folder-level actions
             HStack(spacing: 6) {
-                Button {
-                    if !folder.pathExists {
-                        appState.errorMessage = "Cannot create session: folder path no longer exists at \(folder.path)"
-                        return
-                    }
-                    if NSEvent.modifierFlags.contains(.option) && !appState.sandboxes.isEmpty {
-                        if appState.sandboxes.count == 1 {
-                            appState.addSession(
-                                folderID: folder.id,
-                                title: "\(folder.name) – Shell",
-                                cwd: folder.path,
-                                sandboxName: appState.sandboxes[0].name
-                            )
-                        } else {
-                            pendingShellSandboxFolderPath = folder.path
-                            pendingShellSandboxWorktree = nil
-                            pendingShellSandboxBranch = nil
-                        }
-                    } else {
-                        appState.addSession(
-                            folderID: folder.id,
-                            title: "\(folder.name) – Shell",
-                            cwd: folder.path
-                        )
-                    }
-                } label: {
-                    SandboxButtonLabel("Shell", systemImage: "terminal", showSandbox: showSandboxIndicator)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                ShellSplitButton(
+                    folderID: folder.id,
+                    folderName: folder.name,
+                    cwd: folder.path,
+                    optionKeyDown: optionKeyDown,
+                    pathExists: folder.pathExists
+                )
 
                 if folder.isGitRepo {
                     Button {
@@ -182,24 +152,6 @@ struct FolderSectionView: View {
                 }
             }
             .selectionDisabled()
-        }
-        .sheet(
-            isPresented: Binding(
-                get: { pendingShellSandboxFolderPath != nil },
-                set: { if !$0 {
-                    pendingShellSandboxFolderPath = nil
-                    pendingShellSandboxWorktree = nil
-                    pendingShellSandboxBranch = nil
-                }}
-            )
-        ) {
-            ShellSandboxPickerSheet(
-                folderID: folder.id,
-                folderName: folder.name,
-                cwd: pendingShellSandboxWorktree ?? pendingShellSandboxFolderPath ?? folder.path,
-                worktreePath: pendingShellSandboxWorktree,
-                branchName: pendingShellSandboxBranch
-            )
         }
     }
 }
