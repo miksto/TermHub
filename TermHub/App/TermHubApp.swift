@@ -174,6 +174,7 @@ struct TermHubApp: App {
         let folderID = folder.id
         let folderName = folder.name
         let plan = params["plan"]
+        let sandbox = params["sandbox"]
 
         Task.detached {
             do {
@@ -187,7 +188,8 @@ struct TermHubApp: App {
                         cwd: worktreePath,
                         worktreePath: worktreePath,
                         branchName: branch,
-                        ownsBranch: true
+                        ownsBranch: true,
+                        sandboxName: sandbox
                     )
                     if let plan, let sessionID = appState.selectedSessionID {
                         let command = "claude \"Implement the plan in \(plan)\""
