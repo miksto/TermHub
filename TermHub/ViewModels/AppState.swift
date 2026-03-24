@@ -51,6 +51,9 @@ final class AppState {
     }
     var gitStatuses: [String: GitStatus] = [:]
     var detailTabBySession: [UUID: DetailTab] = [:]
+    var sandboxes: [SandboxInfo] = []
+    var sandboxOperationInProgress: Set<String> = []
+    private var sandboxRefreshTimer: Timer?
     var currentDiff: GitDiff?
     var isDiffLoading = false
     @ObservationIgnored private let gitFileWatcher = GitFileWatcher()
@@ -89,6 +92,8 @@ final class AppState {
 
         refreshGitStatuses()
         updateGitFileWatcher()
+        refreshSandboxes()
+        startSandboxPolling()
     }
 
     var selectedSession: TerminalSession? {
@@ -313,6 +318,91 @@ final class AppState {
         guard let index = folders.firstIndex(where: { $0.id == folderID }) else { return }
         folders[index].sandboxName = name
         saveState()
+        refreshSandboxes()
+    }
+
+    // MARK: - Sandbox Lifecycle
+
+    func sandboxInfo(forFolderID folderID: UUID) -> SandboxInfo? {
+        guard let folder = folders.first(where: { $0.id == folderID }),
+              let name = folder.sandboxName else { return nil }
+        return sandboxes.first { $0.name == name }
+    }
+
+    func refreshSandboxes() {
+        Task.detached {
+            let list = DockerSandboxService.listSandboxes()
+            await MainActor.run { [weak self] in
+                self?.sandboxes = list
+            }
+        }
+    }
+
+    func createSandbox(name: String, workspacePath: String) {
+        sandboxOperationInProgress.insert(name)
+        Task.detached {
+            do {
+                try DockerSandboxService.createSandbox(name: name, workspaces: [workspacePath])
+            } catch {
+                let msg = error.localizedDescription
+                await MainActor.run { [weak self] in
+                    self?.errorMessage = "Failed to create sandbox: \(msg)"
+                }
+            }
+            let list = DockerSandboxService.listSandboxes()
+            await MainActor.run { [weak self] in
+                self?.sandboxes = list
+                self?.sandboxOperationInProgress.remove(name)
+            }
+        }
+    }
+
+
+    func stopSandbox(name: String) {
+        sandboxOperationInProgress.insert(name)
+        Task.detached {
+            do {
+                try DockerSandboxService.stopSandbox(name: name)
+            } catch {
+                let msg = error.localizedDescription
+                await MainActor.run { [weak self] in
+                    self?.errorMessage = "Failed to stop sandbox: \(msg)"
+                }
+            }
+            let list = DockerSandboxService.listSandboxes()
+            await MainActor.run { [weak self] in
+                self?.sandboxes = list
+                self?.sandboxOperationInProgress.remove(name)
+            }
+        }
+    }
+
+    func removeSandbox(name: String) {
+        sandboxOperationInProgress.insert(name)
+        Task.detached {
+            do {
+                try DockerSandboxService.removeSandbox(name: name)
+            } catch {
+                let msg = error.localizedDescription
+                await MainActor.run { [weak self] in
+                    self?.errorMessage = "Failed to remove sandbox: \(msg)"
+                }
+            }
+            let list = DockerSandboxService.listSandboxes()
+            await MainActor.run { [weak self] in
+                self?.sandboxes = list
+                self?.sandboxOperationInProgress.remove(name)
+            }
+        }
+    }
+
+    private func startSandboxPolling() {
+        sandboxRefreshTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.folders.contains(where: { $0.hasSandbox }) else { return }
+                self.refreshSandboxes()
+            }
+        }
     }
 
     func moveFolder(fromOffsets source: IndexSet, toOffset destination: Int) {
