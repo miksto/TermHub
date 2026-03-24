@@ -5,6 +5,7 @@ struct BranchPickerSheet: View {
     @Environment(AppState.self) private var appState
 
     let folder: ManagedFolder
+    var isSandboxSession: Bool = false
 
     @State private var branches: [BranchInfo] = []
     @State private var searchText = ""
@@ -301,7 +302,8 @@ struct BranchPickerSheet: View {
                         title: "\(folderName) [\(branchName)]",
                         cwd: worktreePath,
                         worktreePath: worktreePath,
-                        branchName: branchName
+                        branchName: branchName,
+                        isSandboxSession: isSandboxSession
                     )
                     dismiss()
                 }
@@ -324,7 +326,8 @@ struct BranchPickerSheet: View {
             cwd: path,
             worktreePath: path,
             branchName: branch.name,
-            isExternalWorktree: true
+            isExternalWorktree: true,
+            isSandboxSession: isSandboxSession
         )
 
         dismiss()

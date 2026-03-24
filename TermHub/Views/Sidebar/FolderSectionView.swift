@@ -92,6 +92,8 @@ struct FolderSectionView: View {
 
                 if folder.isGitRepo {
                     Button {
+                        let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
+                        appState.pendingWorktreeSandbox = sandbox
                         appState.pendingWorktreeFolder = folder
                     } label: {
                         SandboxButtonLabel("Branch", systemImage: "arrow.triangle.branch", showSandbox: showSandboxIndicator)
@@ -100,6 +102,8 @@ struct FolderSectionView: View {
                     .controlSize(.small)
 
                     Button {
+                        let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
+                        appState.pendingWorktreeSandbox = sandbox
                         appState.pendingNewBranchFolder = folder
                     } label: {
                         SandboxButtonLabel("New", systemImage: "plus", showSandbox: showSandboxIndicator)

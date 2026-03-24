@@ -31,6 +31,7 @@ final class AppState {
     var tmuxAvailable: Bool = false
     var pendingWorktreeFolder: ManagedFolder?
     var pendingNewBranchFolder: ManagedFolder?
+    var pendingWorktreeSandbox: Bool = false
     var errorMessage: String?
     var pendingRemoveFolderID: UUID?
     var pendingSandboxConfigFolderID: UUID?

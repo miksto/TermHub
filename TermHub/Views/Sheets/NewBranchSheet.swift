@@ -5,6 +5,7 @@ struct NewBranchSheet: View {
     @Environment(AppState.self) private var appState
 
     let folder: ManagedFolder
+    var isSandboxSession: Bool = false
 
     @State private var branchName = ""
     @State private var baseBranch = ""
@@ -129,7 +130,8 @@ struct NewBranchSheet: View {
                         cwd: worktreePath,
                         worktreePath: worktreePath,
                         branchName: trimmed,
-                        ownsBranch: true
+                        ownsBranch: true,
+                        isSandboxSession: isSandboxSession
                     )
                     dismiss()
                 }

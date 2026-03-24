@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 
@@ -460,13 +461,15 @@ final class CommandPaletteState {
                 title: branch
             ) { [weak appState] in
                 do {
+                    let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
                     let worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch)
                     appState?.addSession(
                         folderID: folder.id,
                         title: "\(folder.name) / \(branch)",
                         cwd: worktreePath,
                         worktreePath: worktreePath,
-                        branchName: branch
+                        branchName: branch,
+                        isSandboxSession: sandbox
                     )
                 } catch {
                     appState?.errorMessage = error.localizedDescription
