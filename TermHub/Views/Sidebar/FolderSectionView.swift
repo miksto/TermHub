@@ -147,6 +147,10 @@ struct FolderSectionView: View {
                 Spacer()
             }
             .contextMenu {
+                Button("Copy Path") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(folder.path, forType: .string)
+                }
                 Button("Remove Folder", role: .destructive) {
                     onRequestRemoveFolder()
                 }
