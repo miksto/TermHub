@@ -6,11 +6,12 @@ struct SandboxManagerOverlay: View {
     @State private var showCreateForm = false
     @State private var newSandboxName = ""
     @State private var newSandboxWorkspaces: [String] = []
+    @State private var newSandboxAgent: SandboxAgent = .claude
     @State private var panelSize = CGSize(width: 760, height: 500)
     @State private var dragStartSize = CGSize.zero
     @State private var dragStartLocation = CGPoint.zero
 
-    private let minSize = CGSize(width: 500, height: 350)
+    private let minSize = CGSize(width: 760, height: 500)
     private let maxSize = CGSize(width: 1200, height: 900)
 
     var body: some View {
@@ -131,6 +132,19 @@ struct SandboxManagerOverlay: View {
                     .frame(width: 220)
             }
 
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Agent")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Picker("", selection: $newSandboxAgent) {
+                    ForEach(SandboxAgent.allCases, id: \.self) { agent in
+                        Text(agent.displayName).tag(agent)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 220)
+            }
+
             VStack(alignment: .leading, spacing: 6) {
                 Text("Mapped Folders")
                     .font(.caption)
@@ -186,13 +200,14 @@ struct SandboxManagerOverlay: View {
     private func submitCreateForm() {
         let name = newSandboxName.trimmingCharacters(in: .whitespaces)
         guard DockerSandboxService.isValidSandboxName(name), !newSandboxWorkspaces.isEmpty else { return }
-        appState.createSandbox(name: name, workspaces: newSandboxWorkspaces)
+        appState.createSandbox(name: name, agent: newSandboxAgent, workspaces: newSandboxWorkspaces)
         resetCreateForm()
     }
 
     private func resetCreateForm() {
         newSandboxName = ""
         newSandboxWorkspaces = []
+        newSandboxAgent = .claude
         showCreateForm = false
     }
 
