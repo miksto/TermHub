@@ -5,13 +5,12 @@ struct ContentView: View {
     @Environment(AppState.self) private var appState
     @State private var keyMonitor: Any?
     @State private var flagsMonitor: Any?
-    @State private var showSandboxPopover = false
 
     var body: some View {
         mainContent
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    SandboxToolbarButton(showPopover: $showSandboxPopover)
+                    SandboxToolbarButton()
                 }
             }
             .sheet(isPresented: Binding(
@@ -63,9 +62,15 @@ struct ContentView: View {
                 SessionSwitcherOverlay()
                     .transition(.opacity)
             }
+
+            if appState.showSandboxManager {
+                SandboxManagerOverlay()
+                    .transition(.opacity)
+            }
         }
         .animation(.easeOut(duration: 0.15), value: appState.showCommandPalette)
         .animation(.easeOut(duration: 0.1), value: appState.isSessionSwitcherActive)
+        .animation(.easeOut(duration: 0.15), value: appState.showSandboxManager)
     }
 
     private func installSessionSwitcherMonitors() {
@@ -200,34 +205,18 @@ private struct ContentViewAlerts: ViewModifier {
 
 struct SandboxToolbarButton: View {
     @Environment(AppState.self) private var appState
-    @Binding var showPopover: Bool
 
     var body: some View {
-        let folder = appState.folderForSelectedSession
-        let sandboxName = folder?.sandboxName
-        let info = sandboxName.flatMap { name in appState.sandboxes.first { $0.name == name } }
-        let color = sandboxColor(sandboxName: sandboxName, info: info)
+        let hasRunning = appState.sandboxes.contains { $0.isRunning }
+        let hasConfigured = appState.folders.contains { $0.hasSandbox }
+        let color: Color = hasRunning ? .green : hasConfigured ? .orange : .secondary
 
         Button {
-            showPopover.toggle()
+            appState.showSandboxManager.toggle()
         } label: {
             Image(systemName: "shippingbox")
                 .foregroundStyle(color)
         }
-        .help(sandboxName.map { "Sandbox: \($0)" } ?? "Configure Docker Sandbox")
-        .popover(isPresented: $showPopover) {
-            SandboxPopoverView()
-                .environment(appState)
-        }
-        .disabled(appState.selectedSession == nil)
-    }
-
-    private func sandboxColor(sandboxName: String?, info: SandboxInfo?) -> Color {
-        if let info {
-            return info.isRunning ? .green : .gray
-        } else if sandboxName != nil {
-            return .orange
-        }
-        return .secondary
+        .help("Sandbox Manager")
     }
 }

@@ -51,6 +51,7 @@ final class AppState {
     }
     var gitStatuses: [String: GitStatus] = [:]
     var detailTabBySession: [UUID: DetailTab] = [:]
+    var showSandboxManager = false
     var sandboxes: [SandboxInfo] = []
     var sandboxOperationInProgress: Set<String> = []
     private var sandboxRefreshTimer: Timer?

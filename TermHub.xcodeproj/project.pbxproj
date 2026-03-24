@@ -11,6 +11,7 @@
 		06563F683F55B1D58C69C788 /* GitDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC97B1440980E92FE85562A7 /* GitDiff.swift */; };
 		11031E9388A57B9722E570AC /* BranchPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65DA0695D1865124B38B0457 /* BranchPickerSheet.swift */; };
 		14D9D109DD6048DAAF7F02E5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */; };
+		14DE91FA5EE1F434A6FCF007 /* SandboxManagerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FC57A280AF71DCCAABE813F /* SandboxManagerOverlay.swift */; };
 		1516020445C4D4CC3CA4535A /* PersistenceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */; };
 		183B17FD893A5DBE32155EBE /* CommandPaletteOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6789CD823BD6E6D092FFA36 /* CommandPaletteOverlay.swift */; };
 		1DAB698DEF6120695A01F8DC /* DoubleClickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E16A5970DB7655DECDB85E /* DoubleClickView.swift */; };
@@ -46,7 +47,6 @@
 		BA1CA5ACCDAAEA3E158B39C8 /* KeyboardShortcutsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */; };
 		C6DA5396377DE1E72E2DFE62 /* TermHubTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */; };
 		C93A2680B133DEDC59A27F52 /* CommandPaletteState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1710253731113037A911775C /* CommandPaletteState.swift */; };
-		CF48E8A7F0DCD5E49F2E4F1F /* SandboxPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C198F5849047CD96107B8428 /* SandboxPopoverView.swift */; };
 		D31094FDAF7E04158A12E36A /* TerminalSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */; };
 		D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80290449765DD56337BC111 /* SessionDisplayState.swift */; };
 		DE82574D984DD29D186D830E /* FuzzyMatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ECB69224974D220FDE98A6F /* FuzzyMatchTests.swift */; };
@@ -99,6 +99,7 @@
 		87F22B8F211122C504007981 /* SourceCodePro-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Medium.otf"; sourceTree = "<group>"; };
 		8B623642A92A221F68EC36C2 /* SandboxInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxInfo.swift; sourceTree = "<group>"; };
 		8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermHubTerminalView.swift; sourceTree = "<group>"; };
+		8FC57A280AF71DCCAABE813F /* SandboxManagerOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxManagerOverlay.swift; sourceTree = "<group>"; };
 		9ECB69224974D220FDE98A6F /* FuzzyMatchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatchTests.swift; sourceTree = "<group>"; };
 		A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceServiceTests.swift; sourceTree = "<group>"; };
 		A8DA80D5DF6673B1A0F4BC83 /* TermHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TermHub.entitlements; sourceTree = "<group>"; };
@@ -107,7 +108,6 @@
 		B80290449765DD56337BC111 /* SessionDisplayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDisplayState.swift; sourceTree = "<group>"; };
 		B94816DB493F9BC69DC84FAD /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
 		BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffStatsText.swift; sourceTree = "<group>"; };
-		C198F5849047CD96107B8428 /* SandboxPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxPopoverView.swift; sourceTree = "<group>"; };
 		C465706A234D9B14263BEEDF /* TermHubApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermHubApp.swift; sourceTree = "<group>"; };
 		CE9636C089AF563FC8C56018 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		D6789CD823BD6E6D092FFA36 /* CommandPaletteOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteOverlay.swift; sourceTree = "<group>"; };
@@ -166,7 +166,6 @@
 			isa = PBXGroup;
 			children = (
 				F378CF74856DCCAF1093332A /* DiffTableView.swift */,
-				C198F5849047CD96107B8428 /* SandboxPopoverView.swift */,
 				8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */,
 				21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */,
 			);
@@ -207,6 +206,7 @@
 			isa = PBXGroup;
 			children = (
 				7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */,
+				8FC57A280AF71DCCAABE813F /* SandboxManagerOverlay.swift */,
 				B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */,
 				F49056157884467DA4ED6D14 /* CommandPalette */,
 				2A3275DFE89066C04675DD25 /* Detail */,
@@ -430,7 +430,7 @@
 				21E8FE21B4A9CEB20CA876BD /* NewBranchSheet.swift in Sources */,
 				443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */,
 				DF329A05696DA897A6979706 /* SandboxInfo.swift in Sources */,
-				CF48E8A7F0DCD5E49F2E4F1F /* SandboxPopoverView.swift in Sources */,
+				14DE91FA5EE1F434A6FCF007 /* SandboxManagerOverlay.swift in Sources */,
 				D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */,
 				2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */,
 				F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */,
