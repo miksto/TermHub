@@ -263,8 +263,7 @@ struct BranchPickerSheet: View {
 
         Task.detached {
             do {
-                let currentBranch = GitService.currentBranch(repoPath: folderPath)
-                let branchesWithDates = try GitService.listBranchesWithDates(repoPath: folderPath)
+                let (branchesWithDates, currentBranch) = try GitService.listBranchesWithDatesAndCurrent(repoPath: folderPath)
                 let result = branchesWithDates.map { entry in
                     BranchInfo(
                         name: entry.branch,
