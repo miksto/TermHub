@@ -8,6 +8,7 @@ struct SandboxManagerOverlay: View {
     @State private var newSandboxWorkspaces: [String] = []
     @State private var panelSize = CGSize(width: 760, height: 500)
     @State private var dragStartSize = CGSize.zero
+    @State private var dragStartLocation = CGPoint.zero
 
     private let minSize = CGSize(width: 500, height: 350)
     private let maxSize = CGSize(width: 1200, height: 900)
@@ -34,6 +35,7 @@ struct SandboxManagerOverlay: View {
                     resizeHandle
                 }
         }
+        .coordinateSpace(name: "overlay")
     }
 
     private var resizeHandle: some View {
@@ -44,13 +46,17 @@ struct SandboxManagerOverlay: View {
             .padding(6)
             .contentShape(Rectangle())
             .gesture(
-                DragGesture()
+                DragGesture(coordinateSpace: .named("overlay"))
                     .onChanged { value in
                         if dragStartSize == .zero {
                             dragStartSize = panelSize
+                            dragStartLocation = value.startLocation
                         }
-                        let newWidth = max(minSize.width, min(maxSize.width, dragStartSize.width + value.translation.width))
-                        let newHeight = max(minSize.height, min(maxSize.height, dragStartSize.height + value.translation.height))
+                        let deltaX = value.location.x - dragStartLocation.x
+                        let deltaY = value.location.y - dragStartLocation.y
+                        // Multiply by 2 because the panel is centered, so growth splits equally to both sides
+                        let newWidth = max(minSize.width, min(maxSize.width, dragStartSize.width + deltaX * 2))
+                        let newHeight = max(minSize.height, min(maxSize.height, dragStartSize.height + deltaY * 2))
                         panelSize = CGSize(width: newWidth, height: newHeight)
                     }
                     .onEnded { _ in
