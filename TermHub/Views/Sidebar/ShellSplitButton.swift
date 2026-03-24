@@ -34,8 +34,18 @@ struct ShellSplitButton: View {
                 Label("Shell", systemImage: "terminal")
                     .font(.caption)
             } primaryAction: {
-                if NSEvent.modifierFlags.contains(.option), appState.sandboxes.count == 1 {
-                    createSession(sandboxName: appState.sandboxes[0].name)
+                if NSEvent.modifierFlags.contains(.option) {
+                    if appState.sandboxes.count == 1 {
+                        createSession(sandboxName: appState.sandboxes[0].name)
+                    } else {
+                        appState.pendingSandboxPickerContext = AppState.SandboxPickerContext(
+                            folderID: folderID,
+                            folderName: folderName,
+                            cwd: cwd,
+                            worktreePath: worktreePath,
+                            branchName: branchName
+                        )
+                    }
                 } else {
                     createSession(sandboxName: nil)
                 }
