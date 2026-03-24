@@ -343,8 +343,7 @@ struct SandboxManagerOverlay: View {
     }
 
     private func sessionsForSandbox(_ entry: SandboxEntry) -> [TerminalSession] {
-        let folderIDs = Set(entry.linkedFolders.map(\.id))
-        return appState.sessions.filter { $0.isSandboxSession && folderIDs.contains($0.folderID) }
+        return appState.sessions.filter { $0.sandboxName == entry.name }
     }
 
     @ViewBuilder
@@ -436,17 +435,22 @@ struct SandboxManagerOverlay: View {
         var entries: [SandboxEntry] = []
         var seenNames: Set<String> = []
 
-        for sandbox in appState.sandboxes {
-            let linkedFolders = appState.folders.filter { $0.sandboxName == sandbox.name }
-            entries.append(SandboxEntry(name: sandbox.name, info: sandbox, linkedFolders: linkedFolders))
-            seenNames.insert(sandbox.name)
+        // Build a map of sandbox name → folders that have sessions using it
+        var sandboxFolderMap: [String: Set<UUID>] = [:]
+        for session in appState.sessions {
+            if let name = session.sandboxName {
+                sandboxFolderMap[name, default: []].insert(session.folderID)
+            }
         }
 
-        for folder in appState.folders {
-            if let name = folder.sandboxName, !seenNames.contains(name) {
-                entries.append(SandboxEntry(name: name, info: nil, linkedFolders: [folder]))
-                seenNames.insert(name)
-            }
+        func linkedFolders(for name: String) -> [ManagedFolder] {
+            guard let folderIDs = sandboxFolderMap[name] else { return [] }
+            return appState.folders.filter { folderIDs.contains($0.id) }
+        }
+
+        for sandbox in appState.sandboxes {
+            entries.append(SandboxEntry(name: sandbox.name, info: sandbox, linkedFolders: linkedFolders(for: sandbox.name)))
+            seenNames.insert(sandbox.name)
         }
 
         // Show placeholder rows for sandboxes being created

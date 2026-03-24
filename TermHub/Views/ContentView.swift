@@ -174,18 +174,6 @@ private struct ContentViewAlerts: ViewModifier {
                     Text("This will close \(sessionCount) tmux session(s) for \"\(folder.name)\".")
                 }
             }
-            .sheet(
-                isPresented: Binding(
-                    get: { appState.pendingSandboxConfigFolderID != nil },
-                    set: { if !$0 { appState.pendingSandboxConfigFolderID = nil } }
-                )
-            ) {
-                if let folderID = appState.pendingSandboxConfigFolderID,
-                   let folder = appState.folders.first(where: { $0.id == folderID }) {
-                    SandboxPickerSheet(folder: folder)
-                        .environment(appState)
-                }
-            }
     }
 }
 
@@ -196,8 +184,8 @@ struct SandboxToolbarButton: View {
 
     var body: some View {
         let hasRunning = appState.sandboxes.contains { $0.isRunning }
-        let hasConfigured = appState.folders.contains { $0.hasSandbox }
-        let color: Color = hasRunning ? .green : hasConfigured ? .orange : .secondary
+        let hasSandboxSessions = appState.sessions.contains { $0.isSandboxSession }
+        let color: Color = hasRunning ? .green : hasSandboxSessions ? .orange : .secondary
 
         Button {
             appState.showSandboxManager.toggle()

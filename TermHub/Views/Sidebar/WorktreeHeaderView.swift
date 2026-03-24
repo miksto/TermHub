@@ -7,6 +7,8 @@ struct WorktreeHeaderView: View {
     let branchName: String
     var optionKeyDown: Bool = false
 
+    @State private var pendingShellSandboxPicker = false
+
     private func aheadBehindText(_ status: GitStatus) -> String {
         var parts: [String] = []
         if status.ahead > 0 { parts.append("↑\(status.ahead)") }
@@ -19,7 +21,7 @@ struct WorktreeHeaderView: View {
     }
 
     private var showSandboxIndicator: Bool {
-        folder?.hasSandbox == true && optionKeyDown
+        !appState.sandboxes.isEmpty && optionKeyDown
     }
 
     var body: some View {
@@ -42,15 +44,28 @@ struct WorktreeHeaderView: View {
             Spacer()
             Button {
                 guard let folder else { return }
-                let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
-                appState.addSession(
-                    folderID: folderID,
-                    title: "\(folder.name) [\(branchName)]",
-                    cwd: worktreePath,
-                    worktreePath: worktreePath,
-                    branchName: branchName,
-                    isSandboxSession: sandbox
-                )
+                if NSEvent.modifierFlags.contains(.option) && !appState.sandboxes.isEmpty {
+                    if appState.sandboxes.count == 1 {
+                        appState.addSession(
+                            folderID: folderID,
+                            title: "\(folder.name) [\(branchName)]",
+                            cwd: worktreePath,
+                            worktreePath: worktreePath,
+                            branchName: branchName,
+                            sandboxName: appState.sandboxes[0].name
+                        )
+                    } else {
+                        pendingShellSandboxPicker = true
+                    }
+                } else {
+                    appState.addSession(
+                        folderID: folderID,
+                        title: "\(folder.name) [\(branchName)]",
+                        cwd: worktreePath,
+                        worktreePath: worktreePath,
+                        branchName: branchName
+                    )
+                }
             } label: {
                 SandboxButtonLabel(
                     "Shell",
@@ -62,5 +77,14 @@ struct WorktreeHeaderView: View {
             .controlSize(.small)
         }
         .padding(.top, 6)
+        .sheet(isPresented: $pendingShellSandboxPicker) {
+            ShellSandboxPickerSheet(
+                folderID: folderID,
+                folderName: folder?.name ?? "",
+                cwd: worktreePath,
+                worktreePath: worktreePath,
+                branchName: branchName
+            )
+        }
     }
 }

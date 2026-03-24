@@ -1,7 +1,33 @@
 import SwiftUI
 
+private class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Skip single-instance check when running as a test host
+        guard !ProcessInfo.processInfo.isRunningTests else { return }
+
+        let runningInstances = NSRunningApplication.runningApplications(
+            withBundleIdentifier: Bundle.main.bundleIdentifier ?? ""
+        )
+        if runningInstances.count > 1 {
+            // Activate the existing instance and terminate this one
+            if let existing = runningInstances.first(where: { $0 != .current }) {
+                existing.activate()
+            }
+            NSApp.terminate(nil)
+        }
+    }
+}
+
+extension ProcessInfo {
+    var isRunningTests: Bool {
+        environment["XCTestBundlePath"] != nil
+            || environment["XCInjectBundleInto"] != nil
+    }
+}
+
 @main
 struct TermHubApp: App {
+    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var appState = AppState()
 
     var body: some Scene {
@@ -29,10 +55,10 @@ struct TermHubApp: App {
                 .disabled(appState.selectedSession == nil)
 
                 Button("New Sandbox Shell in Current Folder") {
-                    newShellInCurrentFolder(sandbox: true)
+                    newShellInCurrentFolder(pickSandbox: true)
                 }
                 .keyboardShortcut("t", modifiers: [.command, .option])
-                .disabled(appState.selectedSession == nil || appState.folderForSelectedSession?.hasSandbox != true)
+                .disabled(appState.selectedSession == nil || appState.sandboxes.isEmpty)
             }
 
             CommandGroup(replacing: .saveItem) {
@@ -177,12 +203,27 @@ struct TermHubApp: App {
         }
     }
 
-    private func newShellInCurrentFolder(sandbox: Bool = false) {
+    private func newShellInCurrentFolder(pickSandbox: Bool = false) {
         guard let session = appState.selectedSession,
               let folder = appState.folders.first(where: { $0.id == session.folderID })
         else { return }
 
-        let useSandbox = sandbox && folder.hasSandbox
+        let sandboxName: String?
+        if pickSandbox && !appState.sandboxes.isEmpty {
+            if appState.sandboxes.count == 1 {
+                sandboxName = appState.sandboxes[0].name
+            } else {
+                // Multiple sandboxes — trigger the picker via pending state
+                // For Cmd+Option+T with multiple sandboxes, we need a sheet.
+                // We'll reuse the FolderSectionView picker approach via AppState.
+                // For now, use the first sandbox as a fallback.
+                // TODO: This needs a sheet presentation from TermHubApp level
+                sandboxName = appState.sandboxes[0].name
+            }
+        } else {
+            // Inherit sandbox from current session
+            sandboxName = session.sandboxName
+        }
 
         let title: String
         let cwd: String
@@ -200,7 +241,7 @@ struct TermHubApp: App {
             cwd: cwd,
             worktreePath: session.worktreePath,
             branchName: session.branchName,
-            isSandboxSession: useSandbox
+            sandboxName: sandboxName
         )
     }
 }

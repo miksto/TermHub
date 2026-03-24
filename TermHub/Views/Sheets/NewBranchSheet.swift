@@ -5,11 +5,10 @@ struct NewBranchSheet: View {
     @Environment(AppState.self) private var appState
 
     let folder: ManagedFolder
-    var isSandboxSession: Bool = false
-    var sandboxName: String?
 
     @State private var branchName = ""
     @State private var baseBranch = ""
+    @State private var selectedSandbox: String? = nil
     @State private var availableBranches: [String] = []
     @State private var errorMessage: String?
     @State private var isCreating = false
@@ -23,12 +22,6 @@ struct NewBranchSheet: View {
         VStack(spacing: 16) {
             Text("New Branch Worktree")
                 .font(.headline)
-
-            if isSandboxSession, let sandboxName {
-                Label("Sandbox: \(sandboxName)", systemImage: "shippingbox")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Branch name:")
@@ -57,6 +50,20 @@ struct NewBranchSheet: View {
                     .labelsHidden()
                     .disabled(isLoading)
                     Spacer()
+                }
+            }
+
+            if !appState.sandboxes.isEmpty {
+                HStack {
+                    Label("Sandbox:", systemImage: "shippingbox")
+                        .font(.subheadline)
+                    Picker("", selection: $selectedSandbox) {
+                        Text("No Sandbox").tag(String?.none)
+                        ForEach(appState.sandboxes, id: \.name) { sandbox in
+                            Text(sandbox.name).tag(Optional(sandbox.name))
+                        }
+                    }
+                    .labelsHidden()
                 }
             }
 
@@ -138,7 +145,7 @@ struct NewBranchSheet: View {
                         worktreePath: worktreePath,
                         branchName: trimmed,
                         ownsBranch: true,
-                        isSandboxSession: isSandboxSession
+                        sandboxName: selectedSandbox
                     )
                     dismiss()
                 }

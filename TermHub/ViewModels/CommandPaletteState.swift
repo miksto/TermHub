@@ -7,7 +7,6 @@ enum FolderAction: Sendable {
     case newShellFromBranch
     case newShellNewBranch
     case removeFolder
-    case configureSandbox
 }
 
 enum TextInputAction: Sendable {
@@ -22,7 +21,6 @@ enum PaletteMode: Sendable {
     case branchPicker(folder: ManagedFolder)
     case checkoutBranchPicker(folder: ManagedFolder)
     case textInput(prompt: String, action: TextInputAction)
-    case sandboxPicker(folderID: UUID)
     case gitActionStatus
 }
 
@@ -82,12 +80,10 @@ final class CommandPaletteState {
                 case .newShellFromBranch: return "Branch Session"
                 case .newShellNewBranch: return "New Branch"
                 case .removeFolder: return "Remove Folder"
-                case .configureSandbox: return "Docker Sandbox"
                 }
             case .checkoutBranchPicker(let folder): return folder.name
             case .branchPicker(let folder): return folder.name
             case .textInput(let prompt, _): return prompt
-            case .sandboxPicker: return "Select Sandbox"
             case .gitActionStatus: return gitActionTitle
             }
         }
@@ -154,8 +150,6 @@ final class CommandPaletteState {
             return branchPickerItems(folder: folder, appState: appState, dismiss: dismiss)
         case .checkoutBranchPicker(let folder):
             return checkoutBranchPickerItems(folder: folder, appState: appState, dismiss: dismiss)
-        case .sandboxPicker(let folderID):
-            return sandboxPickerItems(folderID: folderID, appState: appState, dismiss: dismiss)
         case .textInput:
             return []
         case .gitActionStatus:
@@ -372,29 +366,6 @@ final class CommandPaletteState {
             })
         }
 
-        // Configure Docker Sandbox
-        if appState.folders.count == 1 {
-            let folder = appState.folders[0]
-            actions.append(PaletteItem(
-                id: "action-configure-sandbox",
-                icon: "shippingbox",
-                title: "Configure Docker Sandbox",
-                subtitle: folder.sandboxName ?? "Not configured",
-                category: "Actions"
-            ) { [weak self] in
-                self?.pushMode(.sandboxPicker(folderID: folder.id))
-            })
-        } else if appState.folders.count > 1 {
-            actions.append(PaletteItem(
-                id: "action-configure-sandbox",
-                icon: "shippingbox",
-                title: "Configure Docker Sandbox",
-                category: "Actions"
-            ) { [weak self] in
-                self?.pushMode(.folderPicker(action: .configureSandbox))
-            })
-        }
-
         // Show Keyboard Shortcuts
         actions.append(PaletteItem(
             id: "action-keyboard-shortcuts",
@@ -441,8 +412,6 @@ final class CommandPaletteState {
                 case .removeFolder:
                     dismiss()
                     appState.pendingRemoveFolderID = folder.id
-                case .configureSandbox:
-                    self.pushMode(.sandboxPicker(folderID: folder.id))
                 }
             }
         }
@@ -462,15 +431,13 @@ final class CommandPaletteState {
                 title: branch
             ) { [weak appState] in
                 do {
-                    let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
                     let worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch)
                     appState?.addSession(
                         folderID: folder.id,
                         title: "\(folder.name) / \(branch)",
                         cwd: worktreePath,
                         worktreePath: worktreePath,
-                        branchName: branch,
-                        isSandboxSession: sandbox
+                        branchName: branch
                     )
                 } catch {
                     appState?.errorMessage = error.localizedDescription
@@ -520,44 +487,6 @@ final class CommandPaletteState {
                     }
                 }
             }
-        }
-
-        return filterByQuery(items)
-    }
-
-    private func sandboxPickerItems(
-        folderID: UUID,
-        appState: AppState,
-        dismiss: @escaping @MainActor @Sendable () -> Void
-    ) -> [PaletteItem] {
-        let folder = appState.folders.first { $0.id == folderID }
-        let currentSandbox = folder?.sandboxName
-
-        var items: [PaletteItem] = []
-
-        // "None" option to unlink
-        items.append(PaletteItem(
-            id: "sandbox-none",
-            icon: currentSandbox == nil ? "checkmark.circle.fill" : "xmark.circle",
-            title: "None",
-            subtitle: currentSandbox == nil ? "current" : "Remove sandbox"
-        ) { [weak appState] in
-            appState?.setSandboxName(nil, forFolder: folderID)
-            dismiss()
-        })
-
-        // Available sandboxes
-        for sandbox in appState.sandboxes {
-            let isCurrent = sandbox.name == currentSandbox
-            items.append(PaletteItem(
-                id: "sandbox-\(sandbox.name)",
-                icon: isCurrent ? "checkmark.circle.fill" : "shippingbox",
-                title: sandbox.name,
-                subtitle: "\(sandbox.agent) · \(sandbox.isRunning ? "Running" : sandbox.status.capitalized)"
-            ) { [weak appState] in
-                appState?.setSandboxName(sandbox.name, forFolder: folderID)
-                dismiss()
-            })
         }
 
         return filterByQuery(items)

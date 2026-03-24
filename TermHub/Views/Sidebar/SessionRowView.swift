@@ -49,11 +49,11 @@ struct SessionRowView: View {
                     }
                 }
                 Spacer()
-                if session.isSandboxSession {
+                if let sandboxName = session.sandboxName {
                     Image(systemName: "shippingbox")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .help("Sandbox session")
+                        .help("Sandbox: \(sandboxName)")
                 }
                 if appState.sessionsNeedingAttention.contains(sessionID) {
                     Circle()

@@ -46,7 +46,7 @@ struct FolderSectionView: View {
     }
 
     private var showSandboxIndicator: Bool {
-        folder.hasSandbox && optionKeyDown
+        !appState.sandboxes.isEmpty && optionKeyDown
     }
 
     private func aheadBehindText(_ status: GitStatus) -> String {
@@ -55,6 +55,10 @@ struct FolderSectionView: View {
         if status.behind > 0 { parts.append("↓\(status.behind)") }
         return parts.joined(separator: " ")
     }
+
+    @State private var pendingShellSandboxFolderPath: String?
+    @State private var pendingShellSandboxWorktree: String?
+    @State private var pendingShellSandboxBranch: String?
 
     var body: some View {
         // Read sessionListVersion to re-evaluate when sessions are added/removed.
@@ -77,13 +81,26 @@ struct FolderSectionView: View {
                         appState.errorMessage = "Cannot create session: folder path no longer exists at \(folder.path)"
                         return
                     }
-                    let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
-                    appState.addSession(
-                        folderID: folder.id,
-                        title: "\(folder.name) – Shell",
-                        cwd: folder.path,
-                        isSandboxSession: sandbox
-                    )
+                    if NSEvent.modifierFlags.contains(.option) && !appState.sandboxes.isEmpty {
+                        if appState.sandboxes.count == 1 {
+                            appState.addSession(
+                                folderID: folder.id,
+                                title: "\(folder.name) – Shell",
+                                cwd: folder.path,
+                                sandboxName: appState.sandboxes[0].name
+                            )
+                        } else {
+                            pendingShellSandboxFolderPath = folder.path
+                            pendingShellSandboxWorktree = nil
+                            pendingShellSandboxBranch = nil
+                        }
+                    } else {
+                        appState.addSession(
+                            folderID: folder.id,
+                            title: "\(folder.name) – Shell",
+                            cwd: folder.path
+                        )
+                    }
                 } label: {
                     SandboxButtonLabel("Shell", systemImage: "terminal", showSandbox: showSandboxIndicator)
                 }
@@ -92,21 +109,19 @@ struct FolderSectionView: View {
 
                 if folder.isGitRepo {
                     Button {
-                        let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
-                        appState.pendingWorktreeSandbox = sandbox
                         appState.pendingWorktreeFolder = folder
                     } label: {
-                        SandboxButtonLabel("Branch", systemImage: "arrow.triangle.branch", showSandbox: showSandboxIndicator)
+                        Label("Branch", systemImage: "arrow.triangle.branch")
+                            .font(.caption)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
 
                     Button {
-                        let sandbox = folder.hasSandbox && NSEvent.modifierFlags.contains(.option)
-                        appState.pendingWorktreeSandbox = sandbox
                         appState.pendingNewBranchFolder = folder
                     } label: {
-                        SandboxButtonLabel("New", systemImage: "plus", showSandbox: showSandboxIndicator)
+                        Label("New", systemImage: "plus")
+                            .font(.caption)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -139,11 +154,6 @@ struct FolderSectionView: View {
             HStack {
                 Label(folder.name, systemImage: "folder")
                     .font(.headline)
-                if let sandboxName = folder.sandboxName {
-                    Image(systemName: "shippingbox")
-                        .foregroundStyle(.secondary)
-                        .help("Docker Sandbox: \(sandboxName)")
-                }
                 if !folder.pathExists {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.yellow)
@@ -167,22 +177,29 @@ struct FolderSectionView: View {
                 Spacer()
             }
             .contextMenu {
-                if let sandboxName = folder.sandboxName {
-                    Label("Sandbox: \(sandboxName)", systemImage: "shippingbox")
-                    Button("Clear Docker Sandbox") {
-                        appState.setSandboxName(nil, forFolder: folder.id)
-                    }
-                    Divider()
-                }
-                Button("Configure Docker Sandbox...") {
-                    appState.pendingSandboxConfigFolderID = folder.id
-                }
-                Divider()
                 Button("Remove Folder", role: .destructive) {
                     onRequestRemoveFolder()
                 }
             }
             .selectionDisabled()
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { pendingShellSandboxFolderPath != nil },
+                set: { if !$0 {
+                    pendingShellSandboxFolderPath = nil
+                    pendingShellSandboxWorktree = nil
+                    pendingShellSandboxBranch = nil
+                }}
+            )
+        ) {
+            ShellSandboxPickerSheet(
+                folderID: folder.id,
+                folderName: folder.name,
+                cwd: pendingShellSandboxWorktree ?? pendingShellSandboxFolderPath ?? folder.path,
+                worktreePath: pendingShellSandboxWorktree,
+                branchName: pendingShellSandboxBranch
+            )
         }
     }
 }

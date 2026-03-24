@@ -31,10 +31,8 @@ final class AppState {
     var tmuxAvailable: Bool = false
     var pendingWorktreeFolder: ManagedFolder?
     var pendingNewBranchFolder: ManagedFolder?
-    var pendingWorktreeSandbox: Bool = false
     var errorMessage: String?
     var pendingRemoveFolderID: UUID?
-    var pendingSandboxConfigFolderID: UUID?
     var showKeyboardShortcuts = false
     var showCommandPalette = false
     /// Incremented only when sessions are added or removed (not on title/property changes).
@@ -66,10 +64,13 @@ final class AppState {
     let terminalManager = TerminalSessionManager()
 
     init() {
-        tmuxAvailable = TmuxService.isAvailable()
+        let isTestHost = ProcessInfo.processInfo.isRunningTests
+        tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
         loadState()
-        detectGitRepos()
-        restoreTmuxSessions()
+        if !isTestHost {
+            detectGitRepos()
+            restoreTmuxSessions()
+        }
 
         terminalManager.onBell = { [weak self] sessionID in
             self?.markNeedsAttention(sessionID: sessionID)
@@ -91,10 +92,12 @@ final class AppState {
             self?.handleTerminalTitleChange(sessionID: sessionID, title: title)
         }
 
-        refreshGitStatuses()
-        updateGitFileWatcher()
-        refreshSandboxes()
-        startSandboxPolling()
+        if !isTestHost {
+            refreshGitStatuses()
+            updateGitFileWatcher()
+            refreshSandboxes()
+            startSandboxPolling()
+        }
     }
 
     var selectedSession: TerminalSession? {
@@ -193,7 +196,7 @@ final class AppState {
         branchName: String? = nil,
         isExternalWorktree: Bool = false,
         ownsBranch: Bool = false,
-        isSandboxSession: Bool = false
+        sandboxName: String? = nil
     ) {
         let folderName = folders.first(where: { $0.id == folderID })?.name
         let session = TerminalSession(
@@ -204,7 +207,7 @@ final class AppState {
             branchName: branchName,
             isExternalWorktree: isExternalWorktree,
             ownsBranch: ownsBranch,
-            isSandboxSession: isSandboxSession,
+            sandboxName: sandboxName,
             folderName: folderName
         )
 
@@ -315,19 +318,10 @@ final class AppState {
         }
     }
 
-    func setSandboxName(_ name: String?, forFolder folderID: UUID) {
-        guard let index = folders.firstIndex(where: { $0.id == folderID }) else { return }
-        folders[index].sandboxName = name
-        saveState()
-        refreshSandboxes()
-    }
-
     // MARK: - Sandbox Lifecycle
 
-    func sandboxInfo(forFolderID folderID: UUID) -> SandboxInfo? {
-        guard let folder = folders.first(where: { $0.id == folderID }),
-              let name = folder.sandboxName else { return nil }
-        return sandboxes.first { $0.name == name }
+    func sandboxInfo(named name: String) -> SandboxInfo? {
+        sandboxes.first { $0.name == name }
     }
 
     func refreshSandboxes() {
@@ -405,7 +399,7 @@ final class AppState {
         sandboxRefreshTimer?.invalidate()
         sandboxRefreshTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self, self.folders.contains(where: { $0.hasSandbox }) else { return }
+                guard let self, self.sessions.contains(where: { $0.isSandboxSession }) else { return }
                 self.refreshSandboxes()
             }
         }
@@ -560,9 +554,7 @@ final class AppState {
         guard tmuxAvailable else { return }
         let sessionsSnapshot = sessions.map { session -> (name: String, cwd: String, shellCommand: String?) in
             let cwd = session.worktreePath ?? session.workingDirectory
-            let shellCommand: String? = if session.isSandboxSession,
-                let folder = folders.first(where: { $0.id == session.folderID }),
-                let sandboxName = folder.sandboxName {
+            let shellCommand: String? = if let sandboxName = session.sandboxName {
                 DockerSandboxService.execCommand(sandboxName: sandboxName, cwd: cwd)
             } else {
                 nil

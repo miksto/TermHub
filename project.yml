@@ -42,7 +42,6 @@ targets:
       path: TermHub/App/Info.plist
       properties:
         ATSApplicationFontsPath: Fonts
-        LSMultipleInstancesProhibited: true
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - termhub

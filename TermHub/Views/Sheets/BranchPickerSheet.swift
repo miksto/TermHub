@@ -5,12 +5,11 @@ struct BranchPickerSheet: View {
     @Environment(AppState.self) private var appState
 
     let folder: ManagedFolder
-    var isSandboxSession: Bool = false
-    var sandboxName: String?
 
     @State private var branches: [BranchInfo] = []
     @State private var searchText = ""
     @State private var selectedIndex = 0
+    @State private var selectedSandbox: String? = nil
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var createError: String?
@@ -47,14 +46,7 @@ struct BranchPickerSheet: View {
             Text("Worktree from Branch")
                 .font(.headline)
                 .padding(.top, 16)
-                .padding(.bottom, isSandboxSession ? 4 : 8)
-
-            if isSandboxSession, let sandboxName {
-                Label("Sandbox: \(sandboxName)", systemImage: "shippingbox")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 8)
-            }
+                .padding(.bottom, 8)
 
             if isLoading {
                 ProgressView("Loading branches...")
@@ -94,6 +86,24 @@ struct BranchPickerSheet: View {
             }
 
             Divider()
+
+            if !appState.sandboxes.isEmpty {
+                HStack {
+                    Label("Sandbox:", systemImage: "shippingbox")
+                        .font(.subheadline)
+                    Picker("", selection: $selectedSandbox) {
+                        Text("No Sandbox").tag(String?.none)
+                        ForEach(appState.sandboxes, id: \.name) { sandbox in
+                            Text(sandbox.name).tag(Optional(sandbox.name))
+                        }
+                    }
+                    .labelsHidden()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+
+                Divider()
+            }
 
             HStack {
                 Button("Cancel") {
@@ -311,7 +321,7 @@ struct BranchPickerSheet: View {
                         cwd: worktreePath,
                         worktreePath: worktreePath,
                         branchName: branchName,
-                        isSandboxSession: isSandboxSession
+                        sandboxName: selectedSandbox
                     )
                     dismiss()
                 }
@@ -335,7 +345,7 @@ struct BranchPickerSheet: View {
             worktreePath: path,
             branchName: branch.name,
             isExternalWorktree: true,
-            isSandboxSession: isSandboxSession
+            sandboxName: selectedSandbox
         )
 
         dismiss()
