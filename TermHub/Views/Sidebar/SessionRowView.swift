@@ -47,11 +47,6 @@ struct SessionRowView: View {
                                 }
                             }
                     }
-                    if let branch = session.branchName {
-                        Text(branch)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
                 }
                 Spacer()
                 if session.isSandboxSession {
