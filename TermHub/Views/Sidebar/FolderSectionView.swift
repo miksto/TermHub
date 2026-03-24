@@ -134,10 +134,10 @@ struct FolderSectionView: View {
             HStack {
                 Label(folder.name, systemImage: "folder")
                     .font(.headline)
-                if folder.hasSandbox {
+                if let sandboxName = folder.sandboxName {
                     Image(systemName: "shippingbox")
                         .foregroundStyle(.secondary)
-                        .help("Docker Sandbox: \(folder.sandboxName!)")
+                        .help("Docker Sandbox: \(sandboxName)")
                 }
                 if !folder.pathExists {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -162,8 +162,8 @@ struct FolderSectionView: View {
                 Spacer()
             }
             .contextMenu {
-                if folder.hasSandbox {
-                    Label("Sandbox: \(folder.sandboxName!)", systemImage: "shippingbox")
+                if let sandboxName = folder.sandboxName {
+                    Label("Sandbox: \(sandboxName)", systemImage: "shippingbox")
                     Button("Clear Docker Sandbox") {
                         appState.setSandboxName(nil, forFolder: folder.id)
                     }

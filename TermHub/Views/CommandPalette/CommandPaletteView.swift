@@ -226,7 +226,11 @@ struct CommandPaletteView: View {
             }
             dismiss()
         case .configureSandbox(let folderID):
-            appState.setSandboxName(text, forFolder: folderID)
+            if !text.isEmpty && !DockerSandboxService.isValidSandboxName(text) {
+                appState.errorMessage = "Invalid sandbox name. Use only letters, numbers, dots, hyphens, and underscores."
+            } else {
+                appState.setSandboxName(text.isEmpty ? nil : text, forFolder: folderID)
+            }
             dismiss()
         }
     }

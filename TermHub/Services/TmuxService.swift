@@ -67,7 +67,7 @@ enum TmuxService {
 
     static func createSession(name: String, cwd: String, shellCommand: String? = nil) throws {
         if let shellCommand {
-            try run(["new-session", "-d", "-s", name, shellCommand])
+            try run(["new-session", "-d", "-s", name, "-c", cwd, shellCommand])
         } else {
             try run(["new-session", "-d", "-s", name, "-c", cwd])
         }

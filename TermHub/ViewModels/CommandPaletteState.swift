@@ -379,6 +379,7 @@ final class CommandPaletteState {
                 category: "Actions"
             ) { [weak self] in
                 self?.pushMode(.textInput(prompt: "Sandbox name", action: .configureSandbox(folderID: folder.id)))
+                self?.query = folder.sandboxName ?? ""
             })
         } else if appState.folders.count > 1 {
             actions.append(PaletteItem(
@@ -439,6 +440,7 @@ final class CommandPaletteState {
                     appState.pendingRemoveFolderID = folder.id
                 case .configureSandbox:
                     self.pushMode(.textInput(prompt: "Sandbox name", action: .configureSandbox(folderID: folder.id)))
+                    self.query = folder.sandboxName ?? ""
                 }
             }
         }

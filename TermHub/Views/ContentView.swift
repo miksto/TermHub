@@ -110,7 +110,11 @@ struct ContentView: View {
             }
             Button("Save") {
                 let trimmed = sandboxNameInput.trimmingCharacters(in: .whitespaces)
-                appState.setSandboxName(trimmed.isEmpty ? nil : trimmed, forFolder: folder.id)
+                if !trimmed.isEmpty && !DockerSandboxService.isValidSandboxName(trimmed) {
+                    appState.errorMessage = "Invalid sandbox name. Use only letters, numbers, dots, hyphens, and underscores."
+                } else {
+                    appState.setSandboxName(trimmed.isEmpty ? nil : trimmed, forFolder: folder.id)
+                }
                 appState.pendingSandboxConfigFolderID = nil
             }
         } message: { folder in
