@@ -8,6 +8,7 @@ A native macOS app for managing terminal sessions across multiple project folder
 
 - **Multi-folder terminal management** — Organize terminal sessions by project folder. Sessions persist automatically across restarts.
 - **Git worktree integration** — Create worktrees from existing branches or new ones via a built-in branch picker with fuzzy search. Inline diff viewer and per-session change indicators in the sidebar.
+- **Docker sandbox integration** — Run sessions in isolated Docker sandbox containers per folder. Manage sandboxes from a dedicated overlay panel, or hold `⌥` when creating a shell/worktree to launch it sandboxed. Supports multiple agent types (Claude Code, GitHub Copilot, Codex, Gemini, and more).
 - **Tmux-backed sessions** — Each session runs in tmux, so your work survives app restarts.
 - **Command palette** — `⌘P` to quickly access actions, sessions, and branches.
 - **Embedded terminal** — Full terminal emulator via [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm).
@@ -19,6 +20,7 @@ A native macOS app for managing terminal sessions across multiple project folder
 |----------|--------|
 | ⌘P | Command Palette |
 | ⌘T | New Shell in Current Folder |
+| ⌥⌘T | New Sandboxed Shell |
 | ⌘N | New Worktree |
 | ⌘O | Add Folder |
 | ⌘B | Switch Branch / Worktree |
@@ -27,10 +29,45 @@ A native macOS app for managing terminal sessions across multiple project folder
 | ⌥⌘↑/↓ | Previous / Next Session |
 | ⌘J | Jump to Notification |
 | ⌘D | Toggle Git Diff |
-| ⌥⌘←/→ | Previous / Next Tab |
+| ⌥⌘←/→ | Previous / Next Detail Tab |
 | ⌃Tab | Switch Session (MRU) |
 | ⌃⇧Tab | Switch Session (MRU, reverse) |
 | ⌘/ | Keyboard Shortcuts |
+
+#### Option key modifiers
+
+| Modifier | Action |
+|----------|--------|
+| Hold ⌥ | Show sandbox indicators on sidebar buttons |
+| ⌥ + click shell button | Create new shell as sandboxed |
+| ⌥ + create worktree | Create new worktree as sandboxed |
+
+### Docker sandboxes
+
+TermHub can run terminal sessions inside isolated Docker sandbox containers. This is useful for running AI coding agents in a sandboxed environment.
+
+**Setting up a sandbox:**
+
+1. Click the **shipping box icon** in the toolbar to open the sandbox manager
+2. Create a sandbox by giving it a name, selecting an agent type, and mapping one or more project folders
+3. The sandbox appears in the manager with controls to start, stop, and remove it
+
+**Linking a sandbox to a folder:**
+
+Before you can launch sandboxed sessions, you need to assign a sandbox to the folder. Either:
+
+- Right-click a folder header in the sidebar → **Configure Docker Sandbox…**
+- Or open the command palette (`⌘P`) and select **Configure Docker Sandbox** for the folder
+
+Then pick one of the available sandboxes from the list.
+
+**Running sessions in a sandbox:**
+
+- Hold `⌥` (Option) when clicking a shell or worktree button in the sidebar to launch it inside the folder's linked sandbox
+- Or use `⌥⌘T` to create a new sandboxed shell in the current folder
+- Sandboxed sessions show "Terminal (Sandboxed)" in the tab bar
+
+**Supported agents:** Claude Code, GitHub Copilot, Codex, Gemini, Docker Agent, Kiro, OpenCode, and Shell.
 
 ### Claude Code integration
 
@@ -81,6 +118,7 @@ This uses the plan file from the current conversation, creates a new worktree an
 
 - macOS 14.0 (Sonoma) or later
 - [tmux](https://github.com/tmux/tmux) (recommended, for session persistence)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (optional, for sandbox support)
 
 ## Building
 
