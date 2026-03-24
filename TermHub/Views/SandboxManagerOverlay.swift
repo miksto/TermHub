@@ -3,12 +3,22 @@ import SwiftUI
 struct SandboxManagerOverlay: View {
     @Environment(AppState.self) private var appState
     @State private var confirmingRemove: String?
+    @State private var showCreateForm = false
+    @State private var newSandboxName = ""
+    @State private var newSandboxWorkspaces: [String] = []
 
     var body: some View {
         ZStack {
             Color.black.opacity(0.3)
                 .ignoresSafeArea()
                 .onTapGesture { dismiss() }
+                .onHover { isHovered in
+                    if isHovered {
+                        NSCursor.arrow.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
 
             panel
                 .frame(width: 760, height: 500)
@@ -38,15 +48,123 @@ struct SandboxManagerOverlay: View {
 
             Spacer(minLength: 0)
 
-            // Footer
+            // Create section
             Divider()
+            if showCreateForm {
+                createForm
+                Divider()
+            }
+
+            // Footer
             HStack {
+                if !showCreateForm {
+                    Button {
+                        showCreateForm = true
+                    } label: {
+                        Label("Create Sandbox", systemImage: "plus")
+                    }
+                }
                 Spacer()
                 Button("Close") { dismiss() }
                     .keyboardShortcut(.cancelAction)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
+        }
+    }
+
+    private var createForm: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("New Sandbox")
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Name")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField("my-sandbox", text: $newSandboxName)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 220)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Mapped Folders")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if !newSandboxWorkspaces.isEmpty {
+                    ForEach(Array(newSandboxWorkspaces.enumerated()), id: \.offset) { index, path in
+                        HStack(spacing: 8) {
+                            Image(systemName: "folder.fill")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                            Text(shortenPath(path))
+                                .font(.callout)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer()
+                            Button {
+                                newSandboxWorkspaces.remove(at: index)
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundStyle(.red.opacity(0.7))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+
+                Button {
+                    addFolder()
+                } label: {
+                    Label("Add Folder", systemImage: "plus.circle")
+                        .font(.callout)
+                }
+                .buttonStyle(.plain)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") { resetCreateForm() }
+                Button("Create") { submitCreateForm() }
+                    .disabled(!canCreate)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    private var canCreate: Bool {
+        DockerSandboxService.isValidSandboxName(newSandboxName) && !newSandboxWorkspaces.isEmpty
+    }
+
+    private func submitCreateForm() {
+        let name = newSandboxName.trimmingCharacters(in: .whitespaces)
+        guard DockerSandboxService.isValidSandboxName(name), !newSandboxWorkspaces.isEmpty else { return }
+        appState.createSandbox(name: name, workspaces: newSandboxWorkspaces)
+        resetCreateForm()
+    }
+
+    private func resetCreateForm() {
+        newSandboxName = ""
+        newSandboxWorkspaces = []
+        showCreateForm = false
+    }
+
+    private func addFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = "Add"
+        if panel.runModal() == .OK {
+            for url in panel.urls {
+                let path = url.path(percentEncoded: false)
+                if !newSandboxWorkspaces.contains(path) {
+                    newSandboxWorkspaces.append(path)
+                }
+            }
         }
     }
 
@@ -236,6 +354,14 @@ struct SandboxManagerOverlay: View {
         if info.isRunning { return "Running" }
         if info.isStopped { return "Stopped" }
         return info.status.capitalized
+    }
+
+    private func shortenPath(_ path: String) -> String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path()
+        if path.hasPrefix(home) {
+            return "~" + path.dropFirst(home.count)
+        }
+        return path
     }
 
     private func dismiss() {

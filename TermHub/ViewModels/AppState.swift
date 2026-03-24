@@ -340,10 +340,14 @@ final class AppState {
     }
 
     func createSandbox(name: String, workspacePath: String) {
+        createSandbox(name: name, workspaces: [workspacePath])
+    }
+
+    func createSandbox(name: String, workspaces: [String]) {
         sandboxOperationInProgress.insert(name)
         Task.detached {
             do {
-                try DockerSandboxService.createSandbox(name: name, workspaces: [workspacePath])
+                try DockerSandboxService.createSandbox(name: name, workspaces: workspaces)
             } catch {
                 let msg = error.localizedDescription
                 await MainActor.run { [weak self] in

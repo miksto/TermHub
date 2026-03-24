@@ -21,7 +21,7 @@ struct TerminalContainerView: NSViewControllerRepresentable {
         // Notably, we do NOT read appState.sessions here — title changes would cause
         // unnecessary re-evaluations that interfere with terminal rendering during heavy output.
         let selectedID = selectedSessionID
-        let suppressInteraction = appState.showCommandPalette
+        let suppressInteraction = appState.showCommandPalette || appState.showSandboxManager
         let sessionListVersion = appState.sessionListVersion
         let tmuxAvailable = appState.tmuxAvailable
 
@@ -491,7 +491,7 @@ class DetailTabBarNSView: NSView {
         guard let sessionID, let appState else { return }
         appState.setDetailTab(.terminal, for: sessionID)
         if let controller = findController() {
-            controller.updateTabState(selectedID: sessionID, suppressInteraction: appState.showCommandPalette)
+            controller.updateTabState(selectedID: sessionID, suppressInteraction: appState.showCommandPalette || appState.showSandboxManager)
         }
     }
 
@@ -499,7 +499,7 @@ class DetailTabBarNSView: NSView {
         guard let sessionID, let appState else { return }
         appState.setDetailTab(.gitDiff, for: sessionID)
         if let controller = findController() {
-            controller.updateTabState(selectedID: sessionID, suppressInteraction: appState.showCommandPalette)
+            controller.updateTabState(selectedID: sessionID, suppressInteraction: appState.showCommandPalette || appState.showSandboxManager)
         }
     }
 
