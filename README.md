@@ -8,7 +8,7 @@ A native macOS app for managing terminal sessions across multiple project folder
 
 - **Multi-folder terminal management** — Organize terminal sessions by project folder. Sessions persist automatically across restarts.
 - **Git worktree integration** — Create worktrees from existing branches or new ones via a built-in branch picker with fuzzy search. Inline diff viewer and per-session change indicators in the sidebar.
-- **Docker sandbox integration** — Run sessions in isolated Docker sandbox containers per folder. Manage sandboxes from a dedicated overlay panel, or hold `⌥` when creating a shell/worktree to launch it sandboxed. Supports multiple agent types (Claude Code, GitHub Copilot, Codex, Gemini, and more).
+- **Docker sandbox integration** — Run sessions in isolated Docker sandbox containers. Manage sandboxes from a dedicated overlay panel, then pick one when creating a shell or worktree via the split-button menu or `⌥⌘T`. Supports multiple agent types (Claude Code, GitHub Copilot, Codex, Gemini, and more).
 - **Tmux-backed sessions** — Each session runs in tmux, so your work survives app restarts.
 - **Command palette** — `⌘P` to quickly access actions, sessions, and branches.
 - **Embedded terminal** — Full terminal emulator via [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm).
@@ -39,7 +39,7 @@ A native macOS app for managing terminal sessions across multiple project folder
 | Modifier | Action |
 |----------|--------|
 | Hold ⌥ | Show sandbox indicators on sidebar buttons |
-| ⌥ + click shell button | Create new shell as sandboxed |
+| ⌥ + click shell button | Create sandboxed shell (picks sandbox automatically if only one exists) |
 | ⌥ + create worktree | Create new worktree as sandboxed |
 
 ### Docker sandboxes
@@ -52,19 +52,11 @@ TermHub can run terminal sessions inside isolated Docker sandbox containers. Thi
 2. Create a sandbox by giving it a name, selecting an agent type, and mapping one or more project folders
 3. The sandbox appears in the manager with controls to start, stop, and remove it
 
-**Linking a sandbox to a folder:**
-
-Before you can launch sandboxed sessions, you need to assign a sandbox to the folder. Either:
-
-- Right-click a folder header in the sidebar → **Configure Docker Sandbox…**
-- Or open the command palette (`⌘P`) and select **Configure Docker Sandbox** for the folder
-
-Then pick one of the available sandboxes from the list.
-
 **Running sessions in a sandbox:**
 
-- Hold `⌥` (Option) when clicking a shell or worktree button in the sidebar to launch it inside the folder's linked sandbox
-- Or use `⌥⌘T` to create a new sandboxed shell in the current folder
+- Click the **chevron** on the shell split-button in the sidebar to pick a sandbox for the new session
+- Hold `⌥` when clicking the shell button to create a sandboxed session directly (if only one sandbox exists, it is selected automatically; otherwise a picker appears)
+- Use `⌥⌘T` to create a new sandboxed shell in the current folder (shows a picker when multiple sandboxes exist)
 - Sandboxed sessions show "Terminal (Sandboxed)" in the tab bar
 
 **Supported agents:** Claude Code, GitHub Copilot, Codex, Gemini, Docker Agent, Kiro, OpenCode, and Shell.
