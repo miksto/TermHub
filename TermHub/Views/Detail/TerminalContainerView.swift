@@ -256,9 +256,9 @@ class TerminalContainerViewController: NSViewController {
         let tab = appState.currentDetailTab
         let folder = appState.folderForSelectedSession
         let isGitRepo = folder?.isGitRepo ?? false
-        let isSandboxed = appState.selectedSession?.isSandboxSession ?? false
+        let sandboxName = appState.selectedSession?.sandboxName
 
-        tabBarView.update(sessionID: selectedID, isGitRepo: isGitRepo, isSandboxed: isSandboxed, selectedTab: tab)
+        tabBarView.update(sessionID: selectedID, isGitRepo: isGitRepo, sandboxName: sandboxName, selectedTab: tab)
         tabBarView.isHidden = !isGitRepo
         if isGitRepo {
             contentTopToRoot.isActive = false
@@ -463,11 +463,15 @@ class DetailTabBarNSView: NSView {
         button.layer?.cornerRadius = 0
     }
 
-    func update(sessionID: UUID?, isGitRepo: Bool, isSandboxed: Bool, selectedTab: DetailTab) {
+    func update(sessionID: UUID?, isGitRepo: Bool, sandboxName: String?, selectedTab: DetailTab) {
         self.sessionID = sessionID
         self.selectedTab = selectedTab
         diffButton.isHidden = !isGitRepo
-        terminalButton.title = isSandboxed ? "Terminal (Sandboxed)" : "Terminal"
+        if let sandboxName {
+            terminalButton.title = "Terminal (\(sandboxName))"
+        } else {
+            terminalButton.title = "Terminal"
+        }
 
         // Switch constraints based on whether diff tab is visible
         if isGitRepo {
