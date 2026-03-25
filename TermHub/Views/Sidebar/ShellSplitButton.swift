@@ -21,24 +21,28 @@ struct ShellSplitButton: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
         } else {
-            Menu {
-                Button { createSession(sandboxName: nil) } label: {
-                    Label("Shell", systemImage: "terminal")
-                }
-                Divider()
-                ForEach(appState.sandboxes, id: \.name) { sandbox in
-                    Button { createSession(sandboxName: sandbox.name) } label: {
-                        Label(sandbox.name, systemImage: "shippingbox")
-                    }
-                }
-            } label: {
-                SandboxSwappableLabel(
-                    title: "Shell",
-                    systemImage: "terminal",
-                    showSandboxIcon: optionKeyDown
-                )
-            } primaryAction: {
-                if NSEvent.modifierFlags.contains(.option) {
+            shellMenuButton
+        }
+    }
+
+    private var menuLabel: some View {
+        SandboxSwappableLabel(
+            title: "Shell",
+            systemImage: "terminal",
+            showSandboxIcon: false
+        )
+    }
+
+    private var shellMenuButton: some View {
+        ZStack {
+            // Hidden Menu used only to establish the width (includes chevron space)
+            Menu { EmptyView() } label: { menuLabel }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .hidden()
+
+            if optionKeyDown {
+                Button {
                     if appState.sandboxes.count == 1 {
                         createSession(sandboxName: appState.sandboxes[0].name)
                     } else {
@@ -50,14 +54,37 @@ struct ShellSplitButton: View {
                             branchName: branchName
                         )
                     }
-                } else {
+                } label: {
+                    SandboxSwappableLabel(
+                        title: "Shell",
+                        systemImage: "terminal",
+                        showSandboxIcon: true
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            } else {
+                Menu {
+                    Button { createSession(sandboxName: nil) } label: {
+                        Label("Shell", systemImage: "terminal")
+                    }
+                    Divider()
+                    ForEach(appState.sandboxes, id: \.name) { sandbox in
+                        Button { createSession(sandboxName: sandbox.name) } label: {
+                            Label(sandbox.name, systemImage: "shippingbox")
+                        }
+                    }
+                } label: {
+                    menuLabel
+                } primaryAction: {
                     createSession(sandboxName: nil)
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .id(optionKeyDown)
         }
+        .fixedSize()
     }
 
     private var sessionTitle: String {
