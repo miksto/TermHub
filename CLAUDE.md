@@ -27,7 +27,7 @@ xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test
 xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test -only-testing:TermHubTests/AppStateTests/testMethodName
 ```
 
-Slash commands: `/build`, `/test`, `/regenerate-project`.
+Slash commands: `/build`, `/run` (build & launch), `/test`, `/regenerate-project`.
 
 ## Architecture
 

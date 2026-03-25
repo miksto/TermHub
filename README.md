@@ -112,6 +112,15 @@ This uses the plan file from the current conversation, creates a new worktree an
 - [tmux](https://github.com/tmux/tmux) (recommended, for session persistence)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (optional, for sandbox support)
 
+## Claude Code
+
+When working with [Claude Code](https://claude.com/claude-code), you can use the following slash commands:
+
+- `/build` — Build the app and show only warnings, errors, and the result
+- `/run` — Build the app and launch it
+- `/test` — Run the test suite and show only test results
+- `/regenerate-project` — Regenerate the Xcode project from `project.yml` and refresh the LSP config
+
 ## Building
 
 The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the Xcode project:
@@ -133,11 +142,3 @@ xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub buil
 ```bash
 xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test
 ```
-
-## Claude Code
-
-When working with [Claude Code](https://claude.com/claude-code), you can use the following slash commands:
-
-- `/build` — Build the app and show only warnings, errors, and the result
-- `/test` — Run the test suite and show only test results
-- `/regenerate-project` — Regenerate the Xcode project from `project.yml` and refresh the LSP config
