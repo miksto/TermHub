@@ -141,6 +141,10 @@ struct NewBranchSheet: View {
                     newBranch: trimmed,
                     startPoint: startPoint
                 )
+                let shouldCopy = await MainActor.run { appState.copyClaudeSettingsToWorktrees }
+                if shouldCopy {
+                    GitService.copyClaudeLocalSettings(from: folderPath, to: worktreePath)
+                }
                 await MainActor.run {
                     appState.addSession(
                         folderID: folderID,

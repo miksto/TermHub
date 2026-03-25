@@ -432,6 +432,9 @@ final class CommandPaletteState {
             ) { [weak appState] in
                 do {
                     let worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch)
+                    if appState?.copyClaudeSettingsToWorktrees ?? true {
+                        GitService.copyClaudeLocalSettings(from: folder.path, to: worktreePath)
+                    }
                     appState?.addSession(
                         folderID: folder.id,
                         title: "\(folder.name) / \(branch)",

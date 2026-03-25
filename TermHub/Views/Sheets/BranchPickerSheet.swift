@@ -316,6 +316,10 @@ struct BranchPickerSheet: View {
                 }
 
                 let worktreePath = try GitService.addWorktree(repoPath: folderPath, branch: branchName)
+                let shouldCopy = await MainActor.run { appState.copyClaudeSettingsToWorktrees }
+                if shouldCopy {
+                    GitService.copyClaudeLocalSettings(from: folderPath, to: worktreePath)
+                }
 
                 await MainActor.run {
                     appState.addSession(

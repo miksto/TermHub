@@ -218,6 +218,18 @@ enum GitService {
         return path
     }
 
+    /// Copies `.claude/settings.local.json` from the source repo into the worktree directory.
+    /// Best-effort: silently does nothing if the source file doesn't exist or the copy fails.
+    static func copyClaudeLocalSettings(from repoPath: String, to worktreePath: String) {
+        let fm = FileManager.default
+        let source = (repoPath as NSString).appendingPathComponent(".claude/settings.local.json")
+        guard fm.fileExists(atPath: source) else { return }
+        let destDir = (worktreePath as NSString).appendingPathComponent(".claude")
+        let dest = (destDir as NSString).appendingPathComponent("settings.local.json")
+        try? fm.createDirectory(atPath: destDir, withIntermediateDirectories: true)
+        try? fm.copyItem(atPath: source, toPath: dest)
+    }
+
     static func removeWorktree(repoPath: String, worktreePath: String) throws {
         try run(["-C", repoPath, "worktree", "remove", "--force", worktreePath])
     }

@@ -18,6 +18,11 @@ struct SettingsSheet: View {
                 Text("When enabled, the Option key sends ESC sequences (Meta) for terminal apps. When disabled, Option produces special characters (e.g. @ on Swedish keyboards).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Toggle("Copy Claude settings to worktrees", isOn: $appState.copyClaudeSettingsToWorktrees)
+                Text("Copies .claude/settings.local.json from the repo into new worktrees so Claude Code inherits the same permissions.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
@@ -28,6 +33,6 @@ struct SettingsSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .padding(.bottom, 20)
         }
-        .frame(width: 400, height: 260)
+        .frame(width: 400, height: 320)
     }
 }

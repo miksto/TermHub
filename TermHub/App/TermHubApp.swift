@@ -186,6 +186,10 @@ struct TermHubApp: App {
         Task.detached {
             do {
                 let worktreePath = try GitService.addWorktreeNewBranch(repoPath: repoPath, newBranch: branch)
+                let shouldCopy = await MainActor.run { [weak appState] in appState?.copyClaudeSettingsToWorktrees ?? true }
+                if shouldCopy {
+                    GitService.copyClaudeLocalSettings(from: repoPath, to: worktreePath)
+                }
                 await MainActor.run { [weak appState] in
                     guard let appState else { return }
                     let title = "\(folderName) [\(branch)]"

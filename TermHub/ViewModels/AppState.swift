@@ -84,6 +84,12 @@ final class AppState {
         }
     }
 
+    var copyClaudeSettingsToWorktrees: Bool {
+        didSet {
+            UserDefaults.standard.set(copyClaudeSettingsToWorktrees, forKey: "copyClaudeSettingsToWorktrees")
+        }
+    }
+
     let terminalManager = TerminalSessionManager()
 
     init(persistence: StatePersistence? = nil) {
@@ -94,6 +100,7 @@ final class AppState {
         } else {
             optionAsMetaKey = Self.detectUSKeyboardLayout()
         }
+        copyClaudeSettingsToWorktrees = UserDefaults.standard.object(forKey: "copyClaudeSettingsToWorktrees") as? Bool ?? true
         terminalManager.optionAsMetaKey = optionAsMetaKey
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
         loadState()
