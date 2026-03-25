@@ -115,10 +115,10 @@ This uses the plan file from the current conversation, creates a new worktree an
 
 ## Building
 
-The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the Xcode project.
+The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the Xcode project and [xcode-build-server](https://github.com/SolaWing/xcode-build-server) for LSP support.
 
 ```bash
-brew install xcodegen tmux
+brew install xcodegen xcode-build-server tmux
 make generate   # generate Xcode project from project.yml
 make build      # build the app
 make run        # build and launch the app
