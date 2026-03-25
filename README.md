@@ -110,12 +110,19 @@ This uses the plan file from the current conversation, creates a new worktree an
 ## Requirements
 
 - macOS 14.0 (Sonoma) or later
+- [Xcode](https://apps.apple.com/app/xcode/id497799835) (full app, not just Command Line Tools — required for the Metal compiler)
 - [tmux](https://github.com/tmux/tmux) (recommended, for session persistence)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (optional, for sandbox support)
 
 ## Building
 
 The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the Xcode project and [xcode-build-server](https://github.com/SolaWing/xcode-build-server) for LSP support.
+
+If you get `cannot execute tool 'metal' due to missing Metal Toolchain`, make sure the full Xcode app is installed and selected:
+
+```bash
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+```
 
 ```bash
 brew install xcodegen xcode-build-server tmux
