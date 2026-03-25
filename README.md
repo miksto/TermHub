@@ -87,7 +87,7 @@ The `> /dev/tty` is required so the BEL reaches the terminal rather than being c
 TermHub registers the `termhub://` URL scheme for creating worktree sessions externally:
 
 ```
-termhub://new-worktree?repo=/path/to/repo&branch=feature/xyz&plan=/path/to/plan.md
+termhub://new-worktree?repo=/path/to/repo&branch=feature/xyz&plan=/path/to/plan.md&sandbox=my-sandbox
 ```
 
 | Parameter | Required | Description |
@@ -95,6 +95,7 @@ termhub://new-worktree?repo=/path/to/repo&branch=feature/xyz&plan=/path/to/plan.
 | `repo` | Yes | Absolute path to the git repository |
 | `branch` | Yes | Branch name for the worktree |
 | `plan` | No | Path to a plan file — if provided, runs `claude` to implement it in the new session |
+| `sandbox` | No | Docker sandbox name — if provided, the new session runs inside the named sandbox |
 
 #### Implement in worktree
 

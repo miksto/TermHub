@@ -50,7 +50,7 @@ Slash commands: `/build`, `/run` (build & launch), `/test`, `/regenerate-project
 
 **Views:** `ContentView` (NavigationSplitView) → sidebar (`SidebarView` with `FolderSectionView`/`SessionRowView`) + detail (`TerminalContainerView` wrapping `TermHubTerminalView` or `DiffTableView`). Sheets for branch picker, new branch, and keyboard shortcuts. `CommandPaletteOverlay` provides the `⌘P` palette.
 
-**URL scheme:** `termhub://new-worktree?repo=...&branch=...&plan=...` — creates a worktree session externally. If `plan` is provided, runs `claude` to implement it in the new session.
+**URL scheme:** `termhub://new-worktree?repo=...&branch=...&plan=...&sandbox=...` — creates a worktree session externally. If `plan` is provided, runs `claude` to implement it in the new session. If `sandbox` is provided, the session runs inside the named Docker sandbox.
 
 ## Key Conventions
 
