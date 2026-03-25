@@ -52,21 +52,27 @@ struct SidebarView: View {
         .sheet(
             isPresented: Binding(
                 get: { appState.pendingWorktreeFolder != nil },
-                set: { if !$0 { appState.pendingWorktreeFolder = nil } }
+                set: { if !$0 {
+                    appState.pendingWorktreeFolder = nil
+                    appState.pendingWorktreeSandbox = nil
+                } }
             )
         ) {
             if let folder = appState.pendingWorktreeFolder {
-                BranchPickerSheet(folder: folder)
+                BranchPickerSheet(folder: folder, initialSandbox: appState.pendingWorktreeSandbox)
             }
         }
         .sheet(
             isPresented: Binding(
                 get: { appState.pendingNewBranchFolder != nil },
-                set: { if !$0 { appState.pendingNewBranchFolder = nil } }
+                set: { if !$0 {
+                    appState.pendingNewBranchFolder = nil
+                    appState.pendingNewBranchSandbox = nil
+                } }
             )
         ) {
             if let folder = appState.pendingNewBranchFolder {
-                NewBranchSheet(folder: folder)
+                NewBranchSheet(folder: folder, initialSandbox: appState.pendingNewBranchSandbox)
             }
         }
     }

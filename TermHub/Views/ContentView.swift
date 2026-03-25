@@ -31,7 +31,8 @@ struct ContentView: View {
                         folderName: ctx.folderName,
                         cwd: ctx.cwd,
                         worktreePath: ctx.worktreePath,
-                        branchName: ctx.branchName
+                        branchName: ctx.branchName,
+                        initialSandboxName: appState.lastUsedSandboxName
                     )
                 }
             }

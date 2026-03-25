@@ -35,6 +35,9 @@ final class AppState {
     var pendingRemoveFolderID: UUID?
     var showKeyboardShortcuts = false
     var pendingSandboxPickerContext: SandboxPickerContext?
+    var pendingWorktreeSandbox: String?
+    var pendingNewBranchSandbox: String?
+    var lastUsedSandboxName: String?
 
     struct SandboxPickerContext {
         let folderID: UUID
@@ -221,6 +224,10 @@ final class AppState {
             sandboxName: sandboxName,
             folderName: folderName
         )
+
+        if let sandboxName {
+            lastUsedSandboxName = sandboxName
+        }
 
         // tmux session is created lazily by TerminalSessionManager.startProcessIfNeeded
         sessions.append(session)

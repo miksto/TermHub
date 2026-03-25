@@ -5,11 +5,12 @@ struct BranchPickerSheet: View {
     @Environment(AppState.self) private var appState
 
     let folder: ManagedFolder
+    var initialSandbox: String? = nil
 
     @State private var branches: [BranchInfo] = []
     @State private var searchText = ""
     @State private var selectedIndex = 0
-    @State private var selectedSandbox: String? = nil
+    @State private var selectedSandbox: String?
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var createError: String?
@@ -124,6 +125,9 @@ struct BranchPickerSheet: View {
         .frame(minWidth: 400, minHeight: 400)
         .onAppear {
             isSearchFocused = true
+            if let initialSandbox, appState.sandboxes.contains(where: { $0.name == initialSandbox }) {
+                selectedSandbox = initialSandbox
+            }
         }
         .onChange(of: searchText) {
             selectedIndex = 0

@@ -5,10 +5,11 @@ struct NewBranchSheet: View {
     @Environment(AppState.self) private var appState
 
     let folder: ManagedFolder
+    var initialSandbox: String? = nil
 
     @State private var branchName = ""
     @State private var baseBranch = ""
-    @State private var selectedSandbox: String? = nil
+    @State private var selectedSandbox: String?
     @State private var availableBranches: [String] = []
     @State private var errorMessage: String?
     @State private var isCreating = false
@@ -93,6 +94,9 @@ struct NewBranchSheet: View {
         .frame(minWidth: 350)
         .task {
             loadBranches()
+            if let initialSandbox, appState.sandboxes.contains(where: { $0.name == initialSandbox }) {
+                selectedSandbox = initialSandbox
+            }
         }
     }
 

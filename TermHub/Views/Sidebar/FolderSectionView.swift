@@ -79,19 +79,23 @@ struct FolderSectionView: View {
 
                 if folder.isGitRepo {
                     Button {
+                        if NSEvent.modifierFlags.contains(.option) {
+                            appState.pendingWorktreeSandbox = appState.lastUsedSandboxName
+                        }
                         appState.pendingWorktreeFolder = folder
                     } label: {
-                        Label("Branch", systemImage: "arrow.triangle.branch")
-                            .font(.caption)
+                        SandboxButtonLabel("Branch", systemImage: "arrow.triangle.branch", showSandbox: optionKeyDown && !appState.sandboxes.isEmpty)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
 
                     Button {
+                        if NSEvent.modifierFlags.contains(.option) {
+                            appState.pendingNewBranchSandbox = appState.lastUsedSandboxName
+                        }
                         appState.pendingNewBranchFolder = folder
                     } label: {
-                        Label("New", systemImage: "plus")
-                            .font(.caption)
+                        SandboxButtonLabel("New", systemImage: "plus", showSandbox: optionKeyDown && !appState.sandboxes.isEmpty)
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)

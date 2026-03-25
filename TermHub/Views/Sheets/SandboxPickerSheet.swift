@@ -10,6 +10,7 @@ struct ShellSandboxPickerSheet: View {
     let cwd: String
     var worktreePath: String? = nil
     var branchName: String? = nil
+    var initialSandboxName: String? = nil
 
     @State private var selectedIndex = 0
     @FocusState private var isFocused: Bool
@@ -46,6 +47,10 @@ struct ShellSandboxPickerSheet: View {
         .frame(minWidth: 400, minHeight: 300)
         .onAppear {
             isFocused = true
+            if let initialSandboxName,
+               let index = appState.sandboxes.firstIndex(where: { $0.name == initialSandboxName }) {
+                selectedIndex = index
+            }
         }
         .focusable()
         .focused($isFocused)
