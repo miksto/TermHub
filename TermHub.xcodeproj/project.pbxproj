@@ -59,6 +59,7 @@
 		DE82574D984DD29D186D830E /* FuzzyMatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ECB69224974D220FDE98A6F /* FuzzyMatchTests.swift */; };
 		DF329A05696DA897A6979706 /* SandboxInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B623642A92A221F68EC36C2 /* SandboxInfo.swift */; };
 		E1232FAE548578DB180BFE60 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D913661F1C9DB3AB387FCF2B /* CommandRunner.swift */; };
+		E4DC0CBC4D2AF6B039EA4CAE /* SandboxSwappableLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C5289486433C443554A730 /* SandboxSwappableLabel.swift */; };
 		E59234002788C97D87673134 /* CommandPaletteStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */; };
 		E683FFEFA9ABDC2A9EBA7BFE /* GitServiceIOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD1B34DE03C53E8107D1198 /* GitServiceIOTests.swift */; };
 		F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */; };
@@ -118,6 +119,7 @@
 		A057686A8267AA160F36EDCE /* PersistenceServiceExtendedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceServiceExtendedTests.swift; sourceTree = "<group>"; };
 		A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceServiceTests.swift; sourceTree = "<group>"; };
 		A4792E5D9882521F85544D02 /* AppStateExtendedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateExtendedTests.swift; sourceTree = "<group>"; };
+		A4C5289486433C443554A730 /* SandboxSwappableLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxSwappableLabel.swift; sourceTree = "<group>"; };
 		A8DA80D5DF6673B1A0F4BC83 /* TermHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TermHub.entitlements; sourceTree = "<group>"; };
 		B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSwitcherOverlay.swift; sourceTree = "<group>"; };
 		B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionManager.swift; sourceTree = "<group>"; };
@@ -250,6 +252,7 @@
 				BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */,
 				35E16A5970DB7655DECDB85E /* DoubleClickView.swift */,
 				12C5380DC16B45138FCB73AA /* FolderSectionView.swift */,
+				A4C5289486433C443554A730 /* SandboxSwappableLabel.swift */,
 				66BC1F94C86B5BEF5E5C1B54 /* SessionRowView.swift */,
 				7E489949573E3CE4774C1757 /* ShellSplitButton.swift */,
 				CE9636C089AF563FC8C56018 /* SidebarView.swift */,
@@ -468,6 +471,7 @@
 				DF329A05696DA897A6979706 /* SandboxInfo.swift in Sources */,
 				14DE91FA5EE1F434A6FCF007 /* SandboxManagerOverlay.swift in Sources */,
 				4EAFE057C6ABF330A21E0262 /* SandboxPickerSheet.swift in Sources */,
+				E4DC0CBC4D2AF6B039EA4CAE /* SandboxSwappableLabel.swift in Sources */,
 				D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */,
 				2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */,
 				F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */,

@@ -15,7 +15,8 @@ struct ShellSplitButton: View {
     var body: some View {
         if appState.sandboxes.isEmpty {
             Button { createSession(sandboxName: nil) } label: {
-                SandboxButtonLabel("Shell", systemImage: "terminal", showSandbox: false)
+                Label("Shell", systemImage: "terminal")
+                    .font(.caption)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
@@ -31,8 +32,11 @@ struct ShellSplitButton: View {
                     }
                 }
             } label: {
-                Label("Shell", systemImage: "terminal")
-                    .font(.caption)
+                SandboxSwappableLabel(
+                    title: "Shell",
+                    systemImage: "terminal",
+                    showSandboxIcon: optionKeyDown
+                )
             } primaryAction: {
                 if NSEvent.modifierFlags.contains(.option) {
                     if appState.sandboxes.count == 1 {
@@ -52,19 +56,7 @@ struct ShellSplitButton: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .overlay(alignment: .leading) {
-                if optionKeyDown {
-                    Image(systemName: "shippingbox")
-                        .font(.caption)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(.regularMaterial)
-                        }
-                        .padding(.leading, 4)
-                }
-            }
+            .id(optionKeyDown)
         }
     }
 

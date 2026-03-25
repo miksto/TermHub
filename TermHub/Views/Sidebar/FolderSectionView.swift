@@ -84,7 +84,11 @@ struct FolderSectionView: View {
                         }
                         appState.pendingWorktreeFolder = folder
                     } label: {
-                        SandboxButtonLabel("Branch", systemImage: "arrow.triangle.branch", showSandbox: optionKeyDown && !appState.sandboxes.isEmpty)
+                        SandboxSwappableLabel(
+                            title: "Branch",
+                            systemImage: "arrow.triangle.branch",
+                            showSandboxIcon: optionKeyDown && !appState.sandboxes.isEmpty
+                        )
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -95,7 +99,11 @@ struct FolderSectionView: View {
                         }
                         appState.pendingNewBranchFolder = folder
                     } label: {
-                        SandboxButtonLabel("New", systemImage: "plus", showSandbox: optionKeyDown && !appState.sandboxes.isEmpty)
+                        SandboxSwappableLabel(
+                            title: "New",
+                            systemImage: "plus",
+                            showSandboxIcon: optionKeyDown && !appState.sandboxes.isEmpty
+                        )
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -161,31 +169,5 @@ struct FolderSectionView: View {
             }
             .selectionDisabled()
         }
-    }
-}
-
-struct SandboxButtonLabel: View {
-    let title: String
-    let systemImage: String
-    let showSandbox: Bool
-
-    init(_ title: String, systemImage: String, showSandbox: Bool) {
-        self.title = title
-        self.systemImage = systemImage
-        self.showSandbox = showSandbox
-    }
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: systemImage)
-                .frame(width: 18)
-            Text(title)
-            if showSandbox {
-                Image(systemName: "shippingbox")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .font(.caption)
     }
 }
