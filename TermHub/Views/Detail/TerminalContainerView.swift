@@ -468,7 +468,7 @@ class DetailTabBarNSView: NSView {
         self.selectedTab = selectedTab
         diffButton.isHidden = !isGitRepo
         if let sandboxName {
-            terminalButton.title = "Terminal (\(sandboxName))"
+            terminalButton.title = "Terminal (Sandboxed: \(sandboxName))"
         } else {
             terminalButton.title = "Terminal"
         }
