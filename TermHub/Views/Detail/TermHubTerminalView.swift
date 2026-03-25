@@ -214,9 +214,12 @@ class TermHubTerminalView: LocalProcessTerminalView {
             }
 
             // When optionAsMetaKey is off, SwiftTerm skips all Option key
-            // handling including word navigation. Intercept Option+Arrow
-            // here so word-skip works regardless of the meta key setting.
-            if !self.optionAsMetaKey && event.modifierFlags.contains(.option),
+            // handling. Intercept Option+navigation/editing keys here so
+            // they still work as Meta sequences. Skip when Command is also
+            // held so Cmd+Option shortcuts (tab switching, etc.) pass through.
+            if !self.optionAsMetaKey
+                && event.modifierFlags.contains(.option)
+                && !event.modifierFlags.contains(.command),
                let chars = event.charactersIgnoringModifiers,
                let scalar = chars.unicodeScalars.first {
                 switch Int(scalar.value) {
@@ -225,6 +228,13 @@ class TermHubTerminalView: LocalProcessTerminalView {
                     return nil
                 case NSRightArrowFunctionKey:
                     self.send(EscapeSequences.emacsForward)
+                    return nil
+                case 0x7f: // Backspace — delete word backward
+                    self.send(EscapeSequences.cmdEsc)
+                    self.send(EscapeSequences.cmdDel)
+                    return nil
+                case NSDeleteFunctionKey: // Forward Delete — delete word forward
+                    self.send([0x1b, 0x1b, 0x5b, 0x33, 0x7e])
                     return nil
                 default: break
                 }
