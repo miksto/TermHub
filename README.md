@@ -112,6 +112,25 @@ This uses the plan file from the current conversation, creates a new worktree an
 - [tmux](https://github.com/tmux/tmux) (recommended, for session persistence)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (optional, for sandbox support)
 
+## Building
+
+The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the Xcode project.
+
+```bash
+brew install xcodegen tmux
+make generate   # generate Xcode project from project.yml
+make build      # build the app
+make run        # build and launch the app
+make test       # run the test suite
+```
+
+Or open in Xcode directly:
+
+```bash
+xcodegen generate
+open TermHub.xcodeproj
+```
+
 ## Claude Code
 
 When working with [Claude Code](https://claude.com/claude-code), you can use the following slash commands:
@@ -120,25 +139,3 @@ When working with [Claude Code](https://claude.com/claude-code), you can use the
 - `/run` — Build the app and launch it
 - `/test` — Run the test suite and show only test results
 - `/regenerate-project` — Regenerate the Xcode project from `project.yml` and refresh the LSP config
-
-## Building
-
-The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the Xcode project:
-
-```bash
-brew install xcodegen tmux
-xcodegen generate
-open TermHub.xcodeproj
-```
-
-Or build from the command line (after running `xcodegen generate`):
-
-```bash
-xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub build
-```
-
-## Running Tests
-
-```bash
-xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test
-```
