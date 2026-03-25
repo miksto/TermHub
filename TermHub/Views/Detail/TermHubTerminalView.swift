@@ -202,14 +202,35 @@ class TermHubTerminalView: LocalProcessTerminalView {
         // to newline insertion (e.g. `bindkey '^J' self-insert` in zsh).
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self,
-                  event.keyCode == 36,
-                  event.modifierFlags.contains(.shift),
                   self.window != nil,
                   event.window === self.window else {
                 return event
             }
-            self.send([0x0A])
-            return nil
+
+            // Shift+Enter: send LF (0x0A) instead of CR
+            if event.keyCode == 36, event.modifierFlags.contains(.shift) {
+                self.send([0x0A])
+                return nil
+            }
+
+            // When optionAsMetaKey is off, SwiftTerm skips all Option key
+            // handling including word navigation. Intercept Option+Arrow
+            // here so word-skip works regardless of the meta key setting.
+            if !self.optionAsMetaKey && event.modifierFlags.contains(.option),
+               let chars = event.charactersIgnoringModifiers,
+               let scalar = chars.unicodeScalars.first {
+                switch Int(scalar.value) {
+                case NSLeftArrowFunctionKey:
+                    self.send(EscapeSequences.emacsBack)
+                    return nil
+                case NSRightArrowFunctionKey:
+                    self.send(EscapeSequences.emacsForward)
+                    return nil
+                default: break
+                }
+            }
+
+            return event
         }
 
         flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in

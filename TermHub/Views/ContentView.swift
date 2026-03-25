@@ -10,7 +10,16 @@ struct ContentView: View {
         mainContent
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    SandboxToolbarButton()
+                    HStack(spacing: 4) {
+                        Button {
+                            appState.showSettings = true
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                        .help("Settings")
+
+                        SandboxToolbarButton()
+                    }
                 }
             }
             .sheet(isPresented: Binding(
@@ -18,6 +27,12 @@ struct ContentView: View {
                 set: { appState.showKeyboardShortcuts = $0 }
             )) {
                 KeyboardShortcutsSheet()
+            }
+            .sheet(isPresented: Binding(
+                get: { appState.showSettings },
+                set: { appState.showSettings = $0 }
+            )) {
+                SettingsSheet()
             }
             .sheet(
                 isPresented: Binding(

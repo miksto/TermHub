@@ -62,6 +62,7 @@
 		E4DC0CBC4D2AF6B039EA4CAE /* SandboxSwappableLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C5289486433C443554A730 /* SandboxSwappableLabel.swift */; };
 		E59234002788C97D87673134 /* CommandPaletteStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */; };
 		E683FFEFA9ABDC2A9EBA7BFE /* GitServiceIOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD1B34DE03C53E8107D1198 /* GitServiceIOTests.swift */; };
+		E7C91AB104510F74A1EA48EB /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0602F68D6F5CA5007FFF527D /* SettingsSheet.swift */; };
 		F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */; };
 		F62CE910810C831E5EB25298 /* ManagedFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */; };
 		F8BC8AFAE178685B5122ACFA /* TerminalSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */; };
@@ -80,6 +81,7 @@
 
 /* Begin PBXFileReference section */
 		04093E0C76CFF2730B42B826 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		0602F68D6F5CA5007FFF527D /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
 		0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolderTests.swift; sourceTree = "<group>"; };
 		0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeHeaderView.swift; sourceTree = "<group>"; };
 		12C5380DC16B45138FCB73AA /* FolderSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSectionView.swift; sourceTree = "<group>"; };
@@ -162,6 +164,7 @@
 				E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */,
 				53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */,
 				B78850034F1F4AB68C28F9C5 /* SandboxPickerSheet.swift */,
+				0602F68D6F5CA5007FFF527D /* SettingsSheet.swift */,
 			);
 			path = Sheets;
 			sourceTree = "<group>";
@@ -475,6 +478,7 @@
 				D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */,
 				2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */,
 				F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */,
+				E7C91AB104510F74A1EA48EB /* SettingsSheet.swift in Sources */,
 				01DD14CA14BF6A73A8AEE59E /* ShellEnvironment.swift in Sources */,
 				26B3CE119D9422059C4CB11F /* ShellSplitButton.swift in Sources */,
 				7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */,

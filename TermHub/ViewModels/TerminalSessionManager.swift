@@ -11,6 +11,7 @@ final class TerminalSessionManager {
     private var startRetryCount: [UUID: Int] = [:]
     private static let maxStartRetries = 50
     var pendingCommands: [UUID: String] = [:]
+    var optionAsMetaKey: Bool = true
     var onBell: ((UUID) -> Void)?
     var onTitleChange: ((UUID, String) -> Void)?
 
@@ -29,6 +30,7 @@ final class TerminalSessionManager {
         terminal.font = terminalFont
         terminal.nativeBackgroundColor = NSColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0)
         terminal.nativeForegroundColor = NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
+        terminal.optionAsMetaKey = optionAsMetaKey
 
         let sessionID = session.id
         terminal.onBell = { [weak self] in
@@ -127,6 +129,13 @@ final class TerminalSessionManager {
     func markProcessTerminated(for sessionID: UUID) {
         print("[TermHub] Process terminated for session \(sessionID)")
         startedSessions.remove(sessionID)
+    }
+
+    func updateOptionAsMetaKey(_ value: Bool) {
+        optionAsMetaKey = value
+        for terminal in terminals.values {
+            terminal.optionAsMetaKey = value
+        }
     }
 
     func terminal(for sessionID: UUID) -> LocalProcessTerminalView? {

@@ -78,6 +78,13 @@ struct TermHubApp: App {
                 .keyboardShortcut("/", modifiers: .command)
             }
 
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") {
+                    appState.showSettings = true
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+
             CommandGroup(after: .toolbar) {
                 Button("Command Palette") {
                     appState.showCommandPalette.toggle()

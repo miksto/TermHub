@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import Foundation
 import Observation
 
@@ -34,6 +35,7 @@ final class AppState {
     var errorMessage: String?
     var pendingRemoveFolderID: UUID?
     var showKeyboardShortcuts = false
+    var showSettings = false
     var pendingSandboxPickerContext: SandboxPickerContext?
     var pendingWorktreeSandbox: String?
     var pendingNewBranchSandbox: String?
@@ -74,11 +76,25 @@ final class AppState {
     @ObservationIgnored private var debouncedSaveWorkItem: DispatchWorkItem?
     @ObservationIgnored private let persistence: StatePersistence
 
+    var optionAsMetaKey: Bool {
+        didSet {
+            UserDefaults.standard.set(optionAsMetaKey, forKey: "optionAsMetaKey")
+            UserDefaults.standard.set(true, forKey: "optionAsMetaKeyIsSet")
+            terminalManager.updateOptionAsMetaKey(optionAsMetaKey)
+        }
+    }
+
     let terminalManager = TerminalSessionManager()
 
     init(persistence: StatePersistence? = nil) {
         let isTestHost = ProcessInfo.processInfo.isRunningTests
         self.persistence = persistence ?? (isTestHost ? NullPersistence() : DiskPersistence())
+        if UserDefaults.standard.bool(forKey: "optionAsMetaKeyIsSet") {
+            optionAsMetaKey = UserDefaults.standard.bool(forKey: "optionAsMetaKey")
+        } else {
+            optionAsMetaKey = Self.detectUSKeyboardLayout()
+        }
+        terminalManager.optionAsMetaKey = optionAsMetaKey
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
         loadState()
         if !isTestHost {
@@ -830,5 +846,19 @@ final class AppState {
         }
         debouncedSaveWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
+    }
+
+    /// Returns true if the current keyboard layout is US-style (where Option
+    /// is not needed for common characters like @, {, }, etc.).
+    private static func detectUSKeyboardLayout() -> Bool {
+        guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
+              let idPtr = TISGetInputSourceProperty(source, kTISPropertyInputSourceID),
+              let id = Unmanaged<CFString>.fromOpaque(idPtr).takeUnretainedValue() as String?
+        else {
+            return true
+        }
+        // US, ABC, and British layouts don't use Option for basic characters
+        let usStyleLayouts = ["US", "ABC", "British", "Australian", "Canadian", "USInternational"]
+        return usStyleLayouts.contains { id.contains($0) }
     }
 }
