@@ -20,6 +20,10 @@ schemes:
     test:
       targets:
         - TermHubTests
+  TermHubMCP:
+    build:
+      targets:
+        TermHubMCP: all
 
 targets:
   TermHub:
@@ -48,6 +52,44 @@ targets:
             CFBundleURLName: com.termhub.app
     dependencies:
       - package: SwiftTerm
+  TermHubMCP:
+    type: tool
+    platform: macOS
+    sources:
+      - TermHubMCP
+      - path: TermHub/Services/IPCProtocol.swift
+        type: file
+      - path: TermHub/Services/CommandRunner.swift
+        type: file
+      - path: TermHub/Services/GitService.swift
+        type: file
+      - path: TermHub/Services/TmuxService.swift
+        type: file
+      - path: TermHub/Services/DockerSandboxService.swift
+        type: file
+      - path: TermHub/Services/PersistenceService.swift
+        type: file
+      - path: TermHub/Utilities/ShellEnvironment.swift
+        type: file
+      - path: TermHub/Models/ManagedFolder.swift
+        type: file
+      - path: TermHub/Models/TerminalSession.swift
+        type: file
+      - path: TermHub/Models/GitStatus.swift
+        type: file
+      - path: TermHub/Models/GitDiff.swift
+        type: file
+      - path: TermHub/Models/SandboxInfo.swift
+        type: file
+      - path: TermHub/Models/DetailTab.swift
+        type: file
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.termhub.mcp
+        PRODUCT_NAME: termhub-mcp
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_STRICT_CONCURRENCY: complete
   TermHubTests:
     type: bundle.unit-test
     platform: macOS

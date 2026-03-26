@@ -17,17 +17,24 @@
 		1516020445C4D4CC3CA4535A /* PersistenceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */; };
 		183B17FD893A5DBE32155EBE /* CommandPaletteOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6789CD823BD6E6D092FFA36 /* CommandPaletteOverlay.swift */; };
 		1DAB698DEF6120695A01F8DC /* DoubleClickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E16A5970DB7655DECDB85E /* DoubleClickView.swift */; };
+		1DFA7A473FE2E0CBFEEB2636 /* DetailTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1013B2E11F22771C770C920 /* DetailTab.swift */; };
 		21A01C29E06AD7CE85298D59 /* SourceCodePro-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 87F22B8F211122C504007981 /* SourceCodePro-Medium.otf */; };
 		21E8FE21B4A9CEB20CA876BD /* NewBranchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */; };
 		26B3CE119D9422059C4CB11F /* ShellSplitButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E489949573E3CE4774C1757 /* ShellSplitButton.swift */; };
+		27DB07BF564DA1F9F6E61287 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D913661F1C9DB3AB387FCF2B /* CommandRunner.swift */; };
+		2832583ADD370008E1D81F99 /* IPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEEB378B454E996FC3266EB0 /* IPCProtocol.swift */; };
 		2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BC1F94C86B5BEF5E5C1B54 /* SessionRowView.swift */; };
 		2C73403A32C202EC6F995959 /* DetailTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1013B2E11F22771C770C920 /* DetailTab.swift */; };
+		2DC7B08A29D1A465BF2DAEF6 /* TmuxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C94FFFD305685DF84F204 /* TmuxService.swift */; };
 		2F71DF8FA98019B9EB9FEA80 /* FuzzyMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B36A08544BDCA24B09F7F72 /* FuzzyMatch.swift */; };
 		2FBDC520049A4B907DAB76B7 /* GitServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E184F75BBAEAD51F534B2DA4 /* GitServiceTests.swift */; };
 		3175266A96F424FC8AD47EC9 /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2D21CC5CCB192AA60F30B9 /* TerminalSession.swift */; };
 		3ABEE09ECFA59D8269E25998 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04093E0C76CFF2730B42B826 /* AppState.swift */; };
+		3AC7154D2E48C07A02AD2C35 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
 		3FB6677B52F617DC7A0C82A9 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94816DB493F9BC69DC84FAD /* CommandPaletteView.swift */; };
+		406C8854CAC641A5AAC6662D /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2D21CC5CCB192AA60F30B9 /* TerminalSession.swift */; };
 		443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
+		4BEDB1AE3D7184594B0875D3 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616E73419466D40DFD30DFAE /* main.swift */; };
 		4D0062BE42AE108A8D2A22FE /* WorktreeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */; };
 		4EAFE057C6ABF330A21E0262 /* SandboxPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78850034F1F4AB68C28F9C5 /* SandboxPickerSheet.swift */; };
 		4F840D4B9206FEAD40353FB2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 189B8C6AC49B8C82A724EC59 /* Assets.xcassets */; };
@@ -42,21 +49,30 @@
 		5EA259467097D2F2B08E31A5 /* SourceCodePro-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 806377317513B765392AB6F5 /* SourceCodePro-Regular.otf */; };
 		629711F71AF16B73D8309445 /* MockCommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F5422F5C3B2926C3E5FDD1E /* MockCommandRunner.swift */; };
 		66671B886CB1BF42A3C2C098 /* SandboxManagerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FBC75FFB3ACFF6FA8EC0974 /* SandboxManagerPanel.swift */; };
+		67EAD9CF2C7D2664E3381329 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2305607A9F1189FC98956101 /* GitService.swift */; };
 		7320427A88D31382D529A08B /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B9D3FC1CF2381671427FFD85 /* SwiftTerm */; };
 		7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9636C089AF563FC8C56018 /* SidebarView.swift */; };
 		870E7673914A54A99132975A /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503B8C574CFDAB867E3DA066 /* AppStateTests.swift */; };
 		8D141737EB79FF562BB85632 /* PersistenceServiceExtendedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A057686A8267AA160F36EDCE /* PersistenceServiceExtendedTests.swift */; };
 		8F874B04E394BDF09818F1DB /* SettingsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0366166774513CC87948DE2 /* SettingsOverlay.swift */; };
 		952771C820508D521A3947CE /* TmuxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C94FFFD305685DF84F204 /* TmuxService.swift */; };
+		9936487F651BBB312F0B8C7A /* IPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE5D64EF6E39C3289FAC748 /* IPCClient.swift */; };
+		9B5126EE3D66E2FCB3BBE739 /* GitStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C8A71DCEDDF41556161E6B8 /* GitStatus.swift */; };
 		9C8CAF8F640A638B205D5C5F /* DiffStatsText.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */; };
 		9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C5380DC16B45138FCB73AA /* FolderSectionView.swift */; };
 		A05F2B6731E1397B48995382 /* DockerSandboxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1622DA6DFD20CF131CA7C123 /* DockerSandboxService.swift */; };
 		A49529E2C95A9F9BCF28ABBD /* SettingsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED8081D812A10F1B467E7978 /* SettingsPanel.swift */; };
+		A52A38D8B4C5B7B87A8C08A0 /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F3949FA374894F3DD12A156 /* ShellEnvironment.swift */; };
+		ADC5CEC7CEEE58FF789B7A36 /* SandboxInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B623642A92A221F68EC36C2 /* SandboxInfo.swift */; };
+		B1607AB6D3C6A822C7448745 /* IPCServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D11B253AE12BC540968C17 /* IPCServer.swift */; };
 		B3051C5B1DD678028A3D3CB6 /* CommandPaletteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6874B0A2FAAF08F0DA5DE1CA /* CommandPaletteRowView.swift */; };
 		BA1CA5ACCDAAEA3E158B39C8 /* KeyboardShortcutsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */; };
 		BAC7EF2C824ADCFD8D02CA1F /* TmuxServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E29E797BAE827FD73FC191 /* TmuxServiceTests.swift */; };
+		C6849834304375A07BC6068F /* MCPTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76CFF2B72082263B10619804 /* MCPTools.swift */; };
 		C6DA5396377DE1E72E2DFE62 /* TermHubTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */; };
 		C93A2680B133DEDC59A27F52 /* CommandPaletteState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1710253731113037A911775C /* CommandPaletteState.swift */; };
+		C9524BFE0769E21BC47564D9 /* IPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEEB378B454E996FC3266EB0 /* IPCProtocol.swift */; };
+		D0873C36638C88BB109E5C6A /* GitDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC97B1440980E92FE85562A7 /* GitDiff.swift */; };
 		D31094FDAF7E04158A12E36A /* TerminalSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */; };
 		D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80290449765DD56337BC111 /* SessionDisplayState.swift */; };
 		DE82574D984DD29D186D830E /* FuzzyMatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ECB69224974D220FDE98A6F /* FuzzyMatchTests.swift */; };
@@ -65,10 +81,13 @@
 		E4DC0CBC4D2AF6B039EA4CAE /* SandboxSwappableLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C5289486433C443554A730 /* SandboxSwappableLabel.swift */; };
 		E59234002788C97D87673134 /* CommandPaletteStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */; };
 		E683FFEFA9ABDC2A9EBA7BFE /* GitServiceIOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD1B34DE03C53E8107D1198 /* GitServiceIOTests.swift */; };
+		EFA489B4814F9C05DA2FC143 /* ManagedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */; };
 		F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */; };
+		F4A453326FC831DC7366EC95 /* DockerSandboxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1622DA6DFD20CF131CA7C123 /* DockerSandboxService.swift */; };
 		F62CE910810C831E5EB25298 /* ManagedFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */; };
 		F8BC8AFAE178685B5122ACFA /* TerminalSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */; };
 		FA522806246981A6680125A0 /* TermHubApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C465706A234D9B14263BEEDF /* TermHubApp.swift */; };
+		FD95302A4ABC8C41DC0B2847 /* MCPProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED29D3CD1EC6FFA980DC286B /* MCPProtocol.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -83,8 +102,10 @@
 
 /* Begin PBXFileReference section */
 		04093E0C76CFF2730B42B826 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		07B86822A7C4A8F9ADAEE1BA /* TermHubMCP */ = {isa = PBXFileReference; includeInIndex = 0; path = TermHubMCP; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolderTests.swift; sourceTree = "<group>"; };
 		0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeHeaderView.swift; sourceTree = "<group>"; };
+		11D11B253AE12BC540968C17 /* IPCServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCServer.swift; sourceTree = "<group>"; };
 		12C5380DC16B45138FCB73AA /* FolderSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSectionView.swift; sourceTree = "<group>"; };
 		1622DA6DFD20CF131CA7C123 /* DockerSandboxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockerSandboxService.swift; sourceTree = "<group>"; };
 		16E45C2731C99ADB695B3751 /* GitFileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitFileWatcher.swift; sourceTree = "<group>"; };
@@ -101,16 +122,19 @@
 		35FCD6AEA3D27254627DCB74 /* BranchInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchInfo.swift; sourceTree = "<group>"; };
 		3C8A71DCEDDF41556161E6B8 /* GitStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitStatus.swift; sourceTree = "<group>"; };
 		3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionTests.swift; sourceTree = "<group>"; };
+		3FE5D64EF6E39C3289FAC748 /* IPCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCClient.swift; sourceTree = "<group>"; };
 		45E29E797BAE827FD73FC191 /* TmuxServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxServiceTests.swift; sourceTree = "<group>"; };
 		4B36A08544BDCA24B09F7F72 /* FuzzyMatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatch.swift; sourceTree = "<group>"; };
 		503B8C574CFDAB867E3DA066 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
 		53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewBranchSheet.swift; sourceTree = "<group>"; };
 		5D7A8DD1F72A999696704D3F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		616E73419466D40DFD30DFAE /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		65DA0695D1865124B38B0457 /* BranchPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchPickerSheet.swift; sourceTree = "<group>"; };
 		66BC1F94C86B5BEF5E5C1B54 /* SessionRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRowView.swift; sourceTree = "<group>"; };
 		6874B0A2FAAF08F0DA5DE1CA /* CommandPaletteRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteRowView.swift; sourceTree = "<group>"; };
 		6BD1B34DE03C53E8107D1198 /* GitServiceIOTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitServiceIOTests.swift; sourceTree = "<group>"; };
 		7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		76CFF2B72082263B10619804 /* MCPTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPTools.swift; sourceTree = "<group>"; };
 		7E489949573E3CE4774C1757 /* ShellSplitButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellSplitButton.swift; sourceTree = "<group>"; };
 		7F3949FA374894F3DD12A156 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
 		7FBC75FFB3ACFF6FA8EC0974 /* SandboxManagerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxManagerPanel.swift; sourceTree = "<group>"; };
@@ -141,7 +165,9 @@
 		E1013B2E11F22771C770C920 /* DetailTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailTab.swift; sourceTree = "<group>"; };
 		E184F75BBAEAD51F534B2DA4 /* GitServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitServiceTests.swift; sourceTree = "<group>"; };
 		E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsSheet.swift; sourceTree = "<group>"; };
+		ED29D3CD1EC6FFA980DC286B /* MCPProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPProtocol.swift; sourceTree = "<group>"; };
 		ED8081D812A10F1B467E7978 /* SettingsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanel.swift; sourceTree = "<group>"; };
+		EEEB378B454E996FC3266EB0 /* IPCProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCProtocol.swift; sourceTree = "<group>"; };
 		F378CF74856DCCAF1093332A /* DiffTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffTableView.swift; sourceTree = "<group>"; };
 		F429369FC6F6D0A32E72B81C /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteStateTests.swift; sourceTree = "<group>"; };
@@ -211,6 +237,7 @@
 			isa = PBXGroup;
 			children = (
 				E0AC5E3E087609AE1FC208DC /* TermHub.app */,
+				07B86822A7C4A8F9ADAEE1BA /* TermHubMCP */,
 				28AD17721856C8A80790F5F0 /* TermHubTests.xctest */,
 			);
 			name = Products;
@@ -223,6 +250,8 @@
 				1622DA6DFD20CF131CA7C123 /* DockerSandboxService.swift */,
 				16E45C2731C99ADB695B3751 /* GitFileWatcher.swift */,
 				2305607A9F1189FC98956101 /* GitService.swift */,
+				EEEB378B454E996FC3266EB0 /* IPCProtocol.swift */,
+				11D11B253AE12BC540968C17 /* IPCServer.swift */,
 				F429369FC6F6D0A32E72B81C /* PersistenceService.swift */,
 				309C94FFFD305685DF84F204 /* TmuxService.swift */,
 			);
@@ -233,6 +262,7 @@
 			isa = PBXGroup;
 			children = (
 				D9CF638FD2C69646CA206BE4 /* TermHub */,
+				D165888D8CB30794FB97015C /* TermHubMCP */,
 				F7AA68CDA1ECE89EBAA7EEB7 /* TermHubTests */,
 				4F39B6F78541A743767D8AAD /* Products */,
 			);
@@ -278,6 +308,17 @@
 				C465706A234D9B14263BEEDF /* TermHubApp.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		D165888D8CB30794FB97015C /* TermHubMCP */ = {
+			isa = PBXGroup;
+			children = (
+				3FE5D64EF6E39C3289FAC748 /* IPCClient.swift */,
+				616E73419466D40DFD30DFAE /* main.swift */,
+				ED29D3CD1EC6FFA980DC286B /* MCPProtocol.swift */,
+				76CFF2B72082263B10619804 /* MCPTools.swift */,
+			);
+			path = TermHubMCP;
 			sourceTree = "<group>";
 		};
 		D9CF638FD2C69646CA206BE4 /* TermHub */ = {
@@ -401,6 +442,23 @@
 			productReference = E0AC5E3E087609AE1FC208DC /* TermHub.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F32B3925A2CE55D84AD99F84 /* TermHubMCP */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B2B4920F7C9C204B9C8745E /* Build configuration list for PBXNativeTarget "TermHubMCP" */;
+			buildPhases = (
+				6360522A67BB95FD2C42AA78 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TermHubMCP;
+			packageProductDependencies = (
+			);
+			productName = TermHubMCP;
+			productReference = 07B86822A7C4A8F9ADAEE1BA /* TermHubMCP */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -430,6 +488,7 @@
 			projectRoot = "";
 			targets = (
 				DDEB62360CD6D7D5372601FB /* TermHub */,
+				F32B3925A2CE55D84AD99F84 /* TermHubMCP */,
 				B4195AF813CAFFB98BD71625 /* TermHubTests */,
 			);
 		};
@@ -473,6 +532,8 @@
 				5198529BD63DD600883E60A7 /* GitFileWatcher.swift in Sources */,
 				5DFB49734D63E711E22CAC08 /* GitService.swift in Sources */,
 				58A799AEC2E9D7E27E33A727 /* GitStatus.swift in Sources */,
+				C9524BFE0769E21BC47564D9 /* IPCProtocol.swift in Sources */,
+				B1607AB6D3C6A822C7448745 /* IPCServer.swift in Sources */,
 				BA1CA5ACCDAAEA3E158B39C8 /* KeyboardShortcutsSheet.swift in Sources */,
 				54C04030545ACD76203F4E45 /* ManagedFolder.swift in Sources */,
 				21E8FE21B4A9CEB20CA876BD /* NewBranchSheet.swift in Sources */,
@@ -497,6 +558,30 @@
 				F8BC8AFAE178685B5122ACFA /* TerminalSessionManager.swift in Sources */,
 				952771C820508D521A3947CE /* TmuxService.swift in Sources */,
 				4D0062BE42AE108A8D2A22FE /* WorktreeHeaderView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6360522A67BB95FD2C42AA78 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				27DB07BF564DA1F9F6E61287 /* CommandRunner.swift in Sources */,
+				1DFA7A473FE2E0CBFEEB2636 /* DetailTab.swift in Sources */,
+				F4A453326FC831DC7366EC95 /* DockerSandboxService.swift in Sources */,
+				D0873C36638C88BB109E5C6A /* GitDiff.swift in Sources */,
+				67EAD9CF2C7D2664E3381329 /* GitService.swift in Sources */,
+				9B5126EE3D66E2FCB3BBE739 /* GitStatus.swift in Sources */,
+				9936487F651BBB312F0B8C7A /* IPCClient.swift in Sources */,
+				2832583ADD370008E1D81F99 /* IPCProtocol.swift in Sources */,
+				FD95302A4ABC8C41DC0B2847 /* MCPProtocol.swift in Sources */,
+				C6849834304375A07BC6068F /* MCPTools.swift in Sources */,
+				EFA489B4814F9C05DA2FC143 /* ManagedFolder.swift in Sources */,
+				3AC7154D2E48C07A02AD2C35 /* PersistenceService.swift in Sources */,
+				ADC5CEC7CEEE58FF789B7A36 /* SandboxInfo.swift in Sources */,
+				A52A38D8B4C5B7B87A8C08A0 /* ShellEnvironment.swift in Sources */,
+				406C8854CAC641A5AAC6662D /* TerminalSession.swift in Sources */,
+				2DC7B08A29D1A465BF2DAEF6 /* TmuxService.swift in Sources */,
+				4BEDB1AE3D7184594B0875D3 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -587,6 +672,23 @@
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
+		};
+		21B44820F07CA76C545ADA29 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.termhub.mcp;
+				PRODUCT_NAME = "termhub-mcp";
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
 		};
 		53B26AE8D5DE8816FFB57B48 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -735,6 +837,23 @@
 			};
 			name = Debug;
 		};
+		CF591A99DF82AFC0FE1DCBCF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.termhub.mcp;
+				PRODUCT_NAME = "termhub-mcp";
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -743,6 +862,15 @@
 			buildConfigurations = (
 				CEAEBCAAD6B4DA5DB8A85B8C /* Debug */,
 				BBC08FE5F4852E80FF8E7C93 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4B2B4920F7C9C204B9C8745E /* Build configuration list for PBXNativeTarget "TermHubMCP" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21B44820F07CA76C545ADA29 /* Debug */,
+				CF591A99DF82AFC0FE1DCBCF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

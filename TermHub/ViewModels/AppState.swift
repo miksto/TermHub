@@ -77,6 +77,7 @@ final class AppState {
     private var loadFailed = false
     @ObservationIgnored private var debouncedSaveWorkItem: DispatchWorkItem?
     @ObservationIgnored private let persistence: StatePersistence
+    @ObservationIgnored private var ipcServer: IPCServer?
 
     var optionAsMetaKey: Bool {
         didSet {
@@ -136,6 +137,10 @@ final class AppState {
             updateGitFileWatcher()
             refreshSandboxes()
             startSandboxPolling()
+
+            let server = IPCServer(appState: self)
+            server.start()
+            ipcServer = server
         }
     }
 
