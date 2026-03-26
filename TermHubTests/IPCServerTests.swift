@@ -325,6 +325,246 @@ struct IPCServerTests {
         #expect(response.error?.contains("Unknown action") == true)
     }
 
+    // MARK: - listSandboxes
+
+    @Test("listSandboxes returns empty array when no sandboxes")
+    @MainActor
+    func listSandboxesEmpty() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(action: "listSandboxes", params: nil)))
+        #expect(response.ok)
+        if case .array(let sandboxes) = response.data {
+            #expect(sandboxes.isEmpty)
+        } else {
+            Issue.record("Expected array data")
+        }
+    }
+
+    // MARK: - createSandbox
+
+    @Test("createSandbox fails when name is missing")
+    @MainActor
+    func createSandboxMissingName() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createSandbox",
+            params: ["workspaces": .array([.string("/tmp")])]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("name") == true)
+    }
+
+    @Test("createSandbox fails when workspaces is missing")
+    @MainActor
+    func createSandboxMissingWorkspaces() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createSandbox",
+            params: ["name": .string("test-sandbox")]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("workspaces") == true)
+    }
+
+    @Test("createSandbox fails when workspaces is empty")
+    @MainActor
+    func createSandboxEmptyWorkspaces() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createSandbox",
+            params: ["name": .string("test-sandbox"), "workspaces": .array([])]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("at least one") == true)
+    }
+
+    @Test("createSandbox fails for invalid agent")
+    @MainActor
+    func createSandboxInvalidAgent() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createSandbox",
+            params: [
+                "name": .string("test-sandbox"),
+                "agent": .string("invalid-agent"),
+                "workspaces": .array([.string("/tmp")]),
+            ]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("Invalid agent") == true)
+    }
+
+    // MARK: - stopSandbox
+
+    @Test("stopSandbox fails when name is missing")
+    @MainActor
+    func stopSandboxMissingName() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "stopSandbox",
+            params: [:]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("name") == true)
+    }
+
+    // MARK: - removeSandbox
+
+    @Test("removeSandbox fails when name is missing")
+    @MainActor
+    func removeSandboxMissingName() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "removeSandbox",
+            params: [:]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("name") == true)
+    }
+
+    // MARK: - createWorktree
+
+    @Test("createWorktree fails when folderPath is missing")
+    @MainActor
+    func createWorktreeMissingFolderPath() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createWorktree",
+            params: ["branch": .string("feature")]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("folderPath") == true)
+    }
+
+    @Test("createWorktree fails when branch is missing")
+    @MainActor
+    func createWorktreeMissingBranch() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createWorktree",
+            params: ["folderPath": .string("/tmp")]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("branch") == true)
+    }
+
+    @Test("createWorktree fails for unknown folder")
+    @MainActor
+    func createWorktreeUnknownFolder() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createWorktree",
+            params: ["folderPath": .string("/nonexistent"), "branch": .string("feature")]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("Folder not found") == true)
+    }
+
+    @Test("createWorktree fails for non-git folder")
+    @MainActor
+    func createWorktreeNonGitFolder() async {
+        let (server, state) = makeServerAndState()
+        state.addFolder(path: "/tmp")
+
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createWorktree",
+            params: ["folderPath": .string("/tmp"), "branch": .string("feature")]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("not a git repo") == true)
+    }
+
+    // MARK: - addSession with optional params
+
+    @Test("addSession with worktree and sandbox params")
+    @MainActor
+    func addSessionWithOptionalParams() async {
+        let (server, state) = makeServerAndState()
+        state.addFolder(path: "/tmp")
+
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "addSession",
+            params: [
+                "folderPath": .string("/tmp"),
+                "title": .string("worktree-session"),
+                "worktreePath": .string("/tmp/worktree"),
+                "branchName": .string("feature-branch"),
+                "sandboxName": .string("my-sandbox"),
+            ]
+        )))
+        #expect(response.ok)
+        let session = state.sessions.last!
+        #expect(session.title == "worktree-session")
+        #expect(session.worktreePath == "/tmp/worktree")
+        #expect(session.branchName == "feature-branch")
+        #expect(session.sandboxName == "my-sandbox")
+    }
+
+    @Test("addSession missing folderPath param")
+    @MainActor
+    func addSessionMissingFolderPath() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "addSession",
+            params: ["title": .string("test")]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("folderPath") == true)
+    }
+
+    // MARK: - removeSession with invalid UUID
+
+    @Test("removeSession fails for invalid UUID format")
+    @MainActor
+    func removeSessionInvalidUUID() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "removeSession",
+            params: ["sessionId": .string("not-a-uuid")]
+        )))
+        #expect(!response.ok)
+    }
+
+    // MARK: - selectSession with invalid UUID
+
+    @Test("selectSession fails for invalid UUID format")
+    @MainActor
+    func selectSessionInvalidUUID() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "selectSession",
+            params: ["sessionId": .string("not-a-uuid")]
+        )))
+        #expect(!response.ok)
+    }
+
+    // MARK: - removeFolder with invalid UUID
+
+    @Test("removeFolder fails for invalid UUID format")
+    @MainActor
+    func removeFolderInvalidUUID() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "removeFolder",
+            params: ["folderId": .string("not-a-uuid")]
+        )))
+        #expect(!response.ok)
+    }
+
     // MARK: - Invalid JSON
 
     @Test("invalid JSON returns error")

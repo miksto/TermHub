@@ -349,6 +349,18 @@ enum MCPTools {
         }
     }
 
+    // MARK: - Test Helpers
+
+    #if DEBUG
+    static func testJsonValueToIPCValue(_ value: JSONValue) -> IPCValue {
+        jsonValueToIPCValue(value)
+    }
+
+    static func testIpcValueToJSONValue(_ value: IPCValue) -> JSONValue {
+        ipcValueToJSONValue(value)
+    }
+    #endif
+
     // MARK: - Helpers
 
     private static func toolDef(
