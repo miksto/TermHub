@@ -51,6 +51,110 @@ struct IPCServerTests {
         }
     }
 
+    // MARK: - listSessions (filtered)
+
+    @Test("listSessions with folderId returns only matching sessions")
+    @MainActor
+    func listSessionsFilteredByFolder() async {
+        let (server, state) = makeServerAndState()
+        state.addFolder(path: "/tmp")
+        state.addFolder(path: "/var")
+        let folderID = state.folders[0].id
+
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "listSessions",
+            params: ["folderId": .string(folderID.uuidString)]
+        )))
+        #expect(response.ok)
+        if case .array(let sessions) = response.data {
+            #expect(sessions.count == 1)
+            if case .object(let session) = sessions[0] {
+                #expect(session["folderID"]?.stringValue == folderID.uuidString)
+            }
+        } else {
+            Issue.record("Expected array data")
+        }
+    }
+
+    @Test("listSessions without folderId returns all sessions")
+    @MainActor
+    func listSessionsUnfiltered() async {
+        let (server, state) = makeServerAndState()
+        state.addFolder(path: "/tmp")
+        state.addFolder(path: "/var")
+
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "listSessions",
+            params: nil
+        )))
+        #expect(response.ok)
+        if case .array(let sessions) = response.data {
+            #expect(sessions.count == 2)
+        } else {
+            Issue.record("Expected array data")
+        }
+    }
+
+    // MARK: - getWorkspaceOverview
+
+    @Test("getWorkspaceOverview returns folders, sessions, and sandboxes")
+    @MainActor
+    func getWorkspaceOverviewCombined() async {
+        let (server, state) = makeServerAndState()
+        state.addFolder(path: "/tmp")
+
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "getWorkspaceOverview",
+            params: nil
+        )))
+        #expect(response.ok)
+        if case .object(let data) = response.data {
+            if case .array(let folders) = data["folders"] {
+                #expect(folders.count == 1)
+            } else {
+                Issue.record("Expected folders array")
+            }
+            if case .array(let sessions) = data["sessions"] {
+                #expect(sessions.count == 1)
+            } else {
+                Issue.record("Expected sessions array")
+            }
+            if case .array(let sandboxes) = data["sandboxes"] {
+                #expect(sandboxes.isEmpty)
+            } else {
+                Issue.record("Expected sandboxes array")
+            }
+        } else {
+            Issue.record("Expected object data")
+        }
+    }
+
+    @Test("getWorkspaceOverview returns empty arrays when no data")
+    @MainActor
+    func getWorkspaceOverviewEmpty() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "getWorkspaceOverview",
+            params: nil
+        )))
+        #expect(response.ok)
+        if case .object(let data) = response.data {
+            if case .array(let folders) = data["folders"] {
+                #expect(folders.isEmpty)
+            }
+            if case .array(let sessions) = data["sessions"] {
+                #expect(sessions.isEmpty)
+            }
+            if case .array(let sandboxes) = data["sandboxes"] {
+                #expect(sandboxes.isEmpty)
+            }
+        } else {
+            Issue.record("Expected object data")
+        }
+    }
+
     // MARK: - listFolders
 
     @Test("listFolders returns empty array when no folders")
