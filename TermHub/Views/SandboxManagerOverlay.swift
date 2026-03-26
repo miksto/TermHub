@@ -411,81 +411,91 @@ struct SandboxManagerOverlay: View {
     // MARK: - Create Form
 
     private var createForm: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("New Sandbox")
-                    .font(.title3.weight(.semibold))
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("New Sandbox")
+                        .font(.title3.weight(.semibold))
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Name")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextField("my-sandbox", text: $newSandboxName)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(maxWidth: 280)
-                }
+                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 12) {
+                        GridRow(alignment: .firstTextBaseline) {
+                            Text("Name")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            TextField("my-sandbox", text: $newSandboxName)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(maxWidth: 280)
+                        }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Agent")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Picker("", selection: $newSandboxAgent) {
-                        ForEach(SandboxAgent.allCases, id: \.self) { agent in
-                            Text(agent.displayName).tag(agent)
+                        GridRow(alignment: .firstTextBaseline) {
+                            Text("Agent")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            Picker("", selection: $newSandboxAgent) {
+                                ForEach(SandboxAgent.allCases, id: \.self) { agent in
+                                    Text(agent.displayName).tag(agent)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(maxWidth: 280)
                         }
                     }
-                    .labelsHidden()
-                    .frame(maxWidth: 280)
-                }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Mapped Folders")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Mapped Folders")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(.secondary)
 
-                    if !newSandboxWorkspaces.isEmpty {
-                        ForEach(Array(newSandboxWorkspaces.enumerated()), id: \.offset) { index, path in
-                            HStack(spacing: 8) {
-                                Image(systemName: "folder.fill")
-                                    .foregroundStyle(.secondary)
-                                    .font(.caption)
-                                Text(shortenPath(path))
-                                    .font(.callout)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                Spacer()
-                                Button {
-                                    newSandboxWorkspaces.remove(at: index)
-                                } label: {
-                                    Image(systemName: "minus.circle.fill")
-                                        .foregroundStyle(.red.opacity(0.7))
+                        if !newSandboxWorkspaces.isEmpty {
+                            ForEach(Array(newSandboxWorkspaces.enumerated()), id: \.offset) { index, path in
+                                HStack(spacing: 8) {
+                                    Image(systemName: "folder.fill")
+                                        .foregroundStyle(.secondary)
+                                        .font(.caption)
+                                    Text(shortenPath(path))
+                                        .font(.callout)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                    Spacer()
+                                    Button {
+                                        newSandboxWorkspaces.remove(at: index)
+                                    } label: {
+                                        Image(systemName: "minus.circle.fill")
+                                            .foregroundStyle(.red.opacity(0.7))
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
-                    }
 
-                    Button {
-                        addFolder()
-                    } label: {
-                        Label("Add Folder", systemImage: "plus.circle")
-                            .font(.callout)
+                        Button {
+                            addFolder()
+                        } label: {
+                            Label("Add Folder", systemImage: "plus.circle")
+                                .font(.callout)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
-
-                HStack(spacing: 12) {
-                    Spacer()
-                    Button("Cancel") {
-                        isCreatingNew = false
-                        autoSelect()
-                    }
-                    Button("Create") { submitCreateForm() }
-                        .disabled(!canCreate)
-                        .keyboardShortcut(.defaultAction)
-                }
+                .padding(20)
             }
-            .padding(20)
+
+            Divider()
+
+            HStack(spacing: 12) {
+                Spacer()
+                Button("Cancel") {
+                    isCreatingNew = false
+                    autoSelect()
+                }
+                Button("Create") { submitCreateForm() }
+                    .disabled(!canCreate)
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
         }
     }
 
