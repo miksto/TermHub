@@ -128,7 +128,7 @@ final class IPCServer {
         })
     }
 
-    private func handleRequest(data: Data) async -> IPCResponse {
+    func handleRequest(data: Data) async -> IPCResponse {
         guard let request = try? JSONDecoder().decode(IPCRequest.self, from: data) else {
             return .failure("Invalid JSON request")
         }
