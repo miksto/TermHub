@@ -417,12 +417,11 @@ struct SandboxManagerOverlay: View {
                     Text("New Sandbox")
                         .font(.title3.weight(.semibold))
 
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 12) {
+                    Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
                         GridRow(alignment: .firstTextBaseline) {
                             Text("Name")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .trailing)
                             TextField("my-sandbox", text: $newSandboxName)
                                 .textFieldStyle(.roundedBorder)
                                 .frame(maxWidth: 280)
@@ -432,14 +431,12 @@ struct SandboxManagerOverlay: View {
                             Text("Agent")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .trailing)
                             Picker("", selection: $newSandboxAgent) {
                                 ForEach(SandboxAgent.allCases, id: \.self) { agent in
                                     Text(agent.displayName).tag(agent)
                                 }
                             }
                             .labelsHidden()
-                            .frame(maxWidth: 280)
                         }
                     }
 
@@ -450,7 +447,7 @@ struct SandboxManagerOverlay: View {
 
                         if !newSandboxWorkspaces.isEmpty {
                             ForEach(Array(newSandboxWorkspaces.enumerated()), id: \.offset) { index, path in
-                                HStack(spacing: 8) {
+                                HStack(spacing: 6) {
                                     Image(systemName: "folder.fill")
                                         .foregroundStyle(.secondary)
                                         .font(.caption)
@@ -458,7 +455,6 @@ struct SandboxManagerOverlay: View {
                                         .font(.callout)
                                         .lineLimit(1)
                                         .truncationMode(.middle)
-                                    Spacer()
                                     Button {
                                         newSandboxWorkspaces.remove(at: index)
                                     } label: {
@@ -468,6 +464,10 @@ struct SandboxManagerOverlay: View {
                                     .buttonStyle(.plain)
                                 }
                             }
+                        } else {
+                            Text("At least one folder is required.")
+                                .font(.callout)
+                                .foregroundStyle(.tertiary)
                         }
 
                         Button {
