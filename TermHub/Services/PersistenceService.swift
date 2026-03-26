@@ -58,7 +58,8 @@ final class DiskPersistence: StatePersistence {
             folders: result.folders,
             sessions: result.sessions,
             selectedSessionID: result.selectedSessionID,
-            sessionMRUOrder: result.sessionMRUOrder
+            sessionMRUOrder: result.sessionMRUOrder,
+            sandboxEnvironmentKeys: result.sandboxEnvironmentKeys
         )
     }
 
@@ -118,14 +119,14 @@ enum PersistenceService {
 
     static func load(
         from url: URL
-    ) throws -> (folders: [ManagedFolder], sessions: [TerminalSession], selectedSessionID: UUID?, sessionMRUOrder: [UUID]) {
+    ) throws -> (folders: [ManagedFolder], sessions: [TerminalSession], selectedSessionID: UUID?, sessionMRUOrder: [UUID], sandboxEnvironmentKeys: [String: [String]]) {
         guard FileManager.default.fileExists(atPath: url.path) else {
-            return (folders: [], sessions: [], selectedSessionID: nil, sessionMRUOrder: [])
+            return (folders: [], sessions: [], selectedSessionID: nil, sessionMRUOrder: [], sandboxEnvironmentKeys: [:])
         }
         do {
             let data = try Data(contentsOf: url)
             let state = try JSONDecoder().decode(PersistedState.self, from: data)
-            return (folders: state.folders, sessions: state.sessions, selectedSessionID: state.selectedSessionID, sessionMRUOrder: state.sessionMRUOrder ?? [])
+            return (folders: state.folders, sessions: state.sessions, selectedSessionID: state.selectedSessionID, sessionMRUOrder: state.sessionMRUOrder ?? [], sandboxEnvironmentKeys: state.sandboxEnvironmentKeys ?? [:])
         } catch {
             throw PersistenceError.decodingFailed(error)
         }
