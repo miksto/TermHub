@@ -66,6 +66,8 @@ final class AppState {
     var showSandboxManager = false
     var sandboxes: [SandboxInfo] = []
     var sandboxOperationInProgress: Set<String> = []
+    /// Per-sandbox environment variable names to forward from the host into sandbox shells.
+    var sandboxEnvironmentKeys: [String: [String]] = [:]
     private var sandboxRefreshTimer: Timer?
     var currentDiff: GitDiff?
     var isDiffLoading = false
@@ -436,6 +438,25 @@ final class AppState {
         }
     }
 
+    func environmentKeysForSandbox(_ name: String) -> [String] {
+        sandboxEnvironmentKeys[name] ?? []
+    }
+
+    func setSandboxEnvironmentKeys(_ keys: [String], for sandboxName: String) {
+        if keys.isEmpty {
+            sandboxEnvironmentKeys.removeValue(forKey: sandboxName)
+        } else {
+            sandboxEnvironmentKeys[sandboxName] = keys
+        }
+        saveState()
+    }
+
+    /// Resolves the configured environment variable names for a sandbox to their current host values.
+    func resolvedEnvironmentVariables(for sandboxName: String) -> [String: String] {
+        let keys = environmentKeysForSandbox(sandboxName)
+        return DockerSandboxService.resolveEnvironmentVariables(keys: keys)
+    }
+
     private func startSandboxPolling() {
         sandboxRefreshTimer?.invalidate()
         sandboxRefreshTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
@@ -596,7 +617,11 @@ final class AppState {
         let sessionsSnapshot = sessions.map { session -> (name: String, cwd: String, shellCommand: String?) in
             let cwd = session.worktreePath ?? session.workingDirectory
             let shellCommand: String? = if let sandboxName = session.sandboxName {
-                DockerSandboxService.execCommand(sandboxName: sandboxName, cwd: cwd)
+                DockerSandboxService.execCommand(
+                    sandboxName: sandboxName,
+                    cwd: cwd,
+                    environmentVariables: resolvedEnvironmentVariables(for: sandboxName)
+                )
             } else {
                 nil
             }
@@ -815,6 +840,7 @@ final class AppState {
             let missing = allSessionIDsOrdered.filter { !persisted.contains($0) }
             sessionMRUOrder = persisted + missing
             selectedSessionID = state.selectedSessionID
+            sandboxEnvironmentKeys = state.sandboxEnvironmentKeys ?? [:]
             sessionListVersion += 1
         } catch {
             loadFailed = true
@@ -831,7 +857,8 @@ final class AppState {
             folders: folders,
             sessions: sessions,
             selectedSessionID: selectedSessionID,
-            sessionMRUOrder: sessionMRUOrder
+            sessionMRUOrder: sessionMRUOrder,
+            sandboxEnvironmentKeys: sandboxEnvironmentKeys.isEmpty ? nil : sandboxEnvironmentKeys
         )
         let persistence = self.persistence
         persistence.scheduleWrite {

@@ -58,16 +58,43 @@ enum DockerSandboxService {
         return name.wholeMatch(of: pattern) != nil
     }
 
+    /// Environment variable keys must start with a letter or underscore, followed by `[a-zA-Z0-9_]`.
+    static func isValidEnvVarKey(_ key: String) -> Bool {
+        let pattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+        return key.wholeMatch(of: pattern) != nil
+    }
+
+    /// Resolves environment variable names to their current values from the host environment.
+    /// Keys that are not set on the host or have invalid names are skipped.
+    static func resolveEnvironmentVariables(keys: [String]) -> [String: String] {
+        let hostEnv = ProcessInfo.processInfo.environment
+        var result: [String: String] = [:]
+        for key in keys {
+            guard isValidEnvVarKey(key), let value = hostEnv[key] else { continue }
+            result[key] = value
+        }
+        return result
+    }
+
     /// Returns the shell command string for tmux to execute inside a sandbox.
-    static func execCommand(sandboxName: String, cwd: String) -> String {
+    static func execCommand(sandboxName: String, cwd: String, environmentVariables: [String: String] = [:]) -> String {
         guard let docker = resolvedDockerPath else {
             return "echo 'docker not found'; exit 1"
         }
         guard isValidSandboxName(sandboxName) else {
             return "echo 'Invalid sandbox name'; exit 1"
         }
+        let envFlags = environmentVariables
+            .sorted(by: { $0.key < $1.key })
+            .compactMap { key, value -> String? in
+                guard isValidEnvVarKey(key) else { return nil }
+                let escapedValue = value.replacingOccurrences(of: "'", with: "'\\''")
+                return "-e '\(key)=\(escapedValue)'"
+            }
+            .joined(separator: " ")
         let escapedCwd = cwd.replacingOccurrences(of: "'", with: "'\\''")
-        return "\(docker) sandbox exec -it \(sandboxName) bash -c 'cd \(escapedCwd) && exec bash'"
+        let envPart = envFlags.isEmpty ? "" : " \(envFlags)"
+        return "\(docker) sandbox exec\(envPart) -it \(sandboxName) bash -c 'cd \(escapedCwd) && exec bash'"
     }
 
     // MARK: - Lifecycle Methods

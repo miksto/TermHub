@@ -10,6 +10,8 @@ struct SandboxManagerOverlay: View {
     @State private var panelSize = CGSize(width: 760, height: 500)
     @State private var dragStartSize = CGSize.zero
     @State private var dragStartLocation = CGPoint.zero
+    @State private var expandedEnvSandbox: String?
+    @State private var newEnvVarName = ""
 
     private let minSize = CGSize(width: 760, height: 500)
     private let maxSize = CGSize(width: 1200, height: 900)
@@ -285,69 +287,145 @@ struct SandboxManagerOverlay: View {
     private func tableRow(_ entry: SandboxEntry) -> some View {
         let isInProgress = appState.sandboxOperationInProgress.contains(entry.name)
         let sandboxSessions = sessionsForSandbox(entry)
+        let isExpanded = expandedEnvSandbox == entry.name
 
-        return HStack(spacing: 12) {
-            // Name
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(statusColor(entry: entry))
-                    .frame(width: 10, height: 10)
-                Text(entry.name)
-                    .lineLimit(1)
-            }
-            .frame(width: 130, alignment: .leading)
+        return VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                // Name
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(statusColor(entry: entry))
+                        .frame(width: 10, height: 10)
+                    Text(entry.name)
+                        .lineLimit(1)
+                }
+                .frame(width: 130, alignment: .leading)
 
-            // Status
-            Text(statusText(entry: entry))
-                .foregroundStyle(.secondary)
-                .frame(width: 60, alignment: .leading)
+                // Status
+                Text(statusText(entry: entry))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 60, alignment: .leading)
 
-            // Agent
-            Text(entry.info?.agent ?? "—")
-                .foregroundStyle(.secondary)
-                .frame(width: 50, alignment: .leading)
+                // Agent
+                Text(entry.info?.agent ?? "—")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 50, alignment: .leading)
 
-            // Folders (workspaces from Docker)
-            VStack(alignment: .leading, spacing: 2) {
-                let workspaces = entry.info?.workspaces ?? []
-                if workspaces.isEmpty {
-                    Text("—")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(workspaces, id: \.self) { path in
-                        Text(path)
+                // Folders (workspaces from Docker)
+                VStack(alignment: .leading, spacing: 2) {
+                    let workspaces = entry.info?.workspaces ?? []
+                    if workspaces.isEmpty {
+                        Text("—")
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+                    } else {
+                        ForEach(workspaces, id: \.self) { path in
+                            Text(path)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Sessions
+                VStack(alignment: .leading, spacing: 2) {
+                    if sandboxSessions.isEmpty {
+                        Text("—")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(sandboxSessions) { session in
+                            Text(session.title)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Actions
+                actionsCell(entry: entry, isInProgress: isInProgress)
+                    .frame(width: 50, alignment: .trailing)
+            }
+            .font(.callout)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if isExpanded {
+                        expandedEnvSandbox = nil
+                    } else {
+                        expandedEnvSandbox = entry.name
+                        newEnvVarName = ""
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Sessions
-            VStack(alignment: .leading, spacing: 2) {
-                if sandboxSessions.isEmpty {
-                    Text("—")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(sandboxSessions) { session in
-                        Text(session.title)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                }
+            if isExpanded {
+                envVarsSection(sandboxName: entry.name)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Actions
-            actionsCell(entry: entry, isInProgress: isInProgress)
-                .frame(width: 50, alignment: .trailing)
         }
-        .font(.callout)
+    }
+
+    private func envVarsSection(sandboxName: String) -> some View {
+        let keys = appState.environmentKeysForSandbox(sandboxName)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Host Environment Variables")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+
+            if keys.isEmpty {
+                Text("No environment variables configured.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            } else {
+                ForEach(keys, id: \.self) { key in
+                    HStack(spacing: 6) {
+                        Text(key)
+                            .font(.caption.monospaced())
+                        Spacer()
+                        Button {
+                            var updated = keys
+                            updated.removeAll { $0 == key }
+                            appState.setSandboxEnvironmentKeys(updated, for: sandboxName)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.red.opacity(0.7))
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .frame(width: 220)
+                }
+            }
+
+            HStack(spacing: 8) {
+                TextField("VAR_NAME", text: $newEnvVarName)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption.monospaced())
+                    .frame(width: 180)
+                    .onSubmit { addEnvVar(to: sandboxName, keys: keys) }
+
+                Button("Add") { addEnvVar(to: sandboxName, keys: keys) }
+                    .disabled(!DockerSandboxService.isValidEnvVarKey(newEnvVarName) || keys.contains(newEnvVarName))
+                    .font(.caption)
+            }
+        }
         .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
+        .padding(.bottom, 10)
+        .padding(.leading, 30)
+    }
+
+    private func addEnvVar(to sandboxName: String, keys: [String]) {
+        let name = newEnvVarName.trimmingCharacters(in: .whitespaces)
+        guard DockerSandboxService.isValidEnvVarKey(name), !keys.contains(name) else { return }
+        var updated = keys
+        updated.append(name)
+        appState.setSandboxEnvironmentKeys(updated, for: sandboxName)
+        newEnvVarName = ""
     }
 
     private func sessionsForSandbox(_ entry: SandboxEntry) -> [TerminalSession] {

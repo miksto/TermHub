@@ -378,7 +378,12 @@ class TerminalContainerViewController: NSViewController {
             }
 
             (terminal as? TermHubTerminalView)?.isVisible = true
-            manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
+            let sandboxEnvVars: [String: String] = if let sandboxName = session.sandboxName {
+                appState.resolvedEnvironmentVariables(for: sandboxName)
+            } else {
+                [:]
+            }
+            manager.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable, sandboxEnvironmentVariables: sandboxEnvVars)
         }
 
         updateTabState(selectedID: selectedID, suppressInteraction: suppressInteraction)

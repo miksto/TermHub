@@ -88,4 +88,41 @@ struct PersistenceServiceTests {
         #expect(loaded.sessions[1].branchName == "feature/x")
         #expect(loaded.sessions[1].worktreePath == "/tmp/repo2-feature")
     }
+
+    @Test("sandboxEnvironmentKeys round-trip")
+    func sandboxEnvironmentKeysRoundTrip() throws {
+        let url = makeTempURL()
+        defer { cleanup(url) }
+
+        let state = PersistedState(
+            folders: [],
+            sessions: [],
+            selectedSessionID: nil,
+            sessionMRUOrder: nil,
+            sandboxEnvironmentKeys: ["my-sandbox": ["NODE_ENV", "DEBUG", "API_KEY"]]
+        )
+        try PersistenceService.save(state: state, to: url)
+
+        let data = try Data(contentsOf: url)
+        let loaded = try JSONDecoder().decode(PersistedState.self, from: data)
+        #expect(loaded.sandboxEnvironmentKeys == ["my-sandbox": ["NODE_ENV", "DEBUG", "API_KEY"]])
+    }
+
+    @Test("sandboxEnvironmentKeys defaults to nil when missing from JSON")
+    func sandboxEnvironmentKeysBackwardCompat() throws {
+        let url = makeTempURL()
+        defer { cleanup(url) }
+
+        // Save state without sandboxEnvironmentKeys (simulating old format)
+        let json = """
+        {"folders":[],"sessions":[],"sessionMRUOrder":[]}
+        """
+        let dir = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data(json.utf8).write(to: url)
+
+        let data = try Data(contentsOf: url)
+        let loaded = try JSONDecoder().decode(PersistedState.self, from: data)
+        #expect(loaded.sandboxEnvironmentKeys == nil)
+    }
 }

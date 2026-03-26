@@ -66,6 +66,69 @@ struct DockerSandboxServiceTests {
         DockerSandboxService.dockerPathOverride = fakeDockerPath
     }
 
+    // MARK: - isValidEnvVarKey
+
+    @Test("isValidEnvVarKey accepts valid keys")
+    func validEnvVarKeys() {
+        #expect(DockerSandboxService.isValidEnvVarKey("HOME") == true)
+        #expect(DockerSandboxService.isValidEnvVarKey("NODE_ENV") == true)
+        #expect(DockerSandboxService.isValidEnvVarKey("_PRIVATE") == true)
+        #expect(DockerSandboxService.isValidEnvVarKey("a") == true)
+        #expect(DockerSandboxService.isValidEnvVarKey("PATH123") == true)
+    }
+
+    @Test("isValidEnvVarKey rejects invalid keys")
+    func invalidEnvVarKeys() {
+        #expect(DockerSandboxService.isValidEnvVarKey("") == false)
+        #expect(DockerSandboxService.isValidEnvVarKey("123BAD") == false)
+        #expect(DockerSandboxService.isValidEnvVarKey("has-dash") == false)
+        #expect(DockerSandboxService.isValidEnvVarKey("has space") == false)
+        #expect(DockerSandboxService.isValidEnvVarKey("has.dot") == false)
+    }
+
+    // MARK: - execCommand with environment variables
+
+    @Test("execCommand includes environment variable flags")
+    func execCommandWithEnvVars() {
+        let cmd = DockerSandboxService.execCommand(
+            sandboxName: "test-sb",
+            cwd: "/home/user/project",
+            environmentVariables: ["NODE_ENV": "development", "DEBUG": "true"]
+        )
+        #expect(cmd.contains("-e 'DEBUG=true'"))
+        #expect(cmd.contains("-e 'NODE_ENV=development'"))
+        #expect(cmd.contains("sandbox exec -e"))
+        #expect(cmd.contains("-it test-sb"))
+    }
+
+    @Test("execCommand escapes single quotes in env var values")
+    func execCommandEnvVarEscaping() {
+        let cmd = DockerSandboxService.execCommand(
+            sandboxName: "sb",
+            cwd: "/tmp",
+            environmentVariables: ["MSG": "it's working"]
+        )
+        #expect(cmd.contains("-e 'MSG=it'\\''s working'"))
+    }
+
+    @Test("execCommand skips invalid env var keys")
+    func execCommandInvalidEnvKey() {
+        let cmd = DockerSandboxService.execCommand(
+            sandboxName: "sb",
+            cwd: "/tmp",
+            environmentVariables: ["VALID_KEY": "ok", "invalid-key": "skip", "123bad": "skip"]
+        )
+        #expect(cmd.contains("VALID_KEY"))
+        #expect(!cmd.contains("invalid-key"))
+        #expect(!cmd.contains("123bad"))
+    }
+
+    @Test("execCommand with empty env vars matches original format")
+    func execCommandEmptyEnvVars() {
+        let cmd = DockerSandboxService.execCommand(sandboxName: "test-sb", cwd: "/tmp", environmentVariables: [:])
+        #expect(cmd.contains("sandbox exec -it test-sb"))
+    }
+
     // MARK: - listSandboxes
 
     @Test("listSandboxes parses JSON response")

@@ -48,7 +48,8 @@ final class TerminalSessionManager {
     }
 
     /// Start the shell/tmux process. Must be called after the view is in the window hierarchy.
-    func startProcessIfNeeded(for session: TerminalSession, tmuxAvailable: Bool) {
+    /// `sandboxEnvironmentVariables` are resolved host env vars to pass via `-e` flags to `docker sandbox exec`.
+    func startProcessIfNeeded(for session: TerminalSession, tmuxAvailable: Bool, sandboxEnvironmentVariables: [String: String] = [:]) {
         guard !startedSessions.contains(session.id) else { return }
         guard let terminal = terminals[session.id] else { return }
         guard terminal.window != nil else {
@@ -62,8 +63,9 @@ final class TerminalSessionManager {
             startRetryCount[session.id] = retries + 1
             let session = session
             let tmuxAvailable = tmuxAvailable
+            let sandboxEnvironmentVariables = sandboxEnvironmentVariables
             DispatchQueue.main.async { [weak self] in
-                self?.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable)
+                self?.startProcessIfNeeded(for: session, tmuxAvailable: tmuxAvailable, sandboxEnvironmentVariables: sandboxEnvironmentVariables)
             }
             return
         }
@@ -78,7 +80,7 @@ final class TerminalSessionManager {
             let pendingCommand = pendingCommands.removeValue(forKey: session.id)
             let env = ShellEnvironment.shellEnvironment
             let sandboxCmd: String? = if let sandboxName = session.sandboxName {
-                DockerSandboxService.execCommand(sandboxName: sandboxName, cwd: cwd)
+                DockerSandboxService.execCommand(sandboxName: sandboxName, cwd: cwd, environmentVariables: sandboxEnvironmentVariables)
             } else {
                 nil
             }

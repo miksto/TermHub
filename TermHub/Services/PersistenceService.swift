@@ -22,6 +22,8 @@ struct PersistedState: Codable {
     var sessions: [TerminalSession]
     var selectedSessionID: UUID?
     var sessionMRUOrder: [UUID]?
+    /// Per-sandbox environment variable names to forward from the host. Keyed by sandbox name.
+    var sandboxEnvironmentKeys: [String: [String]]?
 }
 
 /// Abstraction over state persistence so AppState can be tested without touching disk.
