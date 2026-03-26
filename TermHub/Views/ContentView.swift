@@ -28,11 +28,14 @@ struct ContentView: View {
             )) {
                 KeyboardShortcutsSheet()
             }
-            .sheet(isPresented: Binding(
-                get: { appState.showSettings },
-                set: { appState.showSettings = $0 }
-            )) {
-                SettingsSheet()
+            .onChange(of: appState.showSettings) { _, show in
+                if show {
+                    if let window = NSApp.mainWindow {
+                        SettingsPanel.show(in: window, appState: appState)
+                    }
+                } else {
+                    SettingsPanel.dismiss()
+                }
             }
             .sheet(
                 isPresented: Binding(

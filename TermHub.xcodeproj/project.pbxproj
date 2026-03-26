@@ -46,10 +46,12 @@
 		7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9636C089AF563FC8C56018 /* SidebarView.swift */; };
 		870E7673914A54A99132975A /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503B8C574CFDAB867E3DA066 /* AppStateTests.swift */; };
 		8D141737EB79FF562BB85632 /* PersistenceServiceExtendedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A057686A8267AA160F36EDCE /* PersistenceServiceExtendedTests.swift */; };
+		8F874B04E394BDF09818F1DB /* SettingsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0366166774513CC87948DE2 /* SettingsOverlay.swift */; };
 		952771C820508D521A3947CE /* TmuxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C94FFFD305685DF84F204 /* TmuxService.swift */; };
 		9C8CAF8F640A638B205D5C5F /* DiffStatsText.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */; };
 		9D846EA7A502E143B31F0D37 /* FolderSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C5380DC16B45138FCB73AA /* FolderSectionView.swift */; };
 		A05F2B6731E1397B48995382 /* DockerSandboxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1622DA6DFD20CF131CA7C123 /* DockerSandboxService.swift */; };
+		A49529E2C95A9F9BCF28ABBD /* SettingsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED8081D812A10F1B467E7978 /* SettingsPanel.swift */; };
 		B3051C5B1DD678028A3D3CB6 /* CommandPaletteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6874B0A2FAAF08F0DA5DE1CA /* CommandPaletteRowView.swift */; };
 		BA1CA5ACCDAAEA3E158B39C8 /* KeyboardShortcutsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */; };
 		BAC7EF2C824ADCFD8D02CA1F /* TmuxServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E29E797BAE827FD73FC191 /* TmuxServiceTests.swift */; };
@@ -63,7 +65,6 @@
 		E4DC0CBC4D2AF6B039EA4CAE /* SandboxSwappableLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C5289486433C443554A730 /* SandboxSwappableLabel.swift */; };
 		E59234002788C97D87673134 /* CommandPaletteStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */; };
 		E683FFEFA9ABDC2A9EBA7BFE /* GitServiceIOTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD1B34DE03C53E8107D1198 /* GitServiceIOTests.swift */; };
-		E7C91AB104510F74A1EA48EB /* SettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0602F68D6F5CA5007FFF527D /* SettingsSheet.swift */; };
 		F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */; };
 		F62CE910810C831E5EB25298 /* ManagedFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */; };
 		F8BC8AFAE178685B5122ACFA /* TerminalSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */; };
@@ -82,7 +83,6 @@
 
 /* Begin PBXFileReference section */
 		04093E0C76CFF2730B42B826 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		0602F68D6F5CA5007FFF527D /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
 		0A0A080F38F2D1CAB9B9257E /* ManagedFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolderTests.swift; sourceTree = "<group>"; };
 		0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorktreeHeaderView.swift; sourceTree = "<group>"; };
 		12C5380DC16B45138FCB73AA /* FolderSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSectionView.swift; sourceTree = "<group>"; };
@@ -125,6 +125,7 @@
 		A4792E5D9882521F85544D02 /* AppStateExtendedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateExtendedTests.swift; sourceTree = "<group>"; };
 		A4C5289486433C443554A730 /* SandboxSwappableLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxSwappableLabel.swift; sourceTree = "<group>"; };
 		A8DA80D5DF6673B1A0F4BC83 /* TermHub.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TermHub.entitlements; sourceTree = "<group>"; };
+		B0366166774513CC87948DE2 /* SettingsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsOverlay.swift; sourceTree = "<group>"; };
 		B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSwitcherOverlay.swift; sourceTree = "<group>"; };
 		B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionManager.swift; sourceTree = "<group>"; };
 		B78850034F1F4AB68C28F9C5 /* SandboxPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxPickerSheet.swift; sourceTree = "<group>"; };
@@ -140,6 +141,7 @@
 		E1013B2E11F22771C770C920 /* DetailTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailTab.swift; sourceTree = "<group>"; };
 		E184F75BBAEAD51F534B2DA4 /* GitServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitServiceTests.swift; sourceTree = "<group>"; };
 		E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsSheet.swift; sourceTree = "<group>"; };
+		ED8081D812A10F1B467E7978 /* SettingsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanel.swift; sourceTree = "<group>"; };
 		F378CF74856DCCAF1093332A /* DiffTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffTableView.swift; sourceTree = "<group>"; };
 		F429369FC6F6D0A32E72B81C /* PersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceService.swift; sourceTree = "<group>"; };
 		F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteStateTests.swift; sourceTree = "<group>"; };
@@ -166,7 +168,6 @@
 				E51CD948ADD63688ABE7D989 /* KeyboardShortcutsSheet.swift */,
 				53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */,
 				B78850034F1F4AB68C28F9C5 /* SandboxPickerSheet.swift */,
-				0602F68D6F5CA5007FFF527D /* SettingsSheet.swift */,
 			);
 			path = Sheets;
 			sourceTree = "<group>";
@@ -244,6 +245,8 @@
 				8FC57A280AF71DCCAABE813F /* SandboxManagerOverlay.swift */,
 				7FBC75FFB3ACFF6FA8EC0974 /* SandboxManagerPanel.swift */,
 				B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */,
+				B0366166774513CC87948DE2 /* SettingsOverlay.swift */,
+				ED8081D812A10F1B467E7978 /* SettingsPanel.swift */,
 				F49056157884467DA4ED6D14 /* CommandPalette */,
 				2A3275DFE89066C04675DD25 /* Detail */,
 				18BDB0790594BFAE255CFBEE /* Sheets */,
@@ -482,7 +485,8 @@
 				D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */,
 				2B1A1906A7B701772879905D /* SessionRowView.swift in Sources */,
 				F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */,
-				E7C91AB104510F74A1EA48EB /* SettingsSheet.swift in Sources */,
+				8F874B04E394BDF09818F1DB /* SettingsOverlay.swift in Sources */,
+				A49529E2C95A9F9BCF28ABBD /* SettingsPanel.swift in Sources */,
 				01DD14CA14BF6A73A8AEE59E /* ShellEnvironment.swift in Sources */,
 				26B3CE119D9422059C4CB11F /* ShellSplitButton.swift in Sources */,
 				7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */,

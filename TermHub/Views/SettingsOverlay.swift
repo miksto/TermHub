@@ -1,13 +1,26 @@
 import SwiftUI
 
-struct SettingsSheet: View {
-    @Environment(\.dismiss) private var dismiss
+struct SettingsOverlay: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
+        ZStack {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+                .onTapGesture { dismiss() }
+
+            panel
+                .frame(width: 400, height: 320)
+                .background(.ultraThickMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(radius: 30, y: 10)
+        }
+    }
+
+    private var panel: some View {
         @Bindable var appState = appState
 
-        VStack(spacing: 0) {
+        return VStack(spacing: 0) {
             Text("Settings")
                 .font(.headline)
                 .padding(.top, 20)
@@ -33,6 +46,9 @@ struct SettingsSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .padding(.bottom, 20)
         }
-        .frame(width: 400, height: 320)
+    }
+
+    private func dismiss() {
+        appState.showSettings = false
     }
 }
