@@ -109,7 +109,7 @@ func extractMessage(from buffer: Data, decoder: JSONDecoder) -> (JSONRPCRequest,
     let lengthStr = lengthLine.split(separator: ":").last?.trimmingCharacters(in: .whitespaces) ?? ""
     guard let contentLength = Int(lengthStr), contentLength > 0 else { return nil }
 
-    let headerSize = str.distance(from: str.startIndex, to: headerEnd.upperBound)
+    let headerSize = str.utf8.distance(from: str.utf8.startIndex, to: headerEnd.upperBound.samePosition(in: str.utf8)!)
     let totalSize = headerSize + contentLength
 
     guard buffer.count >= totalSize else { return nil }
