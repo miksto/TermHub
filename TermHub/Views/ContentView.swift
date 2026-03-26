@@ -52,6 +52,15 @@ struct ContentView: View {
                 }
             }
             .modifier(ContentViewAlerts())
+            .onChange(of: appState.showSandboxManager) { _, show in
+                if show {
+                    if let window = NSApp.mainWindow {
+                        SandboxManagerPanel.show(in: window, appState: appState)
+                    }
+                } else {
+                    SandboxManagerPanel.dismiss()
+                }
+            }
             .onAppear { installSessionSwitcherMonitors() }
             .onDisappear { removeSessionSwitcherMonitors() }
     }
@@ -95,25 +104,14 @@ struct ContentView: View {
                     .transition(.opacity)
             }
 
-            if appState.showSandboxManager {
-                SandboxManagerOverlay()
-                    .transition(.opacity)
-            }
         }
         .animation(.easeOut(duration: 0.15), value: appState.showCommandPalette)
         .animation(.easeOut(duration: 0.1), value: appState.isSessionSwitcherActive)
-        .animation(.easeOut(duration: 0.15), value: appState.showSandboxManager)
     }
 
     private func installSessionSwitcherMonitors() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             // Escape dismisses overlays before the terminal can consume it
-            if event.keyCode == 53 {
-                if appState.showSandboxManager {
-                    appState.showSandboxManager = false
-                    return nil
-                }
-            }
 
             // Ctrl+Tab (keyCode 48 = Tab)
             guard event.keyCode == 48,

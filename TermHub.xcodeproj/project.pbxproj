@@ -41,6 +41,7 @@
 		5DFB49734D63E711E22CAC08 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2305607A9F1189FC98956101 /* GitService.swift */; };
 		5EA259467097D2F2B08E31A5 /* SourceCodePro-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 806377317513B765392AB6F5 /* SourceCodePro-Regular.otf */; };
 		629711F71AF16B73D8309445 /* MockCommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F5422F5C3B2926C3E5FDD1E /* MockCommandRunner.swift */; };
+		66671B886CB1BF42A3C2C098 /* SandboxManagerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FBC75FFB3ACFF6FA8EC0974 /* SandboxManagerPanel.swift */; };
 		7320427A88D31382D529A08B /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B9D3FC1CF2381671427FFD85 /* SwiftTerm */; };
 		7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9636C089AF563FC8C56018 /* SidebarView.swift */; };
 		870E7673914A54A99132975A /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503B8C574CFDAB867E3DA066 /* AppStateTests.swift */; };
@@ -112,6 +113,7 @@
 		7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		7E489949573E3CE4774C1757 /* ShellSplitButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellSplitButton.swift; sourceTree = "<group>"; };
 		7F3949FA374894F3DD12A156 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
+		7FBC75FFB3ACFF6FA8EC0974 /* SandboxManagerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxManagerPanel.swift; sourceTree = "<group>"; };
 		806377317513B765392AB6F5 /* SourceCodePro-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Regular.otf"; sourceTree = "<group>"; };
 		87F22B8F211122C504007981 /* SourceCodePro-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Medium.otf"; sourceTree = "<group>"; };
 		8B623642A92A221F68EC36C2 /* SandboxInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxInfo.swift; sourceTree = "<group>"; };
@@ -240,6 +242,7 @@
 			children = (
 				7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */,
 				8FC57A280AF71DCCAABE813F /* SandboxManagerOverlay.swift */,
+				7FBC75FFB3ACFF6FA8EC0974 /* SandboxManagerPanel.swift */,
 				B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */,
 				F49056157884467DA4ED6D14 /* CommandPalette */,
 				2A3275DFE89066C04675DD25 /* Detail */,
@@ -473,6 +476,7 @@
 				443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */,
 				DF329A05696DA897A6979706 /* SandboxInfo.swift in Sources */,
 				14DE91FA5EE1F434A6FCF007 /* SandboxManagerOverlay.swift in Sources */,
+				66671B886CB1BF42A3C2C098 /* SandboxManagerPanel.swift in Sources */,
 				4EAFE057C6ABF330A21E0262 /* SandboxPickerSheet.swift in Sources */,
 				E4DC0CBC4D2AF6B039EA4CAE /* SandboxSwappableLabel.swift in Sources */,
 				D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */,

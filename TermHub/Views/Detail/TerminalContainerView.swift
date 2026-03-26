@@ -21,7 +21,7 @@ struct TerminalContainerView: NSViewControllerRepresentable {
         // Notably, we do NOT read appState.sessions here — title changes would cause
         // unnecessary re-evaluations that interfere with terminal rendering during heavy output.
         let selectedID = selectedSessionID
-        let suppressInteraction = appState.showCommandPalette || appState.showSandboxManager
+        let suppressInteraction = appState.showCommandPalette
         let sessionListVersion = appState.sessionListVersion
         let tmuxAvailable = appState.tmuxAvailable
 
