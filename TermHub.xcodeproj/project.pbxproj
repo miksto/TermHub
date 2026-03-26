@@ -509,6 +509,7 @@
 			buildConfigurationList = 4B2B4920F7C9C204B9C8745E /* Build configuration list for PBXNativeTarget "TermHubMCP" */;
 			buildPhases = (
 				6360522A67BB95FD2C42AA78 /* Sources */,
+				345961E0E9842D4DF7119168 /* Install termhub-mcp to Application Support */,
 			);
 			buildRules = (
 			);
@@ -569,6 +570,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		345961E0E9842D4DF7119168 /* Install termhub-mcp to Application Support */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Install termhub-mcp to Application Support";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "INSTALL_DIR=\"/Users/miksto/Library/Application Support/TermHub\"\nmkdir -p \"$INSTALL_DIR\"\ncp -f \"${BUILT_PRODUCTS_DIR}/termhub-mcp\" \"$INSTALL_DIR/termhub-mcp\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		113C35CBAA3D8BF62454F353 /* Sources */ = {

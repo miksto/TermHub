@@ -140,8 +140,11 @@ final class IPCServer {
         let params = request.params ?? [:]
 
         switch request.action {
+        case "getWorkspaceOverview":
+            return getWorkspaceOverview(appState)
+
         case "listSessions":
-            return listSessions(appState)
+            return listSessions(appState, params: params)
 
         case "addSession":
             return addSession(appState, params: params)
@@ -202,21 +205,63 @@ final class IPCServer {
 
     // MARK: - Action Handlers
 
-    private func listSessions(_ state: AppState) -> IPCResponse {
-        let sessions = state.sessions.map { session in
+    private func getWorkspaceOverview(_ state: AppState) -> IPCResponse {
+        let folders = state.folders.map { folder in
             IPCValue.object([
-                "id": .string(session.id.uuidString),
-                "title": .string(state.displayState(for: session.id)?.title ?? session.title),
-                "folderID": .string(session.folderID.uuidString),
-                "workingDirectory": .string(session.workingDirectory),
-                "worktreePath": session.worktreePath.map { .string($0) } ?? .null,
-                "branchName": session.branchName.map { .string($0) } ?? .null,
-                "sandboxName": session.sandboxName.map { .string($0) } ?? .null,
-                "tmuxSessionName": .string(session.tmuxSessionName),
-                "isSelected": .bool(state.selectedSessionID == session.id),
+                "id": .string(folder.id.uuidString),
+                "name": .string(folder.name),
+                "path": .string(folder.path),
+                "sessionCount": .int(folder.sessionIDs.count),
+                "isGitRepo": .bool(folder.isGitRepo),
             ])
         }
-        return .success(.array(sessions))
+
+        let sessions = state.sessions.map { session in
+            sessionToIPCValue(session, state: state)
+        }
+
+        let sandboxes = state.sandboxes.map { sandbox in
+            IPCValue.object([
+                "name": .string(sandbox.name),
+                "agent": .string(sandbox.agent),
+                "status": .string(sandbox.status),
+                "workspaces": .array(sandbox.workspaces.map { .string($0) }),
+            ])
+        }
+
+        return .success(.object([
+            "folders": .array(folders),
+            "sessions": .array(sessions),
+            "sandboxes": .array(sandboxes),
+        ]))
+    }
+
+    private func listSessions(_ state: AppState, params: [String: IPCValue]) -> IPCResponse {
+        var sessions = state.sessions
+
+        if let folderIdStr = params["folderId"]?.stringValue,
+           let folderID = UUID(uuidString: folderIdStr) {
+            sessions = sessions.filter { $0.folderID == folderID }
+        }
+
+        let result = sessions.map { session in
+            sessionToIPCValue(session, state: state)
+        }
+        return .success(.array(result))
+    }
+
+    private func sessionToIPCValue(_ session: TerminalSession, state: AppState) -> IPCValue {
+        .object([
+            "id": .string(session.id.uuidString),
+            "title": .string(state.displayState(for: session.id)?.title ?? session.title),
+            "folderID": .string(session.folderID.uuidString),
+            "workingDirectory": .string(session.workingDirectory),
+            "worktreePath": session.worktreePath.map { .string($0) } ?? .null,
+            "branchName": session.branchName.map { .string($0) } ?? .null,
+            "sandboxName": session.sandboxName.map { .string($0) } ?? .null,
+            "tmuxSessionName": .string(session.tmuxSessionName),
+            "isSelected": .bool(state.selectedSessionID == session.id),
+        ])
     }
 
     private func addSession(_ state: AppState, params: [String: IPCValue]) -> IPCResponse {

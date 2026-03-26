@@ -94,6 +94,16 @@ targets:
         SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         SWIFT_STRICT_CONCURRENCY: complete
+    postBuildScripts:
+      - script: |
+          INSTALL_DIR="${HOME}/Library/Application Support/TermHub"
+          mkdir -p "$INSTALL_DIR"
+          cp -f "${BUILT_PRODUCTS_DIR}/termhub-mcp" "$INSTALL_DIR/termhub-mcp"
+        name: Install termhub-mcp to Application Support
+        inputFiles:
+          - $(BUILT_PRODUCTS_DIR)/termhub-mcp
+        outputFiles:
+          - $(HOME)/Library/Application Support/TermHub/termhub-mcp
   TermHubTests:
     type: bundle.unit-test
     platform: macOS

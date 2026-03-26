@@ -4,47 +4,86 @@ enum MCPTools {
     // MARK: - Tool Definitions
 
     static let allTools: [JSONValue] = [
+        // Workspace Overview (IPC)
+        toolDef(
+            name: "get_workspace_overview",
+            description: """
+                Get a complete snapshot of the TermHub workspace: all managed folders, terminal sessions, \
+                and Docker sandboxes in a single call. This is the best starting point to understand the \
+                current state before taking any action. Returns folders (with id, name, path, git status), \
+                sessions (with id, title, folder, branch, worktree, sandbox, selection state), and \
+                sandboxes (with name, agent, status, workspaces). Use the returned IDs with other tools \
+                like send_keys, select_session, or create_worktree.
+                """,
+            properties: [:],
+            required: []
+        ),
+
         // Session Management (IPC)
         toolDef(
             name: "list_sessions",
-            description: "List all terminal sessions with their details (id, title, folder, branch, sandbox, selection state)",
-            properties: [:],
+            description: """
+                List terminal sessions managed by TermHub. Returns id, title, folderID, workingDirectory, \
+                worktreePath, branchName, sandboxName, tmuxSessionName, and isSelected for each session. \
+                Sessions with non-null worktreePath are git worktree sessions. Use get_workspace_overview \
+                instead if you also need folder and sandbox information. Optionally filter by folderId to \
+                get sessions for a specific folder only.
+                """,
+            properties: [
+                "folderId": propString("Optional UUID of a folder to filter sessions by. Omit to list all sessions."),
+            ],
             required: []
         ),
         toolDef(
             name: "add_session",
-            description: "Create a new terminal session in a managed folder",
+            description: """
+                Create a new terminal session in a managed folder. The folder must already be added to \
+                TermHub (use list_folders or get_workspace_overview to find valid folder paths). Returns \
+                the new session's id and tmuxSessionName. For git worktree sessions, prefer create_worktree \
+                which handles both worktree creation and session setup. Use send_keys with the returned \
+                session id to run commands in the new session.
+                """,
             properties: [
-                "folderPath": propString("Path of the managed folder to add the session to"),
-                "title": propString("Session title (defaults to folder name)"),
-                "worktreePath": propString("Git worktree path if this is a worktree session"),
-                "branchName": propString("Branch name for worktree sessions"),
-                "sandboxName": propString("Docker sandbox name to run the session in"),
+                "folderPath": propString("Absolute path of a managed folder already added to TermHub. Example: '/Users/me/projects/myapp'"),
+                "title": propString("Display title for the session. Defaults to the folder name if omitted."),
+                "worktreePath": propString("Absolute path to an existing git worktree directory, if this is a worktree session."),
+                "branchName": propString("Git branch name associated with the worktree session."),
+                "sandboxName": propString("Name of a Docker sandbox to run the session in. The sandbox must already exist (use create_sandbox first)."),
             ],
             required: ["folderPath"]
         ),
         toolDef(
             name: "remove_session",
-            description: "Remove a terminal session (cleans up tmux session and worktree if applicable)",
+            description: """
+                Remove a terminal session from TermHub. This kills the associated tmux session and, if \
+                the session is a worktree session, removes the git worktree directory. Use list_sessions \
+                or get_workspace_overview to find the session UUID.
+                """,
             properties: [
-                "sessionId": propString("UUID of the session to remove"),
+                "sessionId": propString("UUID of the session to remove. Get this from list_sessions or get_workspace_overview."),
             ],
             required: ["sessionId"]
         ),
         toolDef(
             name: "select_session",
-            description: "Select and focus a terminal session in TermHub",
+            description: """
+                Select and focus a terminal session in the TermHub UI. The session's terminal view becomes \
+                visible in the main panel. Use list_sessions or get_workspace_overview to find the session UUID.
+                """,
             properties: [
-                "sessionId": propString("UUID of the session to select"),
+                "sessionId": propString("UUID of the session to select. Get this from list_sessions or get_workspace_overview."),
             ],
             required: ["sessionId"]
         ),
         toolDef(
             name: "rename_session",
-            description: "Rename a terminal session",
+            description: """
+                Change the display title of a terminal session in TermHub. Use list_sessions or \
+                get_workspace_overview to find the session UUID and its current title.
+                """,
             properties: [
-                "sessionId": propString("UUID of the session to rename"),
-                "newTitle": propString("New title for the session"),
+                "sessionId": propString("UUID of the session to rename. Get this from list_sessions or get_workspace_overview."),
+                "newTitle": propString("New display title for the session."),
             ],
             required: ["sessionId", "newTitle"]
         ),
@@ -52,23 +91,35 @@ enum MCPTools {
         // Folder Management (IPC)
         toolDef(
             name: "list_folders",
-            description: "List all managed folders with their details (id, name, path, session count, git repo status)",
+            description: """
+                List managed folders in TermHub. Returns id, name, path, sessionCount, and isGitRepo for \
+                each folder. Use get_workspace_overview instead if you also need session and sandbox \
+                information. Folder IDs are needed for create_worktree and add_session.
+                """,
             properties: [:],
             required: []
         ),
         toolDef(
             name: "add_folder",
-            description: "Add a folder to TermHub for management",
+            description: """
+                Add a folder to TermHub for management. The folder must exist on disk. Once added, you \
+                can create sessions and worktrees within it. Returns the new folder's id and name. Fails \
+                if the folder is already managed by TermHub.
+                """,
             properties: [
-                "path": propString("Absolute path of the folder to add"),
+                "path": propString("Absolute filesystem path of the folder to add. Example: '/Users/me/projects/myapp'"),
             ],
             required: ["path"]
         ),
         toolDef(
             name: "remove_folder",
-            description: "Remove a managed folder and all its sessions from TermHub",
+            description: """
+                Remove a managed folder and all its sessions from TermHub. This kills all tmux sessions \
+                and removes any worktrees associated with the folder's sessions. Use list_folders or \
+                get_workspace_overview to find the folder UUID.
+                """,
             properties: [
-                "folderId": propString("UUID of the folder to remove"),
+                "folderId": propString("UUID of the folder to remove. Get this from list_folders or get_workspace_overview."),
             ],
             required: ["folderId"]
         ),
@@ -76,25 +127,37 @@ enum MCPTools {
         // Git Operations (direct)
         toolDef(
             name: "git_status",
-            description: "Get git status for a path: lines added/deleted, commits ahead/behind remote, current branch",
+            description: """
+                Get git status for a repository or worktree path. Returns currentBranch, linesAdded, \
+                linesDeleted, commits ahead/behind remote, and isDirty flag. Works with both main \
+                repository paths and worktree paths. The path does not need to be managed by TermHub.
+                """,
             properties: [
-                "path": propString("Path to the git repository or worktree"),
+                "path": propString("Absolute path to a git repository or worktree directory. Example: '/Users/me/projects/myapp'"),
             ],
             required: ["path"]
         ),
         toolDef(
             name: "git_branches",
-            description: "List git branches sorted by most recent commit date",
+            description: """
+                List git branches for a repository, sorted by most recent commit date (newest first). \
+                Returns branch name, lastCommitDate (ISO 8601), and isCurrent flag for each branch. \
+                Use this to find available branches before calling create_worktree.
+                """,
             properties: [
-                "repoPath": propString("Path to the git repository"),
+                "repoPath": propString("Absolute path to the git repository root (not a worktree). Example: '/Users/me/projects/myapp'"),
             ],
             required: ["repoPath"]
         ),
         toolDef(
             name: "git_diff",
-            description: "Get a summary of uncommitted file changes (files changed, lines added/deleted per file)",
+            description: """
+                Get a summary of uncommitted changes in a git repository or worktree. Returns a list of \
+                changed files with path, isBinary, linesAdded, and linesDeleted for each. Does not return \
+                the actual diff content, only a per-file summary.
+                """,
             properties: [
-                "path": propString("Path to the git repository or worktree"),
+                "path": propString("Absolute path to a git repository or worktree directory. Example: '/Users/me/projects/myapp'"),
             ],
             required: ["path"]
         ),
@@ -102,13 +165,20 @@ enum MCPTools {
         // Worktree Operations (hybrid)
         toolDef(
             name: "create_worktree",
-            description: "Create a git worktree and open it as a new session in TermHub",
+            description: """
+                Create a git worktree and automatically open it as a new terminal session in TermHub. \
+                The folder must already be managed by TermHub and be a git repository (use list_folders \
+                or get_workspace_overview to verify isGitRepo). Returns the new sessionId, worktreePath, \
+                and tmuxSessionName. Use send_keys with the returned sessionId to run commands in the \
+                new session. Use git_branches to find available branch names. Specify newBranch to create \
+                a fresh branch, or branch to check out an existing one.
+                """,
             properties: [
-                "folderPath": propString("Path of the managed folder (git repo)"),
-                "branch": propString("Branch name to check out in the worktree"),
-                "newBranch": propString("If set, create a new branch with this name instead of checking out an existing one"),
-                "startPoint": propString("Starting point for the new branch (commit, tag, or branch). Only used with newBranch"),
-                "sandboxName": propString("Docker sandbox name to run the session in"),
+                "folderPath": propString("Absolute path of a managed folder that is a git repo. Get this from list_folders or get_workspace_overview."),
+                "branch": propString("Branch name to check out. Use git_branches to see available branches. Also used as the worktree directory name."),
+                "newBranch": propString("If set, create a new branch with this name instead of checking out an existing one. The branch parameter is still required as the base context."),
+                "startPoint": propString("Git ref (commit SHA, tag, or branch name) to start the new branch from. Only used with newBranch. Defaults to HEAD if omitted."),
+                "sandboxName": propString("Name of an existing Docker sandbox to run the session in."),
             ],
             required: ["folderPath", "branch"]
         ),
@@ -116,10 +186,15 @@ enum MCPTools {
         // Tmux Operations (direct)
         toolDef(
             name: "send_keys",
-            description: "Send keystrokes to a terminal session's tmux session (text followed by Enter)",
+            description: """
+                Send text followed by Enter to a terminal session's tmux session. Use this to run shell \
+                commands in a TermHub terminal. The session must exist and have an active tmux session. \
+                Get session IDs from list_sessions, get_workspace_overview, create_worktree, or add_session. \
+                Note: Enter is appended automatically — do not include a trailing newline in the text.
+                """,
             properties: [
-                "sessionId": propString("UUID of the session to send keys to"),
-                "text": propString("Text to send (Enter is appended automatically)"),
+                "sessionId": propString("UUID of the session to send keys to. Get this from list_sessions or get_workspace_overview."),
+                "text": propString("Text to type into the terminal. Enter is appended automatically. Example: 'git status'"),
             ],
             required: ["sessionId", "text"]
         ),
@@ -127,37 +202,51 @@ enum MCPTools {
         // Sandbox Operations
         toolDef(
             name: "list_sandboxes",
-            description: "List all Docker sandboxes with their status",
+            description: """
+                List all Docker sandboxes with their name, agent type, status, and workspace paths. \
+                Use get_workspace_overview instead if you also need folder and session information.
+                """,
             properties: [:],
             required: []
         ),
         toolDef(
             name: "create_sandbox",
-            description: "Create a new Docker sandbox",
+            description: """
+                Create a new Docker sandbox environment. Sandboxes provide isolated containers for running \
+                AI coding agents. At least one workspace path must be mounted. After creation, use \
+                add_session with the sandbox name to open a terminal session inside it.
+                """,
             properties: [
-                "name": propString("Name for the sandbox"),
-                "agent": propString("Agent type: claude, copilot, codex, gemini, cagent, kiro, opencode, shell (default: claude)"),
+                "name": propString("Unique name for the sandbox. Example: 'my-feature-sandbox'"),
+                "agent": propString("Agent type to run in the sandbox. Valid values: claude, copilot, codex, gemini, cagent, kiro, opencode, shell. Defaults to 'claude' if omitted."),
                 "workspaces": .object([
                     "type": .string("array"),
                     "items": .object(["type": .string("string")]),
-                    "description": .string("Workspace paths to mount in the sandbox"),
+                    "description": .string("Absolute filesystem paths to mount as workspaces in the sandbox. At least one path is required. Example: ['/Users/me/projects/myapp']"),
                 ]),
             ],
             required: ["name", "workspaces"]
         ),
         toolDef(
             name: "stop_sandbox",
-            description: "Stop a running Docker sandbox",
+            description: """
+                Stop a running Docker sandbox container. The sandbox can be restarted later. \
+                Use list_sandboxes or get_workspace_overview to find sandbox names and check status.
+                """,
             properties: [
-                "name": propString("Name of the sandbox to stop"),
+                "name": propString("Name of the sandbox to stop. Get this from list_sandboxes or get_workspace_overview."),
             ],
             required: ["name"]
         ),
         toolDef(
             name: "remove_sandbox",
-            description: "Remove a Docker sandbox and its resources",
+            description: """
+                Permanently remove a Docker sandbox and all its resources. This stops the container if \
+                running and deletes it. This action cannot be undone. Use list_sandboxes or \
+                get_workspace_overview to find sandbox names.
+                """,
             properties: [
-                "name": propString("Name of the sandbox to remove"),
+                "name": propString("Name of the sandbox to remove. Get this from list_sandboxes or get_workspace_overview."),
             ],
             required: ["name"]
         ),
@@ -178,7 +267,8 @@ enum MCPTools {
             return sendKeys(arguments)
 
         // IPC operations (through TermHub app)
-        case "list_sessions",
+        case "get_workspace_overview",
+             "list_sessions",
              "add_session",
              "remove_session",
              "select_session",
@@ -191,7 +281,7 @@ enum MCPTools {
              "create_sandbox",
              "stop_sandbox",
              "remove_sandbox":
-            return callViaIPC(action: name, arguments: arguments)
+            return callViaIPC(action: snakeToCamelCase(name), arguments: arguments)
 
         default:
             return errorResult("Unknown tool: \(name)")
@@ -362,6 +452,12 @@ enum MCPTools {
     #endif
 
     // MARK: - Helpers
+
+    private static func snakeToCamelCase(_ name: String) -> String {
+        let parts = name.split(separator: "_")
+        guard let first = parts.first else { return name }
+        return String(first) + parts.dropFirst().map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined()
+    }
 
     private static func toolDef(
         name: String,
