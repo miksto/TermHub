@@ -364,6 +364,11 @@ struct SandboxManagerOverlay: View {
         return VStack(alignment: .leading, spacing: 8) {
             sectionHeader("Environment Variables")
 
+            Text("Host environment variables to forward into sandbox sessions. Only variable names are stored — values are read from the host at session start.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .padding(.bottom, 2)
+
             if keys.isEmpty {
                 Text("No environment variables configured.")
                     .font(.callout)

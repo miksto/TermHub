@@ -59,6 +59,8 @@ TermHub can run terminal sessions inside isolated Docker sandbox containers. Thi
 - Use `⌥⌘T` to create a new sandboxed shell in the current folder (shows a picker when multiple sandboxes exist)
 - Sandboxed sessions show "Terminal (Sandboxed)" in the tab bar
 
+**Environment variables:** In the sandbox manager, you can configure host environment variable names to forward into sandbox sessions (e.g. `MY_API_KEY`). Only the variable names are stored — values are read from the host environment each time a session starts.
+
 **Supported agents:** Claude Code, GitHub Copilot, Codex, Gemini, Docker Agent, Kiro, OpenCode, and Shell.
 
 ### Claude Code integration
