@@ -99,6 +99,52 @@ termhub://new-worktree?repo=/path/to/repo&branch=feature/xyz&plan=/path/to/plan.
 | `plan` | No | Path to a plan file — if provided, runs `claude` to implement it in the new session |
 | `sandbox` | No | Docker sandbox name — if provided, the new session runs inside the named sandbox |
 
+#### MCP server
+
+TermHub includes an MCP (Model Context Protocol) server that lets AI assistants like Claude Code manage terminal sessions, folders, worktrees, sandboxes, and git operations programmatically.
+
+**Building and installing:**
+
+```bash
+make install-mcp   # builds and copies termhub-mcp to ~/.local/bin
+```
+
+**Configuring with Claude Code:** Add the server to your Claude Code MCP settings (`~/.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "termhub": {
+      "command": "termhub-mcp"
+    }
+  }
+}
+```
+
+Make sure `~/.local/bin` is in your `PATH`, or use the full path to the binary.
+
+**Available tools:**
+
+| Tool | Description |
+|------|-------------|
+| `list_sessions` | List all terminal sessions with details |
+| `add_session` | Create a new session in a managed folder |
+| `remove_session` | Remove a session (cleans up tmux/worktree) |
+| `select_session` | Focus a session in TermHub |
+| `rename_session` | Rename a session |
+| `list_folders` | List all managed folders |
+| `add_folder` | Add a folder to TermHub |
+| `remove_folder` | Remove a managed folder and its sessions |
+| `git_status` | Get git status for a path |
+| `git_branches` | List branches sorted by recent commit |
+| `git_diff` | Get uncommitted file change summary |
+| `create_worktree` | Create a worktree and open it as a session |
+| `send_keys` | Send keystrokes to a session's tmux |
+| `list_sandboxes` | List Docker sandboxes |
+| `create_sandbox` | Create a new Docker sandbox |
+| `stop_sandbox` | Stop a running sandbox |
+| `remove_sandbox` | Remove a sandbox |
+
 #### Implement in worktree
 
 When planning a feature with Claude Code on the main branch, you may want the implementation to happen in a separate git worktree. The `/implement-in-worktree` slash command bridges that gap:
@@ -128,10 +174,11 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
 ```bash
 brew install xcodegen xcode-build-server tmux
-make generate   # generate Xcode project from project.yml
-make build      # build the app
-make run        # build and launch the app
-make test       # run the test suite
+make generate     # generate Xcode project from project.yml
+make build        # build the app
+make run          # build and launch the app
+make test         # run the test suite
+make install-mcp  # build and install the MCP server to ~/.local/bin
 ```
 
 Or open in Xcode directly:

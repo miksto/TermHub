@@ -17,11 +17,13 @@ xcodegen generate
 # Build
 xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub build
 
-# Run all tests
+# Run all tests (both schemes)
 xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test
+xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHubMCP test
 
 # Run a single test class
 xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test -only-testing:TermHubTests/AppStateTests
+xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHubMCP test -only-testing:TermHubMCPTests/MCPServerTests
 
 # Run a single test method
 xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test -only-testing:TermHubTests/AppStateTests/testMethodName
@@ -49,6 +51,12 @@ Slash commands: `/build`, `/run` (build & launch), `/test`, `/regenerate-project
 - `CommandPaletteState` — drives the command palette (`⌘P`): manages modes (commands, session/folder/branch picker, text input), fuzzy filtering, and action dispatch
 
 **Views:** `ContentView` (NavigationSplitView) → sidebar (`SidebarView` with `FolderSectionView`/`SessionRowView`) + detail (`TerminalContainerView` wrapping `TermHubTerminalView` or `DiffTableView`). Sheets for branch picker, new branch, and keyboard shortcuts. `CommandPaletteOverlay` provides the `⌘P` palette.
+
+**MCP Server (`TermHubMCP` target):** A separate command-line executable (`termhub-mcp`) that exposes TermHub functionality to AI agents via the Model Context Protocol over stdio. Communicates with the main app through a Unix domain socket IPC protocol.
+- `MCPServer` — handles JSON-RPC message framing (Content-Length headers), request routing, and lifecycle
+- `MCPProtocol` — JSON-RPC types (`JSONRPCRequest`, `JSONRPCResponse`, `JSONRPCId`, `JSONValue`)
+- `MCPTools` — tool definitions and dispatch (git_status, git_branches, git_diff, send_keys, etc.)
+- `IPCClient` — connects to the main TermHub app's Unix domain socket to forward tool calls
 
 **URL scheme:** `termhub://new-worktree?repo=...&branch=...&plan=...&sandbox=...` — creates a worktree session externally. If `plan` is provided, runs `claude` to implement it in the new session. If `sandbox` is provided, the session runs inside the named Docker sandbox.
 
