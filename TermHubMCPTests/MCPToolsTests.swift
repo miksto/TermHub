@@ -61,7 +61,6 @@ struct MCPToolsTests {
         let expectedNames = [
             "list_sessions", "add_session", "remove_session", "select_session", "rename_session",
             "list_folders", "add_folder", "remove_folder",
-            "git_status", "git_branches", "git_diff",
             "create_worktree", "send_keys",
             "list_sandboxes", "create_sandbox", "stop_sandbox", "remove_sandbox",
         ]
@@ -114,36 +113,6 @@ struct MCPToolsTests {
     @Test("call returns error for unknown tool")
     func callUnknownTool() {
         let result = MCPTools.call(name: "nonexistent_tool", arguments: [:])
-        guard let obj = result.objectValue else {
-            Issue.record("Expected object")
-            return
-        }
-        #expect(obj["isError"] == .bool(true))
-    }
-
-    @Test("call git_status returns error for missing path param")
-    func callGitStatusMissingPath() {
-        let result = MCPTools.call(name: "git_status", arguments: [:])
-        guard let obj = result.objectValue else {
-            Issue.record("Expected object")
-            return
-        }
-        #expect(obj["isError"] == .bool(true))
-    }
-
-    @Test("call git_branches returns error for missing repoPath param")
-    func callGitBranchesMissingPath() {
-        let result = MCPTools.call(name: "git_branches", arguments: [:])
-        guard let obj = result.objectValue else {
-            Issue.record("Expected object")
-            return
-        }
-        #expect(obj["isError"] == .bool(true))
-    }
-
-    @Test("call git_diff returns error for missing path param")
-    func callGitDiffMissingPath() {
-        let result = MCPTools.call(name: "git_diff", arguments: [:])
         guard let obj = result.objectValue else {
             Issue.record("Expected object")
             return

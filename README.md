@@ -101,7 +101,7 @@ termhub://new-worktree?repo=/path/to/repo&branch=feature/xyz&plan=/path/to/plan.
 
 #### MCP server
 
-TermHub includes an MCP (Model Context Protocol) server that lets AI assistants like Claude Code manage terminal sessions, folders, worktrees, sandboxes, and git operations programmatically.
+TermHub includes an MCP (Model Context Protocol) server that lets AI assistants like Claude Code manage terminal sessions, folders, worktrees, and sandboxes programmatically.
 
 **Building and installing:**
 
@@ -127,6 +127,7 @@ Make sure `~/.local/bin` is in your `PATH`, or use the full path to the binary.
 
 | Tool | Description |
 |------|-------------|
+| `get_workspace_overview` | Get a complete snapshot of folders, sessions, and sandboxes in one call |
 | `list_sessions` | List all terminal sessions with details |
 | `add_session` | Create a new session in a managed folder |
 | `remove_session` | Remove a session (cleans up tmux/worktree) |
@@ -135,9 +136,6 @@ Make sure `~/.local/bin` is in your `PATH`, or use the full path to the binary.
 | `list_folders` | List all managed folders |
 | `add_folder` | Add a folder to TermHub |
 | `remove_folder` | Remove a managed folder and its sessions |
-| `git_status` | Get git status for a path |
-| `git_branches` | List branches sorted by recent commit |
-| `git_diff` | Get uncommitted file change summary |
 | `create_worktree` | Create a worktree and open it as a session |
 | `send_keys` | Send keystrokes to a session's tmux |
 | `list_sandboxes` | List Docker sandboxes |

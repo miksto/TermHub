@@ -55,7 +55,7 @@ Slash commands: `/build`, `/run` (build & launch), `/test`, `/regenerate-project
 **MCP Server (`TermHubMCP` target):** A separate command-line executable (`termhub-mcp`) that exposes TermHub functionality to AI agents via the Model Context Protocol over stdio. Communicates with the main app through a Unix domain socket IPC protocol.
 - `MCPServer` — handles JSON-RPC message framing (Content-Length headers), request routing, and lifecycle
 - `MCPProtocol` — JSON-RPC types (`JSONRPCRequest`, `JSONRPCResponse`, `JSONRPCId`, `JSONValue`)
-- `MCPTools` — tool definitions and dispatch (git_status, git_branches, git_diff, send_keys, etc.)
+- `MCPTools` — tool definitions and dispatch (send_keys, create_worktree, etc.)
 - `IPCClient` — connects to the main TermHub app's Unix domain socket to forward tool calls
 
 **URL scheme:** `termhub://new-worktree?repo=...&branch=...&plan=...&sandbox=...` — creates a worktree session externally. If `plan` is provided, runs `claude` to implement it in the new session. If `sandbox` is provided, the session runs inside the named Docker sandbox.

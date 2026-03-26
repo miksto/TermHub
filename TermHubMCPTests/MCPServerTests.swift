@@ -195,14 +195,17 @@ struct MCPServerTests {
             id: .int(6),
             method: "tools/call",
             params: [
-                "name": .string("git_status"),
-                "arguments": .object(["path": .string("/nonexistent/path")]),
+                "name": .string("send_keys"),
+                "arguments": .object([
+                    "sessionId": .string("00000000-0000-0000-0000-000000000001"),
+                    "text": .string("echo hello"),
+                ]),
             ]
         )
         let response = handleRequest(request)
         #expect(response != nil)
         #expect(response?.id == .int(6))
-        // Should return a result (even if the git command fails, it returns a text result)
+        // Should return a result (even if the session doesn't exist, it returns a text result)
         #expect(response?.result != nil)
         #expect(response?.error == nil)
     }

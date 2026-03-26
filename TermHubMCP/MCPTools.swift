@@ -124,44 +124,6 @@ enum MCPTools {
             required: ["folderId"]
         ),
 
-        // Git Operations (direct)
-        toolDef(
-            name: "git_status",
-            description: """
-                Get git status for a repository or worktree path. Returns currentBranch, linesAdded, \
-                linesDeleted, commits ahead/behind remote, and isDirty flag. Works with both main \
-                repository paths and worktree paths. The path does not need to be managed by TermHub.
-                """,
-            properties: [
-                "path": propString("Absolute path to a git repository or worktree directory. Example: '/Users/me/projects/myapp'"),
-            ],
-            required: ["path"]
-        ),
-        toolDef(
-            name: "git_branches",
-            description: """
-                List git branches for a repository, sorted by most recent commit date (newest first). \
-                Returns branch name, lastCommitDate (ISO 8601), and isCurrent flag for each branch. \
-                Use this to find available branches before calling create_worktree.
-                """,
-            properties: [
-                "repoPath": propString("Absolute path to the git repository root (not a worktree). Example: '/Users/me/projects/myapp'"),
-            ],
-            required: ["repoPath"]
-        ),
-        toolDef(
-            name: "git_diff",
-            description: """
-                Get a summary of uncommitted changes in a git repository or worktree. Returns a list of \
-                changed files with path, isBinary, linesAdded, and linesDeleted for each. Does not return \
-                the actual diff content, only a per-file summary.
-                """,
-            properties: [
-                "path": propString("Absolute path to a git repository or worktree directory. Example: '/Users/me/projects/myapp'"),
-            ],
-            required: ["path"]
-        ),
-
         // Worktree Operations (hybrid)
         toolDef(
             name: "create_worktree",
@@ -170,7 +132,7 @@ enum MCPTools {
                 The folder must already be managed by TermHub and be a git repository (use list_folders \
                 or get_workspace_overview to verify isGitRepo). Returns the new sessionId, worktreePath, \
                 and tmuxSessionName. Use send_keys with the returned sessionId to run commands in the \
-                new session. Use git_branches to find available branch names. Specify newBranch to create \
+                new session. Specify newBranch to create \
                 a fresh branch, or branch to check out an existing one.
                 """,
             properties: [
@@ -257,12 +219,6 @@ enum MCPTools {
     static func call(name: String, arguments: [String: JSONValue]) -> JSONValue {
         switch name {
         // Direct operations
-        case "git_status":
-            return gitStatus(arguments)
-        case "git_branches":
-            return gitBranches(arguments)
-        case "git_diff":
-            return gitDiff(arguments)
         case "send_keys":
             return sendKeys(arguments)
 
@@ -289,66 +245,6 @@ enum MCPTools {
     }
 
     // MARK: - Direct Tool Implementations
-
-    private static func gitStatus(_ args: [String: JSONValue]) -> JSONValue {
-        guard let path = args["path"]?.stringValue else {
-            return errorResult("Missing 'path' parameter")
-        }
-
-        let status = GitService.status(path: path)
-        return .object([
-            "currentBranch": status.currentBranch.map { .string($0) } ?? .null,
-            "linesAdded": .int(status.linesAdded),
-            "linesDeleted": .int(status.linesDeleted),
-            "ahead": .int(status.ahead),
-            "behind": .int(status.behind),
-            "isDirty": .bool(status.isDirty),
-        ])
-    }
-
-    private static func gitBranches(_ args: [String: JSONValue]) -> JSONValue {
-        guard let repoPath = args["repoPath"]?.stringValue else {
-            return errorResult("Missing 'repoPath' parameter")
-        }
-
-        do {
-            let result = try GitService.listBranchesWithDatesAndCurrent(repoPath: repoPath)
-            let formatter = ISO8601DateFormatter()
-            let branches = result.branches.map { branch in
-                JSONValue.object([
-                    "name": .string(branch.branch),
-                    "lastCommitDate": .string(formatter.string(from: branch.date)),
-                    "isCurrent": .bool(branch.branch == result.currentBranch),
-                ])
-            }
-            return .object([
-                "branches": .array(branches),
-                "currentBranch": result.currentBranch.map { .string($0) } ?? .null,
-            ])
-        } catch {
-            return errorResult("Failed to list branches: \(error.localizedDescription)")
-        }
-    }
-
-    private static func gitDiff(_ args: [String: JSONValue]) -> JSONValue {
-        guard let path = args["path"]?.stringValue else {
-            return errorResult("Missing 'path' parameter")
-        }
-
-        let raw = GitService.diff(path: path)
-        let diff = GitService.parseDiff(raw)
-
-        let files = diff.files.map { file in
-            JSONValue.object([
-                "path": .string(file.displayPath),
-                "isBinary": .bool(file.isBinary),
-                "linesAdded": .int(file.linesAdded),
-                "linesDeleted": .int(file.linesDeleted),
-            ])
-        }
-
-        return .object(["files": .array(files)])
-    }
 
     private static func sendKeys(_ args: [String: JSONValue]) -> JSONValue {
         guard let sessionIdStr = args["sessionId"]?.stringValue else {
