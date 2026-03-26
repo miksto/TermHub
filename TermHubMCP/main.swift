@@ -25,12 +25,9 @@ func runServer() {
             buffer = buffer.dropFirst(consumed) as Data
 
             if let response = handleRequest(request) {
-                if let responseData = try? encoder.encode(response) {
-                    var output = Data()
-                    let header = "Content-Length: \(responseData.count)\r\n\r\n"
-                    output.append(header.data(using: .utf8)!)
-                    output.append(responseData)
-                    stdout.write(output)
+                if var responseData = try? encoder.encode(response) {
+                    responseData.append(0x0A)  // newline delimiter
+                    stdout.write(responseData)
                 }
             }
         }

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "termhub": {
+      "type": "stdio",
+      "command": "/Users/miksto/.local/bin/termhub-mcp",
+      "args": []
+    }
+  }
+}
