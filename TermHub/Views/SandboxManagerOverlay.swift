@@ -101,20 +101,21 @@ struct SandboxManagerOverlay: View {
             Divider()
 
             // Add button
-            HStack {
-                Button {
-                    isCreatingNew = true
-                    selectedSandboxName = nil
-                    resetCreateFields()
-                } label: {
+            Button {
+                isCreatingNew = true
+                selectedSandboxName = nil
+                resetCreateFields()
+            } label: {
+                HStack {
                     Image(systemName: "plus")
+                    Spacer()
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                Spacer()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -475,6 +476,9 @@ struct SandboxManagerOverlay: View {
                         } label: {
                             Label("Add Folder", systemImage: "plus.circle")
                                 .font(.callout)
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 8)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
