@@ -46,5 +46,15 @@ struct WorktreeHeaderView: View {
             )
         }
         .padding(.top, 6)
+        .contextMenu {
+            Button("Copy Path") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(worktreePath, forType: .string)
+            }
+            Button("Copy Branch Name") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(branchName, forType: .string)
+            }
+        }
     }
 }

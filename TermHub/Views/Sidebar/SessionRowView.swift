@@ -92,6 +92,12 @@ struct SessionRowView: View {
                 Button("Rename...") {
                     startRenaming()
                 }
+                if let worktreePath = session.worktreePath {
+                    Button("Copy Path") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(worktreePath, forType: .string)
+                    }
+                }
                 if let branchName = session.branchName {
                     Button("Copy Branch Name") {
                         NSPasteboard.general.clearContents()
