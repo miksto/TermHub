@@ -45,12 +45,6 @@ final class AppState {
     var assistantInputText = ""
     var assistantIsBusy = false
     var assistantStatusMessage: String?
-    var assistantWorkingDirectory: String {
-        didSet {
-            guard !isLoading else { return }
-            scheduleSave()
-        }
-    }
 
     struct SandboxPickerContext {
         let folderID: UUID
@@ -123,7 +117,6 @@ final class AppState {
     init(persistence: StatePersistence? = nil) {
         let isTestHost = ProcessInfo.processInfo.isRunningTests
         self.persistence = persistence ?? (isTestHost ? NullPersistence() : DiskPersistence())
-        assistantWorkingDirectory = FileManager.default.currentDirectoryPath
         if UserDefaults.standard.bool(forKey: "optionAsMetaKeyIsSet") {
             optionAsMetaKey = UserDefaults.standard.bool(forKey: "optionAsMetaKey")
         } else {
@@ -251,7 +244,6 @@ final class AppState {
         scheduleSave()
 
         do {
-            try assistantService.startIfNeeded(workingDirectory: assistantWorkingDirectory)
             try assistantService.send(trimmed)
         } catch {
             assistantIsBusy = false
@@ -998,7 +990,6 @@ final class AppState {
             selectedSessionID = state.selectedSessionID
             sandboxEnvironmentKeys = state.sandboxEnvironmentKeys ?? [:]
             assistantMessages = state.assistantMessages ?? []
-            assistantWorkingDirectory = state.assistantWorkingDirectory ?? FileManager.default.currentDirectoryPath
             sessionListVersion += 1
         } catch {
             loadFailed = true
@@ -1018,7 +1009,7 @@ final class AppState {
             sessionMRUOrder: sessionMRUOrder,
             sandboxEnvironmentKeys: sandboxEnvironmentKeys.isEmpty ? nil : sandboxEnvironmentKeys,
             assistantMessages: assistantMessages.isEmpty ? nil : assistantMessages,
-            assistantWorkingDirectory: assistantWorkingDirectory
+            assistantWorkingDirectory: nil
         )
         let persistence = self.persistence
         persistence.scheduleWrite {
@@ -1063,28 +1054,43 @@ final class AssistantService: @unchecked Sendable {
     var onExit: (@Sendable (Int32) -> Void)?
 
     private var process: Process?
-    private var stdinPipe: Pipe?
     private var stdoutPipe: Pipe?
     private var stderrPipe: Pipe?
-    private(set) var workingDirectory: String?
+    private var sessionId: UUID?
 
-    func startIfNeeded(workingDirectory: String) throws {
-        if process?.isRunning == true, self.workingDirectory == workingDirectory {
-            return
+    /// Sends a prompt to Claude in print mode (-p) with --bare to skip project context.
+    /// Uses --session-id on the first call and --resume on subsequent calls to maintain
+    /// conversation context.
+    func send(_ text: String) throws {
+        // If a previous process is still running, terminate it first.
+        if process?.isRunning == true {
+            process?.terminate()
+            process?.waitUntilExit()
         }
+        cleanupPipes()
 
-        stop()
+        let isFirstMessage = sessionId == nil
+        if isFirstMessage {
+            sessionId = UUID()
+        }
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["claude"]
-        process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
 
-        let stdin = Pipe()
+        var args = ["claude", "-p"]
+        if isFirstMessage {
+            args += ["--session-id", sessionId!.uuidString]
+        } else {
+            args += ["--resume", sessionId!.uuidString]
+        }
+        args.append(text)
+        process.arguments = args
+        process.currentDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory())
+
         let stdout = Pipe()
         let stderr = Pipe()
 
-        process.standardInput = stdin
+        process.standardInput = FileHandle.nullDevice
         process.standardOutput = stdout
         process.standardError = stderr
 
@@ -1101,8 +1107,7 @@ final class AssistantService: @unchecked Sendable {
         }
 
         process.terminationHandler = { [weak self] proc in
-            self?.stdoutPipe?.fileHandleForReading.readabilityHandler = nil
-            self?.stderrPipe?.fileHandleForReading.readabilityHandler = nil
+            self?.cleanupPipes()
             self?.onExit?(proc.terminationStatus)
         }
 
@@ -1115,41 +1120,23 @@ final class AssistantService: @unchecked Sendable {
         }
 
         self.process = process
-        self.stdinPipe = stdin
         self.stdoutPipe = stdout
         self.stderrPipe = stderr
-        self.workingDirectory = workingDirectory
-    }
-
-    func send(_ text: String) throws {
-        guard process?.isRunning == true else {
-            throw NSError(
-                domain: "AssistantService",
-                code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Assistant process is not running."]
-            )
-        }
-        guard let stdin = stdinPipe else {
-            throw NSError(
-                domain: "AssistantService",
-                code: 2,
-                userInfo: [NSLocalizedDescriptionKey: "Assistant stdin is unavailable."]
-            )
-        }
-        guard let data = "\(text)\n".data(using: .utf8) else { return }
-        stdin.fileHandleForWriting.write(data)
     }
 
     func stop() {
-        stdoutPipe?.fileHandleForReading.readabilityHandler = nil
-        stderrPipe?.fileHandleForReading.readabilityHandler = nil
+        cleanupPipes()
         if process?.isRunning == true {
             process?.terminate()
         }
         process = nil
-        stdinPipe = nil
+        sessionId = nil
+    }
+
+    private func cleanupPipes() {
+        stdoutPipe?.fileHandleForReading.readabilityHandler = nil
+        stderrPipe?.fileHandleForReading.readabilityHandler = nil
         stdoutPipe = nil
         stderrPipe = nil
-        workingDirectory = nil
     }
 }

@@ -141,14 +141,12 @@ struct PersistenceServiceTests {
             selectedSessionID: nil,
             sessionMRUOrder: nil,
             sandboxEnvironmentKeys: nil,
-            assistantMessages: messages,
-            assistantWorkingDirectory: "/tmp"
+            assistantMessages: messages
         )
         try PersistenceService.save(state: state, to: url)
 
         let loaded = try PersistenceService.load(from: url)
         #expect(loaded.assistantMessages == messages)
-        #expect(loaded.assistantWorkingDirectory == "/tmp")
     }
 
     @Test("assistant fields default when missing from JSON")
@@ -165,6 +163,5 @@ struct PersistenceServiceTests {
 
         let loaded = try PersistenceService.load(from: url)
         #expect(loaded.assistantMessages.isEmpty)
-        #expect(loaded.assistantWorkingDirectory == nil)
     }
 }

@@ -78,16 +78,6 @@ struct SettingsOverlay: View {
                             "Runs a local MCP server so AI agents (e.g. Claude Code) can manage sessions, folders, and worktrees in TermHub."
                         }
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Assistant Working Directory")
-                                .font(.callout)
-                            TextField("", text: $appState.assistantWorkingDirectory)
-                                .textFieldStyle(.roundedBorder)
-                                .font(.callout)
-                            Text("Claude runs from this path when using the dedicated assistant. Default is the app launch directory.")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
                     }
                 }
                 .padding(20)
