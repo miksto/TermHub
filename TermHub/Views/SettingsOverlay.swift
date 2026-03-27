@@ -37,6 +37,11 @@ struct SettingsOverlay: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                Toggle("MCP Server", isOn: $appState.mcpServerEnabled)
+                Text("Runs a local MCP server so AI agents (e.g. Claude Code) can manage sessions, folders, and worktrees in TermHub.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 TextField("Assistant Working Directory", text: $appState.assistantWorkingDirectory)
                     .textFieldStyle(.roundedBorder)
                 Text("Claude runs from this path when using the dedicated assistant. Default is the app launch directory.")

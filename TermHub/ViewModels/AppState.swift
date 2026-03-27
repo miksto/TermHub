@@ -107,6 +107,17 @@ final class AppState {
         }
     }
 
+    var mcpServerEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(mcpServerEnabled, forKey: "mcpServerEnabled")
+            if mcpServerEnabled {
+                startIPCServer()
+            } else {
+                stopIPCServer()
+            }
+        }
+    }
+
     let terminalManager = TerminalSessionManager()
 
     init(persistence: StatePersistence? = nil) {
@@ -119,6 +130,7 @@ final class AppState {
             optionAsMetaKey = Self.detectUSKeyboardLayout()
         }
         copyClaudeSettingsToWorktrees = UserDefaults.standard.object(forKey: "copyClaudeSettingsToWorktrees") as? Bool ?? true
+        mcpServerEnabled = UserDefaults.standard.object(forKey: "mcpServerEnabled") as? Bool ?? true
         terminalManager.optionAsMetaKey = optionAsMetaKey
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
         loadState()
@@ -154,14 +166,26 @@ final class AppState {
             refreshSandboxes()
             startSandboxPolling()
 
-            let server = IPCServer(appState: self)
-            server.start()
-            ipcServer = server
+            if mcpServerEnabled {
+                startIPCServer()
+            }
         }
     }
 
     deinit {
         assistantService.stop()
+    }
+
+    private func startIPCServer() {
+        guard ipcServer == nil else { return }
+        let server = IPCServer(appState: self)
+        server.start()
+        ipcServer = server
+    }
+
+    private func stopIPCServer() {
+        ipcServer?.stop()
+        ipcServer = nil
     }
 
     var selectedSession: TerminalSession? {
