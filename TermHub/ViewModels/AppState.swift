@@ -40,6 +40,17 @@ final class AppState {
     var pendingWorktreeSandbox: String?
     var pendingNewBranchSandbox: String?
     var lastUsedSandboxName: String?
+    var showAssistant = false
+    var assistantMessages: [AssistantMessage] = []
+    var assistantInputText = ""
+    var assistantIsBusy = false
+    var assistantStatusMessage: String?
+    var assistantWorkingDirectory: String {
+        didSet {
+            guard !isLoading else { return }
+            scheduleSave()
+        }
+    }
 
     struct SandboxPickerContext {
         let folderID: UUID
@@ -78,6 +89,9 @@ final class AppState {
     @ObservationIgnored private var debouncedSaveWorkItem: DispatchWorkItem?
     @ObservationIgnored private let persistence: StatePersistence
     @ObservationIgnored private var ipcServer: IPCServer?
+    @ObservationIgnored private let assistantService = AssistantService()
+    @ObservationIgnored private var activeAssistantMessageID: UUID?
+    @ObservationIgnored private var assistantIdleWorkItem: DispatchWorkItem?
 
     var optionAsMetaKey: Bool {
         didSet {
@@ -98,6 +112,7 @@ final class AppState {
     init(persistence: StatePersistence? = nil) {
         let isTestHost = ProcessInfo.processInfo.isRunningTests
         self.persistence = persistence ?? (isTestHost ? NullPersistence() : DiskPersistence())
+        assistantWorkingDirectory = FileManager.default.currentDirectoryPath
         if UserDefaults.standard.bool(forKey: "optionAsMetaKeyIsSet") {
             optionAsMetaKey = UserDefaults.standard.bool(forKey: "optionAsMetaKey")
         } else {
@@ -107,6 +122,7 @@ final class AppState {
         terminalManager.optionAsMetaKey = optionAsMetaKey
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
         loadState()
+        configureAssistantService()
         if !isTestHost {
             detectGitRepos()
             restoreTmuxSessions()
@@ -144,6 +160,10 @@ final class AppState {
         }
     }
 
+    deinit {
+        assistantService.stop()
+    }
+
     var selectedSession: TerminalSession? {
         guard let id = selectedSessionID else { return nil }
         return sessions.first { $0.id == id }
@@ -168,6 +188,52 @@ final class AppState {
             }
             let worktree = worktreeOrder.flatMap { seenWorktrees[$0] ?? [] }
             return plain + worktree
+        }
+    }
+
+    func toggleAssistant() {
+        showAssistant.toggle()
+    }
+
+    func appendAssistantSystemMessage(_ content: String) {
+        assistantMessages.append(AssistantMessage(role: .system, content: content))
+        scheduleSave()
+    }
+
+    func clearAssistantChat() {
+        assistantMessages.removeAll()
+        activeAssistantMessageID = nil
+        assistantStatusMessage = nil
+        saveState()
+    }
+
+    func restartAssistantSession() {
+        assistantService.stop()
+        activeAssistantMessageID = nil
+        assistantIsBusy = false
+        assistantStatusMessage = nil
+        appendAssistantSystemMessage("Assistant session restarted.")
+    }
+
+    func sendAssistantPrompt(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        assistantMessages.append(AssistantMessage(role: .user, content: trimmed))
+        assistantInputText = ""
+        assistantIsBusy = true
+        assistantStatusMessage = "Running Claude…"
+        activeAssistantMessageID = nil
+        scheduleSave()
+
+        do {
+            try assistantService.startIfNeeded(workingDirectory: assistantWorkingDirectory)
+            try assistantService.send(trimmed)
+        } catch {
+            assistantIsBusy = false
+            assistantStatusMessage = "Failed to send prompt."
+            assistantMessages.append(AssistantMessage(role: .error, content: error.localizedDescription))
+            saveState()
         }
     }
 
@@ -829,6 +895,67 @@ final class AppState {
         }
     }
 
+    private func configureAssistantService() {
+        assistantService.onOutput = { [weak self] chunk in
+            Task { @MainActor [weak self] in
+                self?.handleAssistantOutput(chunk)
+            }
+        }
+        assistantService.onErrorOutput = { [weak self] chunk in
+            Task { @MainActor [weak self] in
+                self?.handleAssistantErrorOutput(chunk)
+            }
+        }
+        assistantService.onExit = { [weak self] status in
+            Task { @MainActor [weak self] in
+                self?.assistantIsBusy = false
+                self?.assistantStatusMessage = "Claude exited (\(status))."
+                self?.activeAssistantMessageID = nil
+                self?.scheduleSave()
+            }
+        }
+    }
+
+    private func handleAssistantOutput(_ chunk: String) {
+        guard !chunk.isEmpty else { return }
+        assistantIsBusy = true
+        assistantStatusMessage = "Claude is responding…"
+
+        let messageID: UUID
+        if let id = activeAssistantMessageID {
+            messageID = id
+        } else {
+            let message = AssistantMessage(role: .assistant, content: "")
+            assistantMessages.append(message)
+            activeAssistantMessageID = message.id
+            messageID = message.id
+        }
+
+        if let index = assistantMessages.firstIndex(where: { $0.id == messageID }) {
+            assistantMessages[index].content += chunk
+        }
+
+        // Claude output is chunked; finalize after a brief idle window.
+        assistantIdleWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.assistantIsBusy = false
+                self?.assistantStatusMessage = nil
+                self?.activeAssistantMessageID = nil
+                self?.scheduleSave()
+            }
+        }
+        assistantIdleWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7, execute: workItem)
+    }
+
+    private func handleAssistantErrorOutput(_ chunk: String) {
+        let trimmed = chunk.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        assistantStatusMessage = trimmed
+        scheduleSave()
+    }
+
     private func loadState() {
         isLoading = true
         defer { isLoading = false }
@@ -846,6 +973,8 @@ final class AppState {
             sessionMRUOrder = persisted + missing
             selectedSessionID = state.selectedSessionID
             sandboxEnvironmentKeys = state.sandboxEnvironmentKeys ?? [:]
+            assistantMessages = state.assistantMessages ?? []
+            assistantWorkingDirectory = state.assistantWorkingDirectory ?? FileManager.default.currentDirectoryPath
             sessionListVersion += 1
         } catch {
             loadFailed = true
@@ -863,7 +992,9 @@ final class AppState {
             sessions: sessions,
             selectedSessionID: selectedSessionID,
             sessionMRUOrder: sessionMRUOrder,
-            sandboxEnvironmentKeys: sandboxEnvironmentKeys.isEmpty ? nil : sandboxEnvironmentKeys
+            sandboxEnvironmentKeys: sandboxEnvironmentKeys.isEmpty ? nil : sandboxEnvironmentKeys,
+            assistantMessages: assistantMessages.isEmpty ? nil : assistantMessages,
+            assistantWorkingDirectory: assistantWorkingDirectory
         )
         let persistence = self.persistence
         persistence.scheduleWrite {
@@ -899,5 +1030,102 @@ final class AppState {
         // US, ABC, and British layouts don't use Option for basic characters
         let usStyleLayouts = ["US", "ABC", "British", "Australian", "Canadian", "USInternational"]
         return usStyleLayouts.contains { id.contains($0) }
+    }
+}
+
+final class AssistantService: @unchecked Sendable {
+    var onOutput: (@Sendable (String) -> Void)?
+    var onErrorOutput: (@Sendable (String) -> Void)?
+    var onExit: (@Sendable (Int32) -> Void)?
+
+    private var process: Process?
+    private var stdinPipe: Pipe?
+    private var stdoutPipe: Pipe?
+    private var stderrPipe: Pipe?
+    private(set) var workingDirectory: String?
+
+    func startIfNeeded(workingDirectory: String) throws {
+        if process?.isRunning == true, self.workingDirectory == workingDirectory {
+            return
+        }
+
+        stop()
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["claude"]
+        process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
+
+        let stdin = Pipe()
+        let stdout = Pipe()
+        let stderr = Pipe()
+
+        process.standardInput = stdin
+        process.standardOutput = stdout
+        process.standardError = stderr
+
+        stdout.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
+            self?.onOutput?(text)
+        }
+
+        stderr.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
+            self?.onErrorOutput?(text)
+        }
+
+        process.terminationHandler = { [weak self] proc in
+            self?.stdoutPipe?.fileHandleForReading.readabilityHandler = nil
+            self?.stderrPipe?.fileHandleForReading.readabilityHandler = nil
+            self?.onExit?(proc.terminationStatus)
+        }
+
+        do {
+            try process.run()
+        } catch {
+            stdout.fileHandleForReading.readabilityHandler = nil
+            stderr.fileHandleForReading.readabilityHandler = nil
+            throw error
+        }
+
+        self.process = process
+        self.stdinPipe = stdin
+        self.stdoutPipe = stdout
+        self.stderrPipe = stderr
+        self.workingDirectory = workingDirectory
+    }
+
+    func send(_ text: String) throws {
+        guard process?.isRunning == true else {
+            throw NSError(
+                domain: "AssistantService",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Assistant process is not running."]
+            )
+        }
+        guard let stdin = stdinPipe else {
+            throw NSError(
+                domain: "AssistantService",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Assistant stdin is unavailable."]
+            )
+        }
+        guard let data = "\(text)\n".data(using: .utf8) else { return }
+        stdin.fileHandleForWriting.write(data)
+    }
+
+    func stop() {
+        stdoutPipe?.fileHandleForReading.readabilityHandler = nil
+        stderrPipe?.fileHandleForReading.readabilityHandler = nil
+        if process?.isRunning == true {
+            process?.terminate()
+        }
+        process = nil
+        stdinPipe = nil
+        stdoutPipe = nil
+        stderrPipe = nil
+        workingDirectory = nil
     }
 }

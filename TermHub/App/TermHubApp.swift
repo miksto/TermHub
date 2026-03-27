@@ -86,6 +86,11 @@ struct TermHubApp: App {
             }
 
             CommandGroup(after: .toolbar) {
+                Button("Assistant") {
+                    appState.toggleAssistant()
+                }
+                .keyboardShortcut(.space, modifiers: .control)
+
                 Button("Command Palette") {
                     appState.showCommandPalette.toggle()
                 }

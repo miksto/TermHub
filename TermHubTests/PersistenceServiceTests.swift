@@ -125,4 +125,46 @@ struct PersistenceServiceTests {
         let loaded = try JSONDecoder().decode(PersistedState.self, from: data)
         #expect(loaded.sandboxEnvironmentKeys == nil)
     }
+
+    @Test("assistant fields round-trip")
+    func assistantFieldsRoundTrip() throws {
+        let url = makeTempURL()
+        defer { cleanup(url) }
+
+        let messages = [
+            AssistantMessage(role: .user, content: "Create worktree for issue 123"),
+            AssistantMessage(role: .assistant, content: "Done.")
+        ]
+        let state = PersistedState(
+            folders: [],
+            sessions: [],
+            selectedSessionID: nil,
+            sessionMRUOrder: nil,
+            sandboxEnvironmentKeys: nil,
+            assistantMessages: messages,
+            assistantWorkingDirectory: "/tmp"
+        )
+        try PersistenceService.save(state: state, to: url)
+
+        let loaded = try PersistenceService.load(from: url)
+        #expect(loaded.assistantMessages == messages)
+        #expect(loaded.assistantWorkingDirectory == "/tmp")
+    }
+
+    @Test("assistant fields default when missing from JSON")
+    func assistantBackwardCompat() throws {
+        let url = makeTempURL()
+        defer { cleanup(url) }
+
+        let json = """
+        {"folders":[],"sessions":[],"sessionMRUOrder":[]}
+        """
+        let dir = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data(json.utf8).write(to: url)
+
+        let loaded = try PersistenceService.load(from: url)
+        #expect(loaded.assistantMessages.isEmpty)
+        #expect(loaded.assistantWorkingDirectory == nil)
+    }
 }

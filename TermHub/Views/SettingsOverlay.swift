@@ -10,7 +10,7 @@ struct SettingsOverlay: View {
                 .onTapGesture { dismiss() }
 
             panel
-                .frame(width: 400, height: 320)
+                .frame(width: 460, height: 420)
                 .background(.ultraThickMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(radius: 30, y: 10)
@@ -36,9 +36,15 @@ struct SettingsOverlay: View {
                 Text("Copies .claude/settings.local.json from the repo into new worktrees so Claude Code inherits the same permissions.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                TextField("Assistant Working Directory", text: $appState.assistantWorkingDirectory)
+                    .textFieldStyle(.roundedBorder)
+                Text("Claude runs from this path when using the dedicated assistant. Default is the app launch directory.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             .formStyle(.grouped)
-            .scrollDisabled(true)
+            .scrollDisabled(false)
 
             Spacer()
 

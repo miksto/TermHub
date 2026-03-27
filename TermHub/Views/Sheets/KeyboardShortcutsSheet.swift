@@ -4,6 +4,7 @@ struct KeyboardShortcutsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private let shortcuts: [(description: String, keys: String)] = [
+        ("Assistant", "⌃Space"),
         ("Command Palette", "⌘P"),
         ("New Shell in Current Folder", "⌘T"),
         ("New Sandboxed Shell", "⌥⌘T"),

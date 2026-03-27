@@ -102,6 +102,11 @@ struct ContentView: View {
                     .transition(.opacity)
             }
 
+            if appState.showAssistant {
+                AssistantOverlay()
+                    .transition(.opacity)
+            }
+
             if appState.isSessionSwitcherActive {
                 SessionSwitcherOverlay()
                     .transition(.opacity)
@@ -109,12 +114,19 @@ struct ContentView: View {
 
         }
         .animation(.easeOut(duration: 0.15), value: appState.showCommandPalette)
+        .animation(.easeOut(duration: 0.15), value: appState.showAssistant)
         .animation(.easeOut(duration: 0.1), value: appState.isSessionSwitcherActive)
     }
 
     private func installSessionSwitcherMonitors() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             // Escape dismisses overlays before the terminal can consume it
+
+            // Ctrl+Space toggles assistant
+            if event.keyCode == 49, event.modifierFlags.contains(.control) {
+                appState.toggleAssistant()
+                return nil
+            }
 
             // Ctrl+Tab (keyCode 48 = Tab)
             guard event.keyCode == 48,
@@ -227,5 +239,165 @@ struct SandboxToolbarButton: View {
                 .foregroundStyle(color)
         }
         .help("Sandbox Manager")
+    }
+}
+
+struct AssistantOverlay: View {
+    @Environment(AppState.self) private var appState
+    @State private var input = ""
+    @FocusState private var isInputFocused: Bool
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.35)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    appState.showAssistant = false
+                }
+
+            VStack(spacing: 0) {
+                header
+                Divider()
+                transcript
+                Divider()
+                composer
+            }
+            .frame(width: 760, height: 520)
+            .background(.ultraThickMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
+            .onAppear {
+                isInputFocused = true
+                input = appState.assistantInputText
+            }
+            .onKeyPress(.escape) {
+                appState.showAssistant = false
+                return .handled
+            }
+        }
+    }
+
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("TermHub Assistant")
+                    .font(.headline)
+                if let status = appState.assistantStatusMessage, !status.isEmpty {
+                    Text(status)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(appState.assistantIsBusy ? "Claude is responding…" : "Connected to Claude")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            Button("Restart") {
+                appState.restartAssistantSession()
+            }
+            .disabled(appState.assistantIsBusy)
+
+            Button("Clear") {
+                appState.clearAssistantChat()
+            }
+
+            Button("Close") {
+                appState.showAssistant = false
+            }
+        }
+        .padding(12)
+    }
+
+    private var transcript: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    if appState.assistantMessages.isEmpty {
+                        Text("Ask anything. Claude can use the TermHub MCP server to manage sessions, worktrees, and sandboxes.")
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 18)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else {
+                        ForEach(appState.assistantMessages) { message in
+                            assistantMessageRow(message)
+                                .id(message.id)
+                        }
+                    }
+                }
+                .padding(12)
+            }
+            .onChange(of: appState.assistantMessages.count) { _, _ in
+                if let id = appState.assistantMessages.last?.id {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo(id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
+    private func assistantMessageRow(_ message: AssistantMessage) -> some View {
+        let isUser = message.role == .user
+        let foreground: Color
+        let background: Color
+        switch message.role {
+        case .user:
+            foreground = .white
+            background = Color.accentColor.opacity(0.85)
+        case .assistant:
+            foreground = .primary
+            background = Color.gray.opacity(0.15)
+        case .system:
+            foreground = .secondary
+            background = Color.gray.opacity(0.12)
+        case .error:
+            foreground = .red
+            background = Color.red.opacity(0.12)
+        }
+
+        return HStack {
+            if isUser { Spacer(minLength: 40) }
+            Text(message.content)
+                .textSelection(.enabled)
+                .foregroundStyle(foreground)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(background)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .frame(maxWidth: 620, alignment: isUser ? .trailing : .leading)
+            if !isUser { Spacer(minLength: 40) }
+        }
+    }
+
+    private var composer: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            TextField("Prompt Claude…", text: $input, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .focused($isInputFocused)
+                .lineLimit(1...5)
+                .onSubmit {
+                    submitPrompt()
+                }
+                .onChange(of: input) { _, newValue in
+                    appState.assistantInputText = newValue
+                }
+
+            Button("Send") {
+                submitPrompt()
+            }
+            .keyboardShortcut(.return, modifiers: [.command])
+            .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .padding(12)
+    }
+
+    private func submitPrompt() {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        appState.sendAssistantPrompt(trimmed)
+        input = ""
     }
 }

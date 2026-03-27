@@ -212,4 +212,17 @@ struct AppStateTests {
 
         #expect(state.selectedSession?.id == sessionID)
     }
+
+    @Test("assistant clear chat removes all messages")
+    @MainActor
+    func assistantClearChat() {
+        let state = makeCleanAppState()
+        state.assistantMessages = [
+            AssistantMessage(role: .user, content: "hello"),
+            AssistantMessage(role: .assistant, content: "hi")
+        ]
+
+        state.clearAssistantChat()
+        #expect(state.assistantMessages.isEmpty)
+    }
 }

@@ -1,5 +1,31 @@
 import Foundation
 
+enum AssistantMessageRole: String, Codable, Sendable {
+    case user
+    case assistant
+    case system
+    case error
+}
+
+struct AssistantMessage: Identifiable, Codable, Sendable, Equatable {
+    var id: UUID
+    var role: AssistantMessageRole
+    var content: String
+    var timestamp: Date
+
+    init(
+        id: UUID = UUID(),
+        role: AssistantMessageRole,
+        content: String,
+        timestamp: Date = Date()
+    ) {
+        self.id = id
+        self.role = role
+        self.content = content
+        self.timestamp = timestamp
+    }
+}
+
 enum PersistenceError: Error, LocalizedError {
     case encodingFailed
     case decodingFailed(Error)
@@ -24,6 +50,8 @@ struct PersistedState: Codable {
     var sessionMRUOrder: [UUID]?
     /// Per-sandbox environment variable names to forward from the host. Keyed by sandbox name.
     var sandboxEnvironmentKeys: [String: [String]]?
+    var assistantMessages: [AssistantMessage]? = nil
+    var assistantWorkingDirectory: String? = nil
 }
 
 /// Abstraction over state persistence so AppState can be tested without touching disk.
@@ -59,7 +87,9 @@ final class DiskPersistence: StatePersistence {
             sessions: result.sessions,
             selectedSessionID: result.selectedSessionID,
             sessionMRUOrder: result.sessionMRUOrder,
-            sandboxEnvironmentKeys: result.sandboxEnvironmentKeys
+            sandboxEnvironmentKeys: result.sandboxEnvironmentKeys,
+            assistantMessages: result.assistantMessages,
+            assistantWorkingDirectory: result.assistantWorkingDirectory
         )
     }
 
@@ -72,7 +102,15 @@ final class DiskPersistence: StatePersistence {
 final class NullPersistence: StatePersistence {
     func save(state: PersistedState) throws {}
     func load() throws -> PersistedState {
-        PersistedState(folders: [], sessions: [], selectedSessionID: nil, sessionMRUOrder: nil)
+        PersistedState(
+            folders: [],
+            sessions: [],
+            selectedSessionID: nil,
+            sessionMRUOrder: nil,
+            sandboxEnvironmentKeys: nil,
+            assistantMessages: nil,
+            assistantWorkingDirectory: nil
+        )
     }
     func scheduleWrite(_ work: @escaping @Sendable () -> Void) {}
 }
@@ -119,14 +157,38 @@ enum PersistenceService {
 
     static func load(
         from url: URL
-    ) throws -> (folders: [ManagedFolder], sessions: [TerminalSession], selectedSessionID: UUID?, sessionMRUOrder: [UUID], sandboxEnvironmentKeys: [String: [String]]) {
+    ) throws -> (
+        folders: [ManagedFolder],
+        sessions: [TerminalSession],
+        selectedSessionID: UUID?,
+        sessionMRUOrder: [UUID],
+        sandboxEnvironmentKeys: [String: [String]],
+        assistantMessages: [AssistantMessage],
+        assistantWorkingDirectory: String?
+    ) {
         guard FileManager.default.fileExists(atPath: url.path) else {
-            return (folders: [], sessions: [], selectedSessionID: nil, sessionMRUOrder: [], sandboxEnvironmentKeys: [:])
+            return (
+                folders: [],
+                sessions: [],
+                selectedSessionID: nil,
+                sessionMRUOrder: [],
+                sandboxEnvironmentKeys: [:],
+                assistantMessages: [],
+                assistantWorkingDirectory: nil
+            )
         }
         do {
             let data = try Data(contentsOf: url)
             let state = try JSONDecoder().decode(PersistedState.self, from: data)
-            return (folders: state.folders, sessions: state.sessions, selectedSessionID: state.selectedSessionID, sessionMRUOrder: state.sessionMRUOrder ?? [], sandboxEnvironmentKeys: state.sandboxEnvironmentKeys ?? [:])
+            return (
+                folders: state.folders,
+                sessions: state.sessions,
+                selectedSessionID: state.selectedSessionID,
+                sessionMRUOrder: state.sessionMRUOrder ?? [],
+                sandboxEnvironmentKeys: state.sandboxEnvironmentKeys ?? [:],
+                assistantMessages: state.assistantMessages ?? [],
+                assistantWorkingDirectory: state.assistantWorkingDirectory
+            )
         } catch {
             throw PersistenceError.decodingFailed(error)
         }
