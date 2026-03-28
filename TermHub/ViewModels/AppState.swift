@@ -1019,8 +1019,7 @@ final class AppState {
             sessionMRUOrder: sessionMRUOrder,
             sandboxEnvironmentKeys: sandboxEnvironmentKeys.isEmpty ? nil : sandboxEnvironmentKeys,
             assistantMessages: assistantMessages.isEmpty ? nil : assistantMessages,
-            assistantSessionId: assistantService.sessionId,
-            assistantWorkingDirectory: nil
+            assistantSessionId: assistantService.sessionId
         )
         let persistence = self.persistence
         persistence.scheduleWrite {

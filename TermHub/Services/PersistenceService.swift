@@ -52,8 +52,6 @@ struct PersistedState: Codable {
     var sandboxEnvironmentKeys: [String: [String]]?
     var assistantMessages: [AssistantMessage]? = nil
     var assistantSessionId: UUID? = nil
-    @available(*, deprecated, message: "No longer used; kept for backwards-compatible decoding")
-    var assistantWorkingDirectory: String? = nil
 }
 
 /// Abstraction over state persistence so AppState can be tested without touching disk.
