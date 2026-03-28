@@ -79,6 +79,25 @@ struct SettingsOverlay: View {
                         }
 
                     }
+
+                    Divider()
+
+                    // Assistant section
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionHeader("Assistant")
+
+                        settingRow {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Allowed Tools")
+                                    .font(.callout)
+                                TextField("e.g. WebFetch,mcp__termhub__*", text: $appState.assistantAllowedTools)
+                                    .textFieldStyle(.roundedBorder)
+                                    .font(.callout.monospaced())
+                            }
+                        } caption: {
+                            "Comma-separated list of tools the assistant can use without prompting. Restart the assistant session for changes to take effect."
+                        }
+                    }
                 }
                 .padding(20)
             }

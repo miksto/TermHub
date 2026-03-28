@@ -315,7 +315,7 @@ struct AssistantOverlay: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
-                    if appState.assistantMessages.isEmpty {
+                    if appState.assistantMessages.isEmpty && !appState.assistantIsBusy {
                         Text("Ask anything. Claude can use the TermHub MCP server to manage sessions, worktrees, and sandboxes.")
                             .foregroundStyle(.secondary)
                             .padding(.top, 18)
@@ -326,6 +326,11 @@ struct AssistantOverlay: View {
                                 .id(message.id)
                         }
                     }
+
+                    if appState.assistantIsBusy {
+                        TypingIndicator()
+                            .id("typing-indicator")
+                    }
                 }
                 .padding(12)
             }
@@ -333,6 +338,13 @@ struct AssistantOverlay: View {
                 if let id = appState.assistantMessages.last?.id {
                     withAnimation(.easeOut(duration: 0.2)) {
                         proxy.scrollTo(id, anchor: .bottom)
+                    }
+                }
+            }
+            .onChange(of: appState.assistantIsBusy) { _, busy in
+                if busy {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo("typing-indicator", anchor: .bottom)
                     }
                 }
             }
@@ -399,5 +411,32 @@ struct AssistantOverlay: View {
         guard !trimmed.isEmpty else { return }
         appState.sendAssistantPrompt(trimmed)
         input = ""
+    }
+}
+
+private struct TypingIndicator: View {
+    @State private var startDate: Date?
+
+    var body: some View {
+        TimelineView(.animation) { context in
+            let elapsed = startDate.map { context.date.timeIntervalSince($0) } ?? 0
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { index in
+                    let t = (elapsed - Double(index) * 0.2).truncatingRemainder(dividingBy: 1.2) / 1.2
+                    let wave = max(0, sin(t * .pi))
+                    Circle()
+                        .fill(Color.secondary)
+                        .frame(width: 6, height: 6)
+                        .scaleEffect(0.5 + 0.5 * wave)
+                        .opacity(0.4 + 0.6 * wave)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.gray.opacity(0.15))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .frame(maxWidth: 620, alignment: .leading)
+        .onAppear { startDate = .now }
     }
 }

@@ -51,6 +51,7 @@ struct PersistedState: Codable {
     /// Per-sandbox environment variable names to forward from the host. Keyed by sandbox name.
     var sandboxEnvironmentKeys: [String: [String]]?
     var assistantMessages: [AssistantMessage]? = nil
+    var assistantSessionId: UUID? = nil
     @available(*, deprecated, message: "No longer used; kept for backwards-compatible decoding")
     var assistantWorkingDirectory: String? = nil
 }
@@ -89,7 +90,8 @@ final class DiskPersistence: StatePersistence {
             selectedSessionID: result.selectedSessionID,
             sessionMRUOrder: result.sessionMRUOrder,
             sandboxEnvironmentKeys: result.sandboxEnvironmentKeys,
-            assistantMessages: result.assistantMessages
+            assistantMessages: result.assistantMessages,
+            assistantSessionId: result.assistantSessionId
         )
     }
 
@@ -108,7 +110,8 @@ final class NullPersistence: StatePersistence {
             selectedSessionID: nil,
             sessionMRUOrder: nil,
             sandboxEnvironmentKeys: nil,
-            assistantMessages: nil
+            assistantMessages: nil,
+            assistantSessionId: nil
         )
     }
     func scheduleWrite(_ work: @escaping @Sendable () -> Void) {}
@@ -162,7 +165,8 @@ enum PersistenceService {
         selectedSessionID: UUID?,
         sessionMRUOrder: [UUID],
         sandboxEnvironmentKeys: [String: [String]],
-        assistantMessages: [AssistantMessage]
+        assistantMessages: [AssistantMessage],
+        assistantSessionId: UUID?
     ) {
         guard FileManager.default.fileExists(atPath: url.path) else {
             return (
@@ -171,7 +175,8 @@ enum PersistenceService {
                 selectedSessionID: nil,
                 sessionMRUOrder: [],
                 sandboxEnvironmentKeys: [:],
-                assistantMessages: []
+                assistantMessages: [],
+                assistantSessionId: nil
             )
         }
         do {
@@ -183,7 +188,8 @@ enum PersistenceService {
                 selectedSessionID: state.selectedSessionID,
                 sessionMRUOrder: state.sessionMRUOrder ?? [],
                 sandboxEnvironmentKeys: state.sandboxEnvironmentKeys ?? [:],
-                assistantMessages: state.assistantMessages ?? []
+                assistantMessages: state.assistantMessages ?? [],
+                assistantSessionId: state.assistantSessionId
             )
         } catch {
             throw PersistenceError.decodingFailed(error)

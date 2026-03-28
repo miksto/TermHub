@@ -101,6 +101,12 @@ final class AppState {
         }
     }
 
+    var assistantAllowedTools: String {
+        didSet {
+            UserDefaults.standard.set(assistantAllowedTools, forKey: "assistantAllowedTools")
+        }
+    }
+
     var mcpServerEnabled: Bool {
         didSet {
             UserDefaults.standard.set(mcpServerEnabled, forKey: "mcpServerEnabled")
@@ -123,6 +129,7 @@ final class AppState {
             optionAsMetaKey = Self.detectUSKeyboardLayout()
         }
         copyClaudeSettingsToWorktrees = UserDefaults.standard.object(forKey: "copyClaudeSettingsToWorktrees") as? Bool ?? true
+        assistantAllowedTools = UserDefaults.standard.string(forKey: "assistantAllowedTools") ?? "WebFetch,mcp__termhub__*"
         mcpServerEnabled = UserDefaults.standard.object(forKey: "mcpServerEnabled") as? Bool ?? true
         terminalManager.optionAsMetaKey = optionAsMetaKey
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
@@ -218,8 +225,10 @@ final class AppState {
     }
 
     func clearAssistantChat() {
+        assistantService.stop()
         assistantMessages.removeAll()
         activeAssistantMessageID = nil
+        assistantIsBusy = false
         assistantStatusMessage = nil
         saveState()
     }
@@ -244,7 +253,7 @@ final class AppState {
         scheduleSave()
 
         do {
-            try assistantService.send(trimmed)
+            try assistantService.send(trimmed, mcpEnabled: mcpServerEnabled, allowedTools: assistantAllowedTools)
         } catch {
             assistantIsBusy = false
             assistantStatusMessage = "Failed to send prompt."
@@ -990,6 +999,7 @@ final class AppState {
             selectedSessionID = state.selectedSessionID
             sandboxEnvironmentKeys = state.sandboxEnvironmentKeys ?? [:]
             assistantMessages = state.assistantMessages ?? []
+            assistantService.sessionId = state.assistantSessionId
             sessionListVersion += 1
         } catch {
             loadFailed = true
@@ -1009,6 +1019,7 @@ final class AppState {
             sessionMRUOrder: sessionMRUOrder,
             sandboxEnvironmentKeys: sandboxEnvironmentKeys.isEmpty ? nil : sandboxEnvironmentKeys,
             assistantMessages: assistantMessages.isEmpty ? nil : assistantMessages,
+            assistantSessionId: assistantService.sessionId,
             assistantWorkingDirectory: nil
         )
         let persistence = self.persistence
@@ -1056,12 +1067,58 @@ final class AssistantService: @unchecked Sendable {
     private var process: Process?
     private var stdoutPipe: Pipe?
     private var stderrPipe: Pipe?
-    private var sessionId: UUID?
+    var sessionId: UUID?
 
-    /// Sends a prompt to Claude in print mode (-p) with --bare to skip project context.
+    private static let baseSystemPrompt = """
+        You are the TermHub Assistant, a helpful AI built into TermHub — a native macOS app for \
+        managing terminal sessions across multiple project folders with tmux-backed persistence \
+        and git worktree integration.
+
+        Key concepts in TermHub:
+        - **Folders**: Project directories the user has added to TermHub for management.
+        - **Sessions**: Terminal tabs within a folder. Each session is backed by a tmux session \
+          for persistence. Sessions can optionally be associated with a git worktree and branch.
+        - **Worktrees**: Git worktree sessions let users work on multiple branches of the same \
+          repo simultaneously, each in its own terminal session.
+        - **Sandboxes**: Docker-based isolated environments that sessions can run inside.
+
+        You can answer questions about the user's workspace, help them manage sessions and \
+        folders, explain git worktree workflows, and assist with terminal tasks. Be concise \
+        and helpful.
+        """
+
+    private static let mcpSystemPromptAddendum = """
+
+        You have access to the TermHub MCP server, which lets you directly interact with the \
+        user's workspace. Use it to answer questions about their folders, sessions, worktrees, \
+        and sandboxes. For example, call get_workspace_overview to see everything at a glance, \
+        list_sessions to check active sessions, send_keys to run commands in a terminal, or \
+        create_worktree to set up a new branch workspace. Always prefer using the MCP tools \
+        over asking the user to do things manually.
+        """
+
+    private static let mcpBinaryPath: String? = {
+        // Prefer ~/.local/bin path since the MCP config "command" field
+        // doesn't handle spaces in paths (Application Support has a space).
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let localBin = home.appendingPathComponent(".local/bin/termhub-mcp").path
+        if FileManager.default.fileExists(atPath: localBin) {
+            return localBin
+        }
+        let appSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first!
+        let appSupportBin = appSupport.appendingPathComponent("TermHub/termhub-mcp").path
+        if FileManager.default.fileExists(atPath: appSupportBin) {
+            return appSupportBin
+        }
+        return nil
+    }()
+
+    /// Sends a prompt to Claude in print mode (-p).
     /// Uses --session-id on the first call and --resume on subsequent calls to maintain
     /// conversation context.
-    func send(_ text: String) throws {
+    func send(_ text: String, mcpEnabled: Bool, allowedTools: String = "") throws {
         // If a previous process is still running, terminate it first.
         if process?.isRunning == true {
             process?.terminate()
@@ -1077,13 +1134,33 @@ final class AssistantService: @unchecked Sendable {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
 
-        var args = ["claude", "-p"]
+        var args = ["claude", "-p", "--model", "sonnet", "--effort", "low"]
         if isFirstMessage {
             args += ["--session-id", sessionId!.uuidString]
+            var systemPrompt = Self.baseSystemPrompt
+            if mcpEnabled {
+                systemPrompt += Self.mcpSystemPromptAddendum
+            }
+            args += ["--system-prompt", systemPrompt]
         } else {
             args += ["--resume", sessionId!.uuidString]
         }
-        args.append(text)
+        if mcpEnabled, let mcpBinary = Self.mcpBinaryPath {
+            let mcpConfig = """
+                {"mcpServers":{"termhub":{"command":"\(mcpBinary)"}}}
+                """
+            args += ["--mcp-config", mcpConfig]
+        }
+        let toolsList = allowedTools
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        if !toolsList.isEmpty {
+            args += ["--allowedTools"] + toolsList
+        }
+        // Use "--" to separate options from the prompt, since --mcp-config is
+        // variadic and would otherwise consume the prompt as a config argument.
+        args += ["--", text]
         process.arguments = args
         process.currentDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory())
 
