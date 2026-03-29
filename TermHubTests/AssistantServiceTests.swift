@@ -99,6 +99,71 @@ struct AssistantServiceTests {
         #expect(config.contains("\"args\":[]"))
     }
 
+    @Test("buildArguments for Claude includes custom model and effort")
+    func claudeCustomModelAndEffort() {
+        let service = AssistantService()
+        let sessionID = UUID()
+
+        let result = service.testBuildArguments(
+            text: "hello",
+            provider: .claude,
+            mcpEnabled: false,
+            allowedTools: "",
+            model: "opus",
+            effort: "high",
+            isFirstMessage: true,
+            sessionID: sessionID
+        )
+
+        #expect(result.args.contains("--model"))
+        #expect(result.args.contains("opus"))
+        #expect(result.args.contains("--effort"))
+        #expect(result.args.contains("high"))
+    }
+
+    @Test("buildArguments for Claude omits model and effort when empty")
+    func claudeOmitsModelAndEffortWhenEmpty() {
+        let service = AssistantService()
+        let sessionID = UUID()
+
+        let result = service.testBuildArguments(
+            text: "hello",
+            provider: .claude,
+            mcpEnabled: false,
+            allowedTools: "",
+            model: "",
+            effort: "",
+            isFirstMessage: true,
+            sessionID: sessionID
+        )
+
+        #expect(!result.args.contains("--model"))
+        #expect(!result.args.contains("--effort"))
+    }
+
+    @Test("buildArguments for Copilot includes custom model and uses --reasoning-effort")
+    func copilotCustomModelAndEffort() {
+        let service = AssistantService()
+        let sessionID = UUID()
+
+        let result = service.testBuildArguments(
+            text: "hello",
+            provider: .copilot,
+            mcpEnabled: false,
+            allowedTools: "",
+            model: "gpt-5.2",
+            effort: "medium",
+            isFirstMessage: true,
+            sessionID: sessionID
+        )
+
+        #expect(result.args.contains("--model"))
+        #expect(result.args.contains("gpt-5.2"))
+        #expect(result.args.contains("--reasoning-effort"))
+        #expect(result.args.contains("medium"))
+        #expect(!result.args.contains("--effort"))
+    }
+
     @Test("send throws clear error when provider CLI is missing")
     func missingCLIFailsClearly() {
         let service = AssistantService()

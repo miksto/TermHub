@@ -10,7 +10,7 @@ struct SettingsOverlay: View {
                 .onTapGesture { dismiss() }
 
             panel
-                .frame(width: 460, height: 440)
+                .frame(width: 460, height: 560)
                 .background(.ultraThickMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(radius: 30, y: 10)
@@ -107,6 +107,40 @@ struct SettingsOverlay: View {
                             }
                         } caption: {
                             appState.assistantAllowedToolsHelpText
+                        }
+
+                        settingRow {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Model")
+                                    .font(.callout)
+                                TextField(
+                                    AppState.defaultAssistantModel(for: appState.assistantProvider),
+                                    text: $appState.assistantModel
+                                )
+                                .textFieldStyle(.roundedBorder)
+                                .font(.callout.monospaced())
+                            }
+                        } caption: {
+                            "Model ID passed to --model. Leave empty to use the default."
+                        }
+
+                        settingRow {
+                            HStack {
+                                Text("Reasoning Effort")
+                                    .font(.callout)
+                                Spacer()
+                                Picker("", selection: $appState.assistantEffort) {
+                                    Text("Default").tag("")
+                                    Text("Low").tag("low")
+                                    Text("Medium").tag("medium")
+                                    Text("High").tag("high")
+                                    Text("XHigh").tag("xhigh")
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(maxWidth: 260)
+                            }
+                        } caption: {
+                            "Reasoning effort passed to --effort. Default uses the provider's built-in level."
                         }
                     }
                 }

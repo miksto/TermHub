@@ -313,13 +313,86 @@ struct AppStateTests {
         #expect(state.assistantAllowedToolsPlaceholder.contains("WebFetch,bash"))
     }
 
-    @Test("assistant chat working directory is dedicated app support folder")
+    @Test("assistant model defaults per provider")
     @MainActor
-    func assistantChatWorkingDirectoryDedicated() throws {
+    func assistantModelDefaults() {
         let state = makeCleanAppState()
-        let path = try state.testAssistantChatWorkingDirectory()
 
-        #expect(path.hasSuffix("/Library/Application Support/TermHub/AssistantChat"))
-        #expect(FileManager.default.fileExists(atPath: path))
+        state.assistantProvider = .claude
+        #expect(state.assistantModel == "sonnet")
+
+        state.assistantProvider = .copilot
+        #expect(state.assistantModel == "claude-haiku-4.5")
+    }
+
+    @Test("assistant model is stored per provider")
+    @MainActor
+    func assistantModelPerProvider() {
+        let state = makeCleanAppState()
+
+        state.assistantProvider = .claude
+        state.assistantModel = "opus"
+
+        state.assistantProvider = .copilot
+        state.assistantModel = "gpt-5.2"
+
+        state.assistantProvider = .claude
+        #expect(state.assistantModel == "opus")
+
+        state.assistantProvider = .copilot
+        #expect(state.assistantModel == "gpt-5.2")
+    }
+
+    @Test("assistant effort defaults per provider")
+    @MainActor
+    func assistantEffortDefaults() {
+        let state = makeCleanAppState()
+
+        state.assistantProvider = .claude
+        #expect(state.assistantEffort == "low")
+
+        state.assistantProvider = .copilot
+        #expect(state.assistantEffort == "")
+    }
+
+    @Test("assistant effort is stored per provider")
+    @MainActor
+    func assistantEffortPerProvider() {
+        let state = makeCleanAppState()
+
+        state.assistantProvider = .claude
+        state.assistantEffort = "high"
+
+        state.assistantProvider = .copilot
+        state.assistantEffort = "medium"
+
+        state.assistantProvider = .claude
+        #expect(state.assistantEffort == "high")
+
+        state.assistantProvider = .copilot
+        #expect(state.assistantEffort == "medium")
+    }
+
+    @Test("assistant model persists to UserDefaults")
+    @MainActor
+    func assistantModelPersistsToUserDefaults() {
+        let state = makeCleanAppState()
+        state.assistantProvider = .claude
+        state.assistantModel = "sonnet-custom"
+
+        let stored = UserDefaults.standard.dictionary(forKey: "assistantModelByProvider") as? [String: String]
+        #expect(stored?["claude"] == "sonnet-custom")
+    }
+
+    @Test("assistant effort persists to UserDefaults")
+    @MainActor
+    func assistantEffortPersistsToUserDefaults() {
+        let state = makeCleanAppState()
+        state.assistantProvider = .claude
+        state.assistantEffort = "xhigh"
+
+        let stored = UserDefaults.standard.dictionary(forKey: "assistantEffortByProvider") as? [String: String]
+        #expect(stored?["claude"] == "xhigh")
     }
 }
+

@@ -22,6 +22,8 @@ enum AssistantProvider: String, CaseIterable, Codable, Sendable {
 final class AppState {
     private static let assistantAllowedToolsByProviderUserDefaultsKey = "assistantAllowedToolsByProvider"
     private static let legacyAssistantAllowedToolsUserDefaultsKey = "assistantAllowedTools"
+    private static let assistantModelByProviderUserDefaultsKey = "assistantModelByProvider"
+    private static let assistantEffortByProviderUserDefaultsKey = "assistantEffortByProvider"
 
     private static func defaultAssistantAllowedTools(for provider: AssistantProvider) -> String {
         switch provider {
@@ -29,6 +31,20 @@ final class AppState {
             return "WebFetch,mcp__termhub__*"
         case .copilot:
             return "WebFetch"
+        }
+    }
+
+    static func defaultAssistantModel(for provider: AssistantProvider) -> String {
+        switch provider {
+        case .claude: return "sonnet"
+        case .copilot: return "claude-haiku-4.5"
+        }
+    }
+
+    static func defaultAssistantEffort(for provider: AssistantProvider) -> String {
+        switch provider {
+        case .claude: return "low"
+        case .copilot: return ""
         }
     }
 
@@ -187,6 +203,38 @@ final class AppState {
         }
     }
 
+    var assistantModelByProvider: [String: String] {
+        didSet {
+            UserDefaults.standard.set(assistantModelByProvider, forKey: Self.assistantModelByProviderUserDefaultsKey)
+        }
+    }
+
+    var assistantModel: String {
+        get {
+            assistantModelByProvider[assistantProvider.rawValue]
+                ?? Self.defaultAssistantModel(for: assistantProvider)
+        }
+        set {
+            assistantModelByProvider[assistantProvider.rawValue] = newValue
+        }
+    }
+
+    var assistantEffortByProvider: [String: String] {
+        didSet {
+            UserDefaults.standard.set(assistantEffortByProvider, forKey: Self.assistantEffortByProviderUserDefaultsKey)
+        }
+    }
+
+    var assistantEffort: String {
+        get {
+            assistantEffortByProvider[assistantProvider.rawValue]
+                ?? Self.defaultAssistantEffort(for: assistantProvider)
+        }
+        set {
+            assistantEffortByProvider[assistantProvider.rawValue] = newValue
+        }
+    }
+
     var mcpServerEnabled: Bool {
         didSet {
             UserDefaults.standard.set(mcpServerEnabled, forKey: "mcpServerEnabled")
@@ -250,6 +298,8 @@ final class AppState {
         copyClaudeSettingsToWorktrees = UserDefaults.standard.object(forKey: "copyClaudeSettingsToWorktrees") as? Bool ?? true
         assistantProvider = AssistantProvider(rawValue: UserDefaults.standard.string(forKey: "assistantProvider") ?? "") ?? .claude
         assistantAllowedToolsByProvider = Self.loadAssistantAllowedToolsByProviderFromUserDefaults()
+        assistantModelByProvider = UserDefaults.standard.dictionary(forKey: Self.assistantModelByProviderUserDefaultsKey) as? [String: String] ?? [:]
+        assistantEffortByProvider = UserDefaults.standard.dictionary(forKey: Self.assistantEffortByProviderUserDefaultsKey) as? [String: String] ?? [:]
         mcpServerEnabled = UserDefaults.standard.object(forKey: "mcpServerEnabled") as? Bool ?? true
         terminalManager.optionAsMetaKey = optionAsMetaKey
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
@@ -431,6 +481,8 @@ final class AppState {
                 provider: assistantProvider,
                 mcpEnabled: mcpServerEnabled,
                 allowedTools: assistantAllowedTools,
+                model: assistantModel,
+                effort: assistantEffort,
                 workingDirectory: assistantWorkingDirectory
             )
             for notice in notices {
@@ -1384,6 +1436,8 @@ final class AssistantService: @unchecked Sendable {
         provider: AssistantProvider,
         mcpEnabled: Bool,
         allowedTools: String = "",
+        model: String = "",
+        effort: String = "",
         workingDirectory: String?
     ) throws -> [String] {
         // If a previous process is still running, terminate it first.
@@ -1418,6 +1472,8 @@ final class AssistantService: @unchecked Sendable {
             provider: provider,
             mcpEnabled: mcpEnabled,
             allowedTools: allowedTools,
+            model: model,
+            effort: effort,
             isFirstMessage: isFirstMessage,
             sessionID: sessionID
         )
@@ -1552,6 +1608,8 @@ final class AssistantService: @unchecked Sendable {
         provider: AssistantProvider,
         mcpEnabled: Bool,
         allowedTools: String,
+        model: String,
+        effort: String,
         isFirstMessage: Bool,
         sessionID: UUID
     ) -> (args: [String], notices: [String]) {
@@ -1561,10 +1619,14 @@ final class AssistantService: @unchecked Sendable {
         let sanitizedTools = sanitizeToolsList(toolsList, for: provider)
         let safeToolsList = sanitizedTools.safe
         let ignoredToolsList = sanitizedTools.ignored
+        let resolvedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedEffort = effort.trimmingCharacters(in: .whitespacesAndNewlines)
 
         switch provider {
         case .claude:
-            args = ["claude", "-p", "--model", "sonnet", "--effort", "low"]
+            args = ["claude", "-p"]
+            if !resolvedModel.isEmpty { args += ["--model", resolvedModel] }
+            if !resolvedEffort.isEmpty { args += ["--effort", resolvedEffort] }
             if isFirstMessage {
                 args += ["--session-id", sessionID.uuidString]
                 var systemPrompt = Self.baseSystemPrompt
@@ -1593,10 +1655,10 @@ final class AssistantService: @unchecked Sendable {
             args += ["--", text]
 
         case .copilot:
-            args = [
-                "copilot",
-                "-p", text,
-                "--model", "claude-haiku-4.5",
+            args = ["copilot", "-p", text]
+            if !resolvedModel.isEmpty { args += ["--model", resolvedModel] }
+            if !resolvedEffort.isEmpty { args += ["--reasoning-effort", resolvedEffort] }
+            args += [
                 "--output-format", "text",
                 "--stream", "off",
                 "-s",
@@ -1635,6 +1697,8 @@ final class AssistantService: @unchecked Sendable {
         provider: AssistantProvider,
         mcpEnabled: Bool,
         allowedTools: String,
+        model: String = "",
+        effort: String = "",
         isFirstMessage: Bool,
         sessionID: UUID
     ) -> (args: [String], notices: [String]) {
@@ -1643,6 +1707,8 @@ final class AssistantService: @unchecked Sendable {
             provider: provider,
             mcpEnabled: mcpEnabled,
             allowedTools: allowedTools,
+            model: model,
+            effort: effort,
             isFirstMessage: isFirstMessage,
             sessionID: sessionID
         )
