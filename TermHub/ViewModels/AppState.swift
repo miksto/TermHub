@@ -373,6 +373,31 @@ final class AppState {
         }
     }
 
+    private func assistantChatWorkingDirectory() throws -> String {
+        let fileManager = FileManager.default
+        guard let appSupport = fileManager.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else {
+            throw NSError(
+                domain: "TermHub.Assistant",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Application Support directory is unavailable."]
+            )
+        }
+        let chatDir = appSupport
+            .appendingPathComponent("TermHub", isDirectory: true)
+            .appendingPathComponent("AssistantChat", isDirectory: true)
+        try fileManager.createDirectory(at: chatDir, withIntermediateDirectories: true)
+        return chatDir.path
+    }
+
+    #if DEBUG
+    func testAssistantChatWorkingDirectory() throws -> String {
+        try assistantChatWorkingDirectory()
+    }
+    #endif
+
     func sendAssistantPrompt(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -400,12 +425,13 @@ final class AppState {
         }
 
         do {
+            let assistantWorkingDirectory = try assistantChatWorkingDirectory()
             let notices = try assistantService.send(
                 trimmed,
                 provider: assistantProvider,
                 mcpEnabled: mcpServerEnabled,
                 allowedTools: assistantAllowedTools,
-                workingDirectory: selectedSession?.workingDirectory
+                workingDirectory: assistantWorkingDirectory
             )
             for notice in notices {
                 appendAssistantNoticeOnce(notice)
@@ -1553,7 +1579,7 @@ final class AssistantService: @unchecked Sendable {
             }
             if mcpEnabled, let mcpBinary = Self.mcpBinaryPath {
                 let mcpConfig = """
-                    {"mcpServers":{"termhub":{"command":"\(mcpBinary)"}}}
+                    {"mcpServers":{"termhub":{"type":"stdio","command":"\(mcpBinary)","args":[]}}}
                     """
                 args += ["--mcp-config", mcpConfig]
             } else if mcpEnabled {
@@ -1570,6 +1596,7 @@ final class AssistantService: @unchecked Sendable {
             args = [
                 "copilot",
                 "-p", text,
+                "--model", "claude-haiku-4.5",
                 "--output-format", "text",
                 "--stream", "off",
                 "-s",
@@ -1580,7 +1607,7 @@ final class AssistantService: @unchecked Sendable {
             }
             if mcpEnabled, let mcpBinary = Self.mcpBinaryPath {
                 let mcpConfig = """
-                    {"mcpServers":{"termhub":{"command":"\(mcpBinary)"}}}
+                    {"mcpServers":{"termhub":{"type":"stdio","command":"\(mcpBinary)","args":[]}}}
                     """
                 args += ["--additional-mcp-config", mcpConfig]
             } else if mcpEnabled {

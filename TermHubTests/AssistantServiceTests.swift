@@ -72,6 +72,33 @@ struct AssistantServiceTests {
         #expect(!result.notices.contains { $0.contains("Ignored unsupported Copilot Allowed Tools pattern") })
     }
 
+    @Test("buildArguments for Copilot MCP config uses stdio schema")
+    func copilotMCPConfigUsesStdioSchema() {
+        let service = AssistantService()
+        let sessionID = UUID()
+
+        let result = service.testBuildArguments(
+            text: "hello",
+            provider: .copilot,
+            mcpEnabled: true,
+            allowedTools: "WebFetch",
+            isFirstMessage: true,
+            sessionID: sessionID
+        )
+
+        guard let flagIndex = result.args.firstIndex(of: "--additional-mcp-config"),
+              result.args.indices.contains(flagIndex + 1)
+        else {
+            Issue.record("Expected --additional-mcp-config argument")
+            return
+        }
+
+        let config = result.args[flagIndex + 1]
+        #expect(config.contains("\"termhub\""))
+        #expect(config.contains("\"type\":\"stdio\""))
+        #expect(config.contains("\"args\":[]"))
+    }
+
     @Test("send throws clear error when provider CLI is missing")
     func missingCLIFailsClearly() {
         let service = AssistantService()
@@ -89,4 +116,5 @@ struct AssistantServiceTests {
             )
         }
     }
+
 }

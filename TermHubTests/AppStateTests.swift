@@ -312,4 +312,14 @@ struct AppStateTests {
         #expect(state.assistantAllowedToolsHelpText.contains("Copilot-only"))
         #expect(state.assistantAllowedToolsPlaceholder.contains("WebFetch,bash"))
     }
+
+    @Test("assistant chat working directory is dedicated app support folder")
+    @MainActor
+    func assistantChatWorkingDirectoryDedicated() throws {
+        let state = makeCleanAppState()
+        let path = try state.testAssistantChatWorkingDirectory()
+
+        #expect(path.hasSuffix("/Library/Application Support/TermHub/AssistantChat"))
+        #expect(FileManager.default.fileExists(atPath: path))
+    }
 }
