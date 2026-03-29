@@ -145,7 +145,9 @@ struct PersistenceServiceExtendedTests {
             folders: [folder],
             sessions: [session],
             selectedSessionID: session.id,
-            sessionMRUOrder: [session.id]
+            sessionMRUOrder: [session.id],
+            assistantSessionIdsByProvider: ["claude": UUID()],
+            assistantAllowedToolsByProvider: ["claude": "WebFetch,mcp__termhub__*", "copilot": "WebFetch"]
         )
 
         let encoder = JSONEncoder()
@@ -156,6 +158,9 @@ struct PersistenceServiceExtendedTests {
         #expect(decoded.sessions.count == 1)
         #expect(decoded.selectedSessionID == session.id)
         #expect(decoded.sessionMRUOrder == [session.id])
+        #expect(decoded.assistantSessionIdsByProvider?["claude"] != nil)
+        #expect(decoded.assistantAllowedToolsByProvider?["claude"] == "WebFetch,mcp__termhub__*")
+        #expect(decoded.assistantAllowedToolsByProvider?["copilot"] == "WebFetch")
     }
 
     // MARK: - Error types

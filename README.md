@@ -10,7 +10,7 @@ A native macOS app for managing terminal sessions across multiple project folder
 - **Git worktree integration** — Create worktrees from existing branches or new ones via a built-in branch picker with fuzzy search. Inline diff viewer and per-session change indicators in the sidebar.
 - **Docker sandbox integration** — Run sessions in isolated Docker sandbox containers. Manage sandboxes from a dedicated overlay panel, then pick one when creating a shell or worktree via the split-button menu or `⌥⌘T`. Supports multiple agent types (Claude Code, GitHub Copilot, Codex, Gemini, and more).
 - **Tmux-backed sessions** — Each session runs in tmux, so your work survives app restarts.
-- **Built-in assistant chat** — `⌃Space` opens a dedicated chat that sends prompts directly to Claude with TermHub MCP access.
+- **Built-in assistant chat** — `⌃Space` opens a dedicated chat with selectable CLI provider support (Claude or GitHub Copilot), optional TermHub MCP access, and provider-specific assistant settings.
 - **Command palette** — `⌘P` to quickly access actions, sessions, and branches.
 - **Embedded terminal** — Full terminal emulator via [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm).
 - **Bell notifications** — Sessions that emit BEL show an attention badge in the sidebar.

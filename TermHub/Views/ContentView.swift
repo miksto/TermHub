@@ -287,7 +287,7 @@ struct AssistantOverlay: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text(appState.assistantIsBusy ? "Claude is responding…" : "Connected to Claude")
+                    Text(appState.assistantIsBusy ? appState.assistantRespondingText : appState.assistantConnectedText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -316,7 +316,7 @@ struct AssistantOverlay: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     if appState.assistantMessages.isEmpty && !appState.assistantIsBusy {
-                        Text("Ask anything. Claude can use the TermHub MCP server to manage sessions, worktrees, and sandboxes.")
+                        Text(appState.assistantEmptyStateText)
                             .foregroundStyle(.secondary)
                             .padding(.top, 18)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -386,7 +386,7 @@ struct AssistantOverlay: View {
 
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            TextField("Prompt Claude…", text: $input, axis: .vertical)
+            TextField(appState.assistantPromptPlaceholder, text: $input, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .focused($isInputFocused)
                 .lineLimit(1...5)

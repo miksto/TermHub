@@ -87,15 +87,26 @@ struct SettingsOverlay: View {
                         sectionHeader("Assistant")
 
                         settingRow {
+                            Picker("Provider", selection: $appState.assistantProvider) {
+                                ForEach(AssistantProvider.allCases, id: \.self) { provider in
+                                    Text(provider.displayName).tag(provider)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        } caption: {
+                            "Choose which CLI powers the assistant chat."
+                        }
+
+                        settingRow {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Allowed Tools")
                                     .font(.callout)
-                                TextField("e.g. WebFetch,mcp__termhub__*", text: $appState.assistantAllowedTools)
+                                TextField(appState.assistantAllowedToolsPlaceholder, text: $appState.assistantAllowedTools)
                                     .textFieldStyle(.roundedBorder)
                                     .font(.callout.monospaced())
                             }
                         } caption: {
-                            "Comma-separated list of tools the assistant can use without prompting. Restart the assistant session for changes to take effect."
+                            appState.assistantAllowedToolsHelpText
                         }
                     }
                 }

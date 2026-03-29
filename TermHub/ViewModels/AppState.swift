@@ -3,9 +3,63 @@ import Carbon
 import Foundation
 import Observation
 
+enum AssistantProvider: String, CaseIterable, Codable, Sendable {
+    case claude
+    case copilot
+
+    var displayName: String {
+        switch self {
+        case .claude:
+            return "Claude"
+        case .copilot:
+            return "GitHub Copilot"
+        }
+    }
+}
+
 @Observable
 @MainActor
 final class AppState {
+    private static let assistantAllowedToolsByProviderUserDefaultsKey = "assistantAllowedToolsByProvider"
+    private static let legacyAssistantAllowedToolsUserDefaultsKey = "assistantAllowedTools"
+
+    private static func defaultAssistantAllowedTools(for provider: AssistantProvider) -> String {
+        switch provider {
+        case .claude:
+            return "WebFetch,mcp__termhub__*"
+        case .copilot:
+            return "WebFetch"
+        }
+    }
+
+    private static func normalizedAssistantAllowedToolsByProvider(_ raw: [String: String]) -> [String: String] {
+        var normalized: [String: String] = [:]
+        for provider in AssistantProvider.allCases {
+            if let value = raw[provider.rawValue] {
+                normalized[provider.rawValue] = value
+            } else {
+                normalized[provider.rawValue] = defaultAssistantAllowedTools(for: provider)
+            }
+        }
+        return normalized
+    }
+
+    private static func loadAssistantAllowedToolsByProviderFromUserDefaults() -> [String: String] {
+        if let stored = UserDefaults.standard.dictionary(forKey: assistantAllowedToolsByProviderUserDefaultsKey) as? [String: String] {
+            return normalizedAssistantAllowedToolsByProvider(stored)
+        }
+
+        var migrated = normalizedAssistantAllowedToolsByProvider([:])
+        if let legacy = UserDefaults.standard.string(forKey: legacyAssistantAllowedToolsUserDefaultsKey),
+           !legacy.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            // Keep legacy behavior for Claude while keeping Copilot on a safe default.
+            migrated[AssistantProvider.claude.rawValue] = legacy
+        }
+        UserDefaults.standard.set(migrated, forKey: assistantAllowedToolsByProviderUserDefaultsKey)
+        return migrated
+    }
+
     var folders: [ManagedFolder] = []
     @ObservationIgnored var sessions: [TerminalSession] = []
     @ObservationIgnored private var displayStates: [UUID: SessionDisplayState] = [:]
@@ -45,6 +99,17 @@ final class AppState {
     var assistantInputText = ""
     var assistantIsBusy = false
     var assistantStatusMessage: String?
+    var assistantProvider: AssistantProvider {
+        didSet {
+            UserDefaults.standard.set(assistantProvider.rawValue, forKey: "assistantProvider")
+            guard oldValue != assistantProvider else { return }
+            assistantService.stop()
+            activeAssistantMessageID = nil
+            assistantIsBusy = false
+            assistantStatusMessage = nil
+            appendAssistantSystemMessage("Assistant provider switched to \(assistantProvider.displayName).")
+        }
+    }
 
     struct SandboxPickerContext {
         let folderID: UUID
@@ -86,6 +151,8 @@ final class AppState {
     @ObservationIgnored private let assistantService = AssistantService()
     @ObservationIgnored private var activeAssistantMessageID: UUID?
     @ObservationIgnored private var assistantIdleWorkItem: DispatchWorkItem?
+    @ObservationIgnored private var surfacedAssistantNotices: Set<String> = []
+    @ObservationIgnored private var assistantErrorBuffer = ""
 
     var optionAsMetaKey: Bool {
         didSet {
@@ -101,9 +168,22 @@ final class AppState {
         }
     }
 
-    var assistantAllowedTools: String {
+    var assistantAllowedToolsByProvider: [String: String] {
         didSet {
-            UserDefaults.standard.set(assistantAllowedTools, forKey: "assistantAllowedTools")
+            UserDefaults.standard.set(
+                Self.normalizedAssistantAllowedToolsByProvider(assistantAllowedToolsByProvider),
+                forKey: Self.assistantAllowedToolsByProviderUserDefaultsKey
+            )
+        }
+    }
+
+    var assistantAllowedTools: String {
+        get {
+            assistantAllowedToolsByProvider[assistantProvider.rawValue]
+                ?? Self.defaultAssistantAllowedTools(for: assistantProvider)
+        }
+        set {
+            assistantAllowedToolsByProvider[assistantProvider.rawValue] = newValue
         }
     }
 
@@ -118,6 +198,45 @@ final class AppState {
         }
     }
 
+    var assistantConnectedText: String {
+        "Connected to \(assistantProvider.displayName)"
+    }
+
+    var assistantRespondingText: String {
+        "\(assistantProvider.displayName) is responding…"
+    }
+
+    var assistantPromptPlaceholder: String {
+        "Prompt \(assistantProvider.displayName)…"
+    }
+
+    var assistantAllowedToolsPlaceholder: String {
+        switch assistantProvider {
+        case .claude:
+            return "e.g. WebFetch,mcp__termhub__*"
+        case .copilot:
+            return "e.g. WebFetch,bash"
+        }
+    }
+
+    var assistantAllowedToolsHelpText: String {
+        switch assistantProvider {
+        case .claude:
+            return "Claude-only setting. Comma-separated tools for Claude `--allowedTools`."
+        case .copilot:
+            return "Copilot-only setting. Use concrete tool names only (no wildcards like `*`)."
+        }
+    }
+
+    var assistantEmptyStateText: String {
+        switch assistantProvider {
+        case .claude:
+            return "Ask anything. Claude can use the TermHub MCP server to manage sessions, worktrees, and sandboxes."
+        case .copilot:
+            return "Ask anything. Copilot can use the TermHub MCP server when enabled. If responses fail, verify Copilot Allowed Tools use concrete names (no wildcards)."
+        }
+    }
+
     let terminalManager = TerminalSessionManager()
 
     init(persistence: StatePersistence? = nil) {
@@ -129,7 +248,8 @@ final class AppState {
             optionAsMetaKey = Self.detectUSKeyboardLayout()
         }
         copyClaudeSettingsToWorktrees = UserDefaults.standard.object(forKey: "copyClaudeSettingsToWorktrees") as? Bool ?? true
-        assistantAllowedTools = UserDefaults.standard.string(forKey: "assistantAllowedTools") ?? "WebFetch,mcp__termhub__*"
+        assistantProvider = AssistantProvider(rawValue: UserDefaults.standard.string(forKey: "assistantProvider") ?? "") ?? .claude
+        assistantAllowedToolsByProvider = Self.loadAssistantAllowedToolsByProviderFromUserDefaults()
         mcpServerEnabled = UserDefaults.standard.object(forKey: "mcpServerEnabled") as? Bool ?? true
         terminalManager.optionAsMetaKey = optionAsMetaKey
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
@@ -226,6 +346,9 @@ final class AppState {
 
     func clearAssistantChat() {
         assistantService.stop()
+        assistantService.resetAllSessionIDs()
+        surfacedAssistantNotices.removeAll()
+        assistantErrorBuffer = ""
         assistantMessages.removeAll()
         activeAssistantMessageID = nil
         assistantIsBusy = false
@@ -235,10 +358,19 @@ final class AppState {
 
     func restartAssistantSession() {
         assistantService.stop()
+        assistantService.resetSessionID(for: assistantProvider)
+        surfacedAssistantNotices.removeAll()
+        assistantErrorBuffer = ""
         activeAssistantMessageID = nil
         assistantIsBusy = false
         assistantStatusMessage = nil
         appendAssistantSystemMessage("Assistant session restarted.")
+    }
+
+    private func appendAssistantNoticeOnce(_ notice: String) {
+        if surfacedAssistantNotices.insert(notice).inserted {
+            appendAssistantSystemMessage(notice)
+        }
     }
 
     func sendAssistantPrompt(_ text: String) {
@@ -248,12 +380,36 @@ final class AppState {
         assistantMessages.append(AssistantMessage(role: .user, content: trimmed))
         assistantInputText = ""
         assistantIsBusy = true
-        assistantStatusMessage = "Running Claude…"
+        assistantStatusMessage = "Running \(assistantProvider.displayName)…"
+        assistantErrorBuffer = ""
         activeAssistantMessageID = nil
         scheduleSave()
 
+        guard AssistantService.isCLIAvailable(for: assistantProvider) else {
+            assistantIsBusy = false
+            assistantStatusMessage = "Failed to send prompt."
+            let message = AssistantService.AssistantServiceError.cliNotFound(assistantProvider).localizedDescription
+                ?? "\(assistantProvider.displayName) CLI is not available."
+            assistantMessages.append(AssistantMessage(role: .error, content: message))
+            saveState()
+            return
+        }
+
+        if mcpServerEnabled, !AssistantService.isMCPBinaryAvailable() {
+            appendAssistantNoticeOnce("MCP server is enabled, but `termhub-mcp` was not found in the expected install locations.")
+        }
+
         do {
-            try assistantService.send(trimmed, mcpEnabled: mcpServerEnabled, allowedTools: assistantAllowedTools)
+            let notices = try assistantService.send(
+                trimmed,
+                provider: assistantProvider,
+                mcpEnabled: mcpServerEnabled,
+                allowedTools: assistantAllowedTools,
+                workingDirectory: selectedSession?.workingDirectory
+            )
+            for notice in notices {
+                appendAssistantNoticeOnce(notice)
+            }
         } catch {
             assistantIsBusy = false
             assistantStatusMessage = "Failed to send prompt."
@@ -934,7 +1090,18 @@ final class AppState {
         assistantService.onExit = { [weak self] status in
             Task { @MainActor [weak self] in
                 self?.assistantIsBusy = false
-                self?.assistantStatusMessage = "Claude exited (\(status))."
+                if status == 0 {
+                    self?.assistantStatusMessage = nil
+                } else {
+                    if let provider = self?.assistantProvider {
+                        self?.assistantStatusMessage = "\(provider.displayName) exited (\(status))."
+                    }
+                    let buffered = self?.assistantErrorBuffer.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    if !buffered.isEmpty {
+                        self?.assistantMessages.append(AssistantMessage(role: .error, content: buffered))
+                    }
+                }
+                self?.assistantErrorBuffer = ""
                 self?.activeAssistantMessageID = nil
                 self?.scheduleSave()
             }
@@ -944,7 +1111,7 @@ final class AppState {
     private func handleAssistantOutput(_ chunk: String) {
         guard !chunk.isEmpty else { return }
         assistantIsBusy = true
-        assistantStatusMessage = "Claude is responding…"
+        assistantStatusMessage = assistantRespondingText
 
         let messageID: UUID
         if let id = activeAssistantMessageID {
@@ -977,7 +1144,16 @@ final class AppState {
     private func handleAssistantErrorOutput(_ chunk: String) {
         let trimmed = chunk.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        assistantStatusMessage = trimmed
+        if assistantErrorBuffer.isEmpty {
+            assistantErrorBuffer = trimmed
+        } else {
+            assistantErrorBuffer += "\n\(trimmed)"
+        }
+        if let lastLine = trimmed.split(separator: "\n").last {
+            assistantStatusMessage = String(lastLine)
+        } else {
+            assistantStatusMessage = trimmed
+        }
         scheduleSave()
     }
 
@@ -999,7 +1175,16 @@ final class AppState {
             selectedSessionID = state.selectedSessionID
             sandboxEnvironmentKeys = state.sandboxEnvironmentKeys ?? [:]
             assistantMessages = state.assistantMessages ?? []
-            assistantService.sessionId = state.assistantSessionId
+            let persistedAllowedToolsByProvider = state.assistantAllowedToolsByProvider ?? [:]
+            if !persistedAllowedToolsByProvider.isEmpty {
+                assistantAllowedToolsByProvider = Self.normalizedAssistantAllowedToolsByProvider(persistedAllowedToolsByProvider)
+            }
+            let sessionIDsByProvider = state.assistantSessionIdsByProvider ?? [:]
+            if sessionIDsByProvider.isEmpty, let legacyClaudeSessionID = state.assistantSessionId {
+                assistantService.setSessionIDs([AssistantProvider.claude.rawValue: legacyClaudeSessionID])
+            } else {
+                assistantService.setSessionIDs(sessionIDsByProvider)
+            }
             sessionListVersion += 1
         } catch {
             loadFailed = true
@@ -1019,7 +1204,9 @@ final class AppState {
             sessionMRUOrder: sessionMRUOrder,
             sandboxEnvironmentKeys: sandboxEnvironmentKeys.isEmpty ? nil : sandboxEnvironmentKeys,
             assistantMessages: assistantMessages.isEmpty ? nil : assistantMessages,
-            assistantSessionId: assistantService.sessionId
+            assistantSessionId: assistantService.sessionID(for: .claude),
+            assistantSessionIdsByProvider: assistantService.sessionIDs(),
+            assistantAllowedToolsByProvider: assistantAllowedToolsByProvider
         )
         let persistence = self.persistence
         persistence.scheduleWrite {
@@ -1059,6 +1246,11 @@ final class AppState {
 }
 
 final class AssistantService: @unchecked Sendable {
+    private struct ProviderCapabilities {
+        let supportsSystemPrompt: Bool
+        let supportsWildcardAllowedTools: Bool
+    }
+
     var onOutput: (@Sendable (String) -> Void)?
     var onErrorOutput: (@Sendable (String) -> Void)?
     var onExit: (@Sendable (Int32) -> Void)?
@@ -1066,7 +1258,8 @@ final class AssistantService: @unchecked Sendable {
     private var process: Process?
     private var stdoutPipe: Pipe?
     private var stderrPipe: Pipe?
-    var sessionId: UUID?
+    private var sessionIDsByProvider: [String: UUID] = [:]
+    nonisolated(unsafe) static var commandExistsOverride: ((String) -> Bool)?
 
     private static let baseSystemPrompt = """
         You are the TermHub Assistant, a helpful AI built into TermHub — a native macOS app for \
@@ -1114,10 +1307,59 @@ final class AssistantService: @unchecked Sendable {
         return nil
     }()
 
-    /// Sends a prompt to Claude in print mode (-p).
-    /// Uses --session-id on the first call and --resume on subsequent calls to maintain
-    /// conversation context.
-    func send(_ text: String, mcpEnabled: Bool, allowedTools: String = "") throws {
+    enum AssistantServiceError: Error, LocalizedError {
+        case cliNotFound(AssistantProvider)
+
+        var errorDescription: String? {
+            switch self {
+            case .cliNotFound(let provider):
+                return "\(provider.displayName) CLI is not available. Install it and make sure it is in PATH."
+            }
+        }
+    }
+
+    static func isCLIAvailable(for provider: AssistantProvider) -> Bool {
+        switch provider {
+        case .claude:
+            return commandExists("claude")
+        case .copilot:
+            return commandExists("copilot")
+        }
+    }
+
+    static func isMCPBinaryAvailable() -> Bool {
+        mcpBinaryPath != nil
+    }
+
+    func sessionID(for provider: AssistantProvider) -> UUID? {
+        sessionIDsByProvider[provider.rawValue]
+    }
+
+    func setSessionIDs(_ sessionIDs: [String: UUID]) {
+        sessionIDsByProvider = sessionIDs
+    }
+
+    func sessionIDs() -> [String: UUID] {
+        sessionIDsByProvider
+    }
+
+    func resetSessionID(for provider: AssistantProvider) {
+        sessionIDsByProvider.removeValue(forKey: provider.rawValue)
+    }
+
+    func resetAllSessionIDs() {
+        sessionIDsByProvider.removeAll()
+    }
+
+    /// Sends a prompt to the configured provider in non-interactive mode.
+    /// Returns system notices for best-effort capability differences.
+    func send(
+        _ text: String,
+        provider: AssistantProvider,
+        mcpEnabled: Bool,
+        allowedTools: String = "",
+        workingDirectory: String?
+    ) throws -> [String] {
         // If a previous process is still running, terminate it first.
         if process?.isRunning == true {
             process?.terminate()
@@ -1125,43 +1367,48 @@ final class AssistantService: @unchecked Sendable {
         }
         cleanupPipes()
 
-        let isFirstMessage = sessionId == nil
-        if isFirstMessage {
-            sessionId = UUID()
+        switch provider {
+        case .claude:
+            guard Self.commandExists("claude") else {
+                throw AssistantServiceError.cliNotFound(.claude)
+            }
+        case .copilot:
+            guard Self.commandExists("copilot") else {
+                throw AssistantServiceError.cliNotFound(.copilot)
+            }
         }
 
+        let isFirstMessage = sessionIDsByProvider[provider.rawValue] == nil
+        let sessionID: UUID
+        if let existing = sessionIDsByProvider[provider.rawValue] {
+            sessionID = existing
+        } else {
+            sessionID = UUID()
+            sessionIDsByProvider[provider.rawValue] = sessionID
+        }
+
+        let build = Self.buildArguments(
+            text: text,
+            provider: provider,
+            mcpEnabled: mcpEnabled,
+            allowedTools: allowedTools,
+            isFirstMessage: isFirstMessage,
+            sessionID: sessionID
+        )
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = build.args
 
-        var args = ["claude", "-p", "--model", "sonnet", "--effort", "low"]
-        if isFirstMessage {
-            args += ["--session-id", sessionId!.uuidString]
-            var systemPrompt = Self.baseSystemPrompt
-            if mcpEnabled {
-                systemPrompt += Self.mcpSystemPromptAddendum
-            }
-            args += ["--system-prompt", systemPrompt]
+        let notices = build.notices
+
+        if let workingDirectory,
+           !workingDirectory.isEmpty,
+           FileManager.default.fileExists(atPath: workingDirectory)
+        {
+            process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
         } else {
-            args += ["--resume", sessionId!.uuidString]
+            process.currentDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory())
         }
-        if mcpEnabled, let mcpBinary = Self.mcpBinaryPath {
-            let mcpConfig = """
-                {"mcpServers":{"termhub":{"command":"\(mcpBinary)"}}}
-                """
-            args += ["--mcp-config", mcpConfig]
-        }
-        let toolsList = allowedTools
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        if !toolsList.isEmpty {
-            args += ["--allowedTools"] + toolsList
-        }
-        // Use "--" to separate options from the prompt, since --mcp-config is
-        // variadic and would otherwise consume the prompt as a config argument.
-        args += ["--", text]
-        process.arguments = args
-        process.currentDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory())
 
         let stdout = Pipe()
         let stderr = Pipe()
@@ -1198,6 +1445,7 @@ final class AssistantService: @unchecked Sendable {
         self.process = process
         self.stdoutPipe = stdout
         self.stderrPipe = stderr
+        return notices
     }
 
     func stop() {
@@ -1206,7 +1454,6 @@ final class AssistantService: @unchecked Sendable {
             process?.terminate()
         }
         process = nil
-        sessionId = nil
     }
 
     private func cleanupPipes() {
@@ -1215,4 +1462,163 @@ final class AssistantService: @unchecked Sendable {
         stdoutPipe = nil
         stderrPipe = nil
     }
+
+    private static func commandExists(_ command: String) -> Bool {
+        if let override = commandExistsOverride {
+            return override(command)
+        }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        process.arguments = [command]
+        process.standardOutput = Pipe()
+        process.standardError = Pipe()
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
+
+    private static func capabilities(for provider: AssistantProvider) -> ProviderCapabilities {
+        switch provider {
+        case .claude:
+            return ProviderCapabilities(
+                supportsSystemPrompt: true,
+                supportsWildcardAllowedTools: true
+            )
+        case .copilot:
+            return ProviderCapabilities(
+                supportsSystemPrompt: false,
+                supportsWildcardAllowedTools: false
+            )
+        }
+    }
+
+    private static func parsedToolsList(_ allowedTools: String) -> [String] {
+        allowedTools
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    private static func sanitizeToolsList(_ tools: [String], for provider: AssistantProvider) -> (safe: [String], ignored: [String]) {
+        let capabilities = capabilities(for: provider)
+        guard !capabilities.supportsWildcardAllowedTools else {
+            return (safe: tools, ignored: [])
+        }
+
+        var safe: [String] = []
+        var ignored: [String] = []
+        for tool in tools {
+            if tool.contains("*") || tool.contains("?") {
+                ignored.append(tool)
+            } else {
+                safe.append(tool)
+            }
+        }
+        return (safe: safe, ignored: ignored)
+    }
+
+    private static func buildArguments(
+        text: String,
+        provider: AssistantProvider,
+        mcpEnabled: Bool,
+        allowedTools: String,
+        isFirstMessage: Bool,
+        sessionID: UUID
+    ) -> (args: [String], notices: [String]) {
+        var notices: [String] = []
+        var args: [String] = []
+        let toolsList = parsedToolsList(allowedTools)
+        let sanitizedTools = sanitizeToolsList(toolsList, for: provider)
+        let safeToolsList = sanitizedTools.safe
+        let ignoredToolsList = sanitizedTools.ignored
+
+        switch provider {
+        case .claude:
+            args = ["claude", "-p", "--model", "sonnet", "--effort", "low"]
+            if isFirstMessage {
+                args += ["--session-id", sessionID.uuidString]
+                var systemPrompt = Self.baseSystemPrompt
+                if mcpEnabled {
+                    systemPrompt += Self.mcpSystemPromptAddendum
+                }
+                if capabilities(for: .claude).supportsSystemPrompt {
+                    args += ["--system-prompt", systemPrompt]
+                }
+            } else {
+                args += ["--resume", sessionID.uuidString]
+            }
+            if mcpEnabled, let mcpBinary = Self.mcpBinaryPath {
+                let mcpConfig = """
+                    {"mcpServers":{"termhub":{"command":"\(mcpBinary)"}}}
+                    """
+                args += ["--mcp-config", mcpConfig]
+            } else if mcpEnabled {
+                notices.append("MCP server is enabled, but `termhub-mcp` was not found in the expected install locations.")
+            }
+            if !safeToolsList.isEmpty {
+                args += ["--allowedTools"] + safeToolsList
+            }
+            // Use "--" to separate options from the prompt, since --mcp-config is
+            // variadic and would otherwise consume the prompt as a config argument.
+            args += ["--", text]
+
+        case .copilot:
+            args = [
+                "copilot",
+                "-p", text,
+                "--output-format", "text",
+                "--stream", "off",
+                "-s",
+                "--allow-all-tools",
+            ]
+            if !isFirstMessage {
+                args += ["--resume", sessionID.uuidString]
+            }
+            if mcpEnabled, let mcpBinary = Self.mcpBinaryPath {
+                let mcpConfig = """
+                    {"mcpServers":{"termhub":{"command":"\(mcpBinary)"}}}
+                    """
+                args += ["--additional-mcp-config", mcpConfig]
+            } else if mcpEnabled {
+                notices.append("MCP server is enabled, but `termhub-mcp` was not found in the expected install locations.")
+            }
+            if !safeToolsList.isEmpty {
+                for tool in safeToolsList {
+                    args += ["--allow-tool", tool]
+                }
+            }
+            if !ignoredToolsList.isEmpty {
+                let ignored = ignoredToolsList.joined(separator: ", ")
+                notices.append(
+                    "Ignored unsupported Copilot Allowed Tools pattern(s): \(ignored). "
+                        + "Use concrete tool names only (no wildcards)."
+                )
+            }
+        }
+        return (args, notices)
+    }
+
+    #if DEBUG
+    func testBuildArguments(
+        text: String,
+        provider: AssistantProvider,
+        mcpEnabled: Bool,
+        allowedTools: String,
+        isFirstMessage: Bool,
+        sessionID: UUID
+    ) -> (args: [String], notices: [String]) {
+        Self.buildArguments(
+            text: text,
+            provider: provider,
+            mcpEnabled: mcpEnabled,
+            allowedTools: allowedTools,
+            isFirstMessage: isFirstMessage,
+            sessionID: sessionID
+        )
+    }
+    #endif
 }

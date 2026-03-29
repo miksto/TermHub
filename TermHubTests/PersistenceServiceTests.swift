@@ -141,12 +141,17 @@ struct PersistenceServiceTests {
             selectedSessionID: nil,
             sessionMRUOrder: nil,
             sandboxEnvironmentKeys: nil,
-            assistantMessages: messages
+            assistantMessages: messages,
+            assistantSessionIdsByProvider: ["claude": UUID(), "copilot": UUID()],
+            assistantAllowedToolsByProvider: ["claude": "WebFetch,mcp__termhub__*", "copilot": "WebFetch"]
         )
         try PersistenceService.save(state: state, to: url)
 
         let loaded = try PersistenceService.load(from: url)
         #expect(loaded.assistantMessages == messages)
+        #expect(Array(loaded.assistantSessionIdsByProvider.keys).sorted() == ["claude", "copilot"])
+        #expect(loaded.assistantAllowedToolsByProvider["claude"] == "WebFetch,mcp__termhub__*")
+        #expect(loaded.assistantAllowedToolsByProvider["copilot"] == "WebFetch")
     }
 
     @Test("assistant fields default when missing from JSON")
@@ -163,5 +168,7 @@ struct PersistenceServiceTests {
 
         let loaded = try PersistenceService.load(from: url)
         #expect(loaded.assistantMessages.isEmpty)
+        #expect(loaded.assistantSessionIdsByProvider.isEmpty)
+        #expect(loaded.assistantAllowedToolsByProvider.isEmpty)
     }
 }

@@ -52,6 +52,10 @@ struct PersistedState: Codable {
     var sandboxEnvironmentKeys: [String: [String]]?
     var assistantMessages: [AssistantMessage]? = nil
     var assistantSessionId: UUID? = nil
+    /// Assistant session IDs keyed by provider raw value (e.g. "claude", "copilot").
+    var assistantSessionIdsByProvider: [String: UUID]? = nil
+    /// Assistant allowed tools keyed by provider raw value (e.g. "claude", "copilot").
+    var assistantAllowedToolsByProvider: [String: String]? = nil
 }
 
 /// Abstraction over state persistence so AppState can be tested without touching disk.
@@ -89,7 +93,9 @@ final class DiskPersistence: StatePersistence {
             sessionMRUOrder: result.sessionMRUOrder,
             sandboxEnvironmentKeys: result.sandboxEnvironmentKeys,
             assistantMessages: result.assistantMessages,
-            assistantSessionId: result.assistantSessionId
+            assistantSessionId: result.assistantSessionId,
+            assistantSessionIdsByProvider: result.assistantSessionIdsByProvider,
+            assistantAllowedToolsByProvider: result.assistantAllowedToolsByProvider
         )
     }
 
@@ -109,7 +115,9 @@ final class NullPersistence: StatePersistence {
             sessionMRUOrder: nil,
             sandboxEnvironmentKeys: nil,
             assistantMessages: nil,
-            assistantSessionId: nil
+            assistantSessionId: nil,
+            assistantSessionIdsByProvider: nil,
+            assistantAllowedToolsByProvider: nil
         )
     }
     func scheduleWrite(_ work: @escaping @Sendable () -> Void) {}
@@ -164,7 +172,9 @@ enum PersistenceService {
         sessionMRUOrder: [UUID],
         sandboxEnvironmentKeys: [String: [String]],
         assistantMessages: [AssistantMessage],
-        assistantSessionId: UUID?
+        assistantSessionId: UUID?,
+        assistantSessionIdsByProvider: [String: UUID],
+        assistantAllowedToolsByProvider: [String: String]
     ) {
         guard FileManager.default.fileExists(atPath: url.path) else {
             return (
@@ -174,7 +184,9 @@ enum PersistenceService {
                 sessionMRUOrder: [],
                 sandboxEnvironmentKeys: [:],
                 assistantMessages: [],
-                assistantSessionId: nil
+                assistantSessionId: nil,
+                assistantSessionIdsByProvider: [:],
+                assistantAllowedToolsByProvider: [:]
             )
         }
         do {
@@ -187,7 +199,9 @@ enum PersistenceService {
                 sessionMRUOrder: state.sessionMRUOrder ?? [],
                 sandboxEnvironmentKeys: state.sandboxEnvironmentKeys ?? [:],
                 assistantMessages: state.assistantMessages ?? [],
-                assistantSessionId: state.assistantSessionId
+                assistantSessionId: state.assistantSessionId,
+                assistantSessionIdsByProvider: state.assistantSessionIdsByProvider ?? [:],
+                assistantAllowedToolsByProvider: state.assistantAllowedToolsByProvider ?? [:]
             )
         } catch {
             throw PersistenceError.decodingFailed(error)

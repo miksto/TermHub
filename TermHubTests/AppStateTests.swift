@@ -5,6 +5,10 @@ import Testing
 @Suite("AppState Tests")
 struct AppStateTests {
 
+    private func removeUserDefaultIfPresent(_ key: String) {
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+
     @MainActor
     private func makeCleanAppState() -> AppState {
         AppState(persistence: NullPersistence())
@@ -224,5 +228,88 @@ struct AppStateTests {
 
         state.clearAssistantChat()
         #expect(state.assistantMessages.isEmpty)
+    }
+
+    @Test("assistant provider defaults to claude")
+    @MainActor
+    func assistantProviderDefault() {
+        removeUserDefaultIfPresent("assistantProvider")
+        let state = makeCleanAppState()
+        #expect(state.assistantProvider == .claude)
+    }
+
+    @Test("assistant provider persists in user defaults")
+    @MainActor
+    func assistantProviderPersists() {
+        removeUserDefaultIfPresent("assistantProvider")
+        let state = makeCleanAppState()
+        state.assistantProvider = .copilot
+        #expect(UserDefaults.standard.string(forKey: "assistantProvider") == "copilot")
+    }
+
+    @Test("assistant allowed tools are isolated per provider")
+    @MainActor
+    func assistantAllowedToolsPerProvider() {
+        removeUserDefaultIfPresent("assistantAllowedTools")
+        removeUserDefaultIfPresent("assistantAllowedToolsByProvider")
+        removeUserDefaultIfPresent("assistantProvider")
+
+        let state = makeCleanAppState()
+        #expect(state.assistantProvider == .claude)
+        #expect(state.assistantAllowedTools.contains("mcp__termhub__*"))
+
+        state.assistantAllowedTools = "WebFetch,mcp__termhub__*,Bash"
+        state.assistantProvider = .copilot
+        #expect(state.assistantAllowedTools == "WebFetch")
+
+        state.assistantAllowedTools = "WebFetch,bash"
+        state.assistantProvider = .claude
+        #expect(state.assistantAllowedTools == "WebFetch,mcp__termhub__*,Bash")
+    }
+
+    @Test("legacy assistantAllowedTools migrates to Claude only")
+    @MainActor
+    func assistantAllowedToolsLegacyMigration() {
+        removeUserDefaultIfPresent("assistantAllowedToolsByProvider")
+        UserDefaults.standard.set("WebFetch,mcp__termhub__*", forKey: "assistantAllowedTools")
+
+        let state = makeCleanAppState()
+        #expect(state.assistantProvider == .claude)
+        #expect(state.assistantAllowedTools == "WebFetch,mcp__termhub__*")
+
+        state.assistantProvider = .copilot
+        #expect(state.assistantAllowedTools == "WebFetch")
+    }
+
+    @Test("Copilot argument build strips wildcard allowed tools")
+    func copilotBuildArgumentsSanitizeWildcardTools() {
+        let service = AssistantService()
+        let result = service.testBuildArguments(
+            text: "hello",
+            provider: .copilot,
+            mcpEnabled: false,
+            allowedTools: "WebFetch,mcp__termhub__*",
+            isFirstMessage: true,
+            sessionID: UUID()
+        )
+
+        #expect(result.args.contains("--allow-tool"))
+        #expect(result.args.contains("WebFetch"))
+        #expect(!result.args.contains("mcp__termhub__*"))
+        #expect(result.notices.contains { $0.contains("Ignored unsupported Copilot Allowed Tools pattern") })
+    }
+
+    @Test("assistant help text differs by provider")
+    @MainActor
+    func assistantProviderSpecificHelpText() {
+        let state = makeCleanAppState()
+
+        state.assistantProvider = .claude
+        #expect(state.assistantAllowedToolsHelpText.contains("Claude-only"))
+        #expect(state.assistantAllowedToolsPlaceholder.contains("mcp__termhub__*"))
+
+        state.assistantProvider = .copilot
+        #expect(state.assistantAllowedToolsHelpText.contains("Copilot-only"))
+        #expect(state.assistantAllowedToolsPlaceholder.contains("WebFetch,bash"))
     }
 }
