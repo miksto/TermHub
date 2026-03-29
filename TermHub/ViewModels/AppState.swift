@@ -36,15 +36,26 @@ final class AppState {
 
     static func defaultAssistantModel(for provider: AssistantProvider) -> String {
         switch provider {
-        case .claude: return "sonnet"
+        case .claude: return "default"
         case .copilot: return "claude-haiku-4.5"
+        }
+    }
+
+    static func assistantModelDisplayName(for provider: AssistantProvider, model: String) -> String {
+        guard provider == .claude else { return model }
+        switch model {
+        case "default": return "Default (recommended) · Opus 4.6 · 1M context"
+        case "sonnet": return "Sonnet · Sonnet 4.6"
+        case "sonnet-1m": return "Sonnet (1M context) · Sonnet 4.6"
+        case "haiku": return "Haiku · Haiku 4.5"
+        default: return model
         }
     }
 
     static func assistantModelOptions(for provider: AssistantProvider) -> [String] {
         switch provider {
         case .claude:
-            return ["sonnet", "opus", "haiku"]
+            return ["default", "sonnet", "sonnet-1m", "haiku"]
         case .copilot:
             return [
                 "claude-sonnet-4.6",

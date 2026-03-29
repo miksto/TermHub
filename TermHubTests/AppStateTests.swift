@@ -320,7 +320,7 @@ struct AppStateTests {
         let state = makeCleanAppState()
 
         state.assistantProvider = .claude
-        #expect(state.assistantModel == "sonnet")
+        #expect(state.assistantModel == "default")
 
         state.assistantProvider = .copilot
         #expect(state.assistantModel == "claude-haiku-4.5")
@@ -343,13 +343,13 @@ struct AppStateTests {
         let state = makeCleanAppState()
 
         state.assistantProvider = .claude
-        state.assistantModel = "opus"
+        state.assistantModel = "sonnet-1m"
 
         state.assistantProvider = .copilot
         state.assistantModel = "gpt-5.2"
 
         state.assistantProvider = .claude
-        #expect(state.assistantModel == "opus")
+        #expect(state.assistantModel == "sonnet-1m")
 
         state.assistantProvider = .copilot
         #expect(state.assistantModel == "gpt-5.2")
@@ -403,7 +403,7 @@ struct AppStateTests {
         let state = makeCleanAppState()
         state.assistantProvider = .claude
         state.assistantModel = "sonnet-custom"
-        #expect(state.assistantModel == "sonnet")
+        #expect(state.assistantModel == "default")
 
         state.assistantProvider = .copilot
         state.assistantModel = "not-a-model"

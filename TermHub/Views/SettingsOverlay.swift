@@ -99,7 +99,7 @@ struct SettingsOverlay: View {
                             formLabel("Model")
                             Picker("Model", selection: $appState.assistantModel) {
                                 ForEach(AppState.assistantModelOptions(for: appState.assistantProvider), id: \.self) { model in
-                                    Text(model).tag(model)
+                                    Text(AppState.assistantModelDisplayName(for: appState.assistantProvider, model: model)).tag(model)
                                 }
                             }
                             .pickerStyle(.menu)
