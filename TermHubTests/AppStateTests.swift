@@ -316,6 +316,7 @@ struct AppStateTests {
     @Test("assistant model defaults per provider")
     @MainActor
     func assistantModelDefaults() {
+        removeUserDefaultIfPresent("assistantModelByProvider")
         let state = makeCleanAppState()
 
         state.assistantProvider = .claude
@@ -323,6 +324,17 @@ struct AppStateTests {
 
         state.assistantProvider = .copilot
         #expect(state.assistantModel == "claude-haiku-4.5")
+    }
+
+    @Test("assistant Copilot model options include full supported list")
+    @MainActor
+    func assistantCopilotModelOptionsFullList() {
+        let options = AppState.assistantModelOptions(for: .copilot)
+        #expect(options.contains("claude-sonnet-4.6"))
+        #expect(options.contains("gpt-5.3-codex"))
+        #expect(options.contains("gpt-5.1-codex-mini"))
+        #expect(options.contains("gpt-5-mini"))
+        #expect(options.count >= 16)
     }
 
     @Test("assistant model is stored per provider")
@@ -346,6 +358,7 @@ struct AppStateTests {
     @Test("assistant effort defaults per provider")
     @MainActor
     func assistantEffortDefaults() {
+        removeUserDefaultIfPresent("assistantEffortByProvider")
         let state = makeCleanAppState()
 
         state.assistantProvider = .claude
@@ -378,10 +391,23 @@ struct AppStateTests {
     func assistantModelPersistsToUserDefaults() {
         let state = makeCleanAppState()
         state.assistantProvider = .claude
-        state.assistantModel = "sonnet-custom"
+        state.assistantModel = "sonnet"
 
         let stored = UserDefaults.standard.dictionary(forKey: "assistantModelByProvider") as? [String: String]
-        #expect(stored?["claude"] == "sonnet-custom")
+        #expect(stored?["claude"] == "sonnet")
+    }
+
+    @Test("assistant model invalid value resets to provider default")
+    @MainActor
+    func assistantModelInvalidResetsToDefault() {
+        let state = makeCleanAppState()
+        state.assistantProvider = .claude
+        state.assistantModel = "sonnet-custom"
+        #expect(state.assistantModel == "sonnet")
+
+        state.assistantProvider = .copilot
+        state.assistantModel = "not-a-model"
+        #expect(state.assistantModel == "claude-haiku-4.5")
     }
 
     @Test("assistant effort persists to UserDefaults")
@@ -394,5 +420,37 @@ struct AppStateTests {
         let stored = UserDefaults.standard.dictionary(forKey: "assistantEffortByProvider") as? [String: String]
         #expect(stored?["claude"] == "xhigh")
     }
-}
 
+    @Test("assistant effort invalid value resets to provider default")
+    @MainActor
+    func assistantEffortInvalidResetsToDefault() {
+        let state = makeCleanAppState()
+        state.assistantProvider = .claude
+        state.assistantEffort = "ultra"
+        #expect(state.assistantEffort == "low")
+
+        state.assistantProvider = .copilot
+        state.assistantEffort = "ultra"
+        #expect(state.assistantEffort == "")
+    }
+
+    @Test("assistant model support for effort depends on provider and model")
+    @MainActor
+    func assistantModelSupportForEffort() {
+        let state = makeCleanAppState()
+
+        state.assistantProvider = .copilot
+        state.assistantModel = "gpt-5.3-codex"
+        #expect(state.assistantModelSupportsEffort == true)
+
+        state.assistantModel = "gpt-5-mini"
+        #expect(state.assistantModelSupportsEffort == false)
+
+        state.assistantProvider = .claude
+        state.assistantModel = "sonnet"
+        #expect(state.assistantModelSupportsEffort == true)
+
+        state.assistantModel = "haiku"
+        #expect(state.assistantModelSupportsEffort == false)
+    }
+}

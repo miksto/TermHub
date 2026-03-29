@@ -164,6 +164,27 @@ struct AssistantServiceTests {
         #expect(!result.args.contains("--effort"))
     }
 
+    @Test("buildArguments for Copilot omits reasoning effort when empty")
+    func copilotOmitsReasoningEffortWhenEmpty() {
+        let service = AssistantService()
+        let sessionID = UUID()
+
+        let result = service.testBuildArguments(
+            text: "hello",
+            provider: .copilot,
+            mcpEnabled: false,
+            allowedTools: "",
+            model: "gpt-5-mini",
+            effort: "",
+            isFirstMessage: true,
+            sessionID: sessionID
+        )
+
+        #expect(result.args.contains("--model"))
+        #expect(result.args.contains("gpt-5-mini"))
+        #expect(!result.args.contains("--reasoning-effort"))
+    }
+
     @Test("send throws clear error when provider CLI is missing")
     func missingCLIFailsClearly() {
         let service = AssistantService()

@@ -41,11 +41,99 @@ final class AppState {
         }
     }
 
+    static func assistantModelOptions(for provider: AssistantProvider) -> [String] {
+        switch provider {
+        case .claude:
+            return ["sonnet", "opus", "haiku"]
+        case .copilot:
+            return [
+                "claude-sonnet-4.6",
+                "claude-sonnet-4.5",
+                "claude-haiku-4.5",
+                "claude-opus-4.6",
+                "claude-opus-4.5",
+                "claude-sonnet-4",
+                "gpt-5.4",
+                "gpt-5.3-codex",
+                "gpt-5.2-codex",
+                "gpt-5.2",
+                "gpt-5.1-codex-max",
+                "gpt-5.1-codex",
+                "gpt-5.1",
+                "gpt-5.1-codex-mini",
+                "gpt-5-mini",
+                "gpt-4.1",
+            ]
+        }
+    }
+
     static func defaultAssistantEffort(for provider: AssistantProvider) -> String {
         switch provider {
         case .claude: return "low"
         case .copilot: return ""
         }
+    }
+
+    static func assistantEffortOptions(for provider: AssistantProvider) -> [String] {
+        switch provider {
+        case .claude, .copilot:
+            return ["", "low", "medium", "high", "xhigh"]
+        }
+    }
+
+    static func supportsAssistantEffort(for provider: AssistantProvider, model: String) -> Bool {
+        switch provider {
+        case .claude:
+            return model != "haiku"
+        case .copilot:
+            let supportingModels: Set<String> = [
+                "gpt-5.4",
+                "gpt-5.3-codex",
+                "gpt-5.2-codex",
+                "gpt-5.2",
+                "gpt-5.1-codex-max",
+                "gpt-5.1-codex",
+                "gpt-5.1",
+                "gpt-5.1-codex-mini",
+            ]
+            return supportingModels.contains(model)
+        }
+    }
+
+    private static func normalizedAssistantModel(_ value: String, for provider: AssistantProvider) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard assistantModelOptions(for: provider).contains(trimmed) else {
+            return defaultAssistantModel(for: provider)
+        }
+        return trimmed
+    }
+
+    private static func normalizedAssistantEffort(_ value: String, for provider: AssistantProvider) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard assistantEffortOptions(for: provider).contains(trimmed) else {
+            return defaultAssistantEffort(for: provider)
+        }
+        return trimmed
+    }
+
+    private static func normalizedAssistantModelByProvider(_ raw: [String: String]) -> [String: String] {
+        var normalized: [String: String] = [:]
+        for provider in AssistantProvider.allCases {
+            let key = provider.rawValue
+            let value = raw[key] ?? defaultAssistantModel(for: provider)
+            normalized[key] = normalizedAssistantModel(value, for: provider)
+        }
+        return normalized
+    }
+
+    private static func normalizedAssistantEffortByProvider(_ raw: [String: String]) -> [String: String] {
+        var normalized: [String: String] = [:]
+        for provider in AssistantProvider.allCases {
+            let key = provider.rawValue
+            let value = raw[key] ?? defaultAssistantEffort(for: provider)
+            normalized[key] = normalizedAssistantEffort(value, for: provider)
+        }
+        return normalized
     }
 
     private static func normalizedAssistantAllowedToolsByProvider(_ raw: [String: String]) -> [String: String] {
@@ -205,34 +293,46 @@ final class AppState {
 
     var assistantModelByProvider: [String: String] {
         didSet {
-            UserDefaults.standard.set(assistantModelByProvider, forKey: Self.assistantModelByProviderUserDefaultsKey)
+            UserDefaults.standard.set(
+                Self.normalizedAssistantModelByProvider(assistantModelByProvider),
+                forKey: Self.assistantModelByProviderUserDefaultsKey
+            )
         }
     }
 
     var assistantModel: String {
         get {
-            assistantModelByProvider[assistantProvider.rawValue]
+            let value = assistantModelByProvider[assistantProvider.rawValue]
                 ?? Self.defaultAssistantModel(for: assistantProvider)
+            return Self.normalizedAssistantModel(value, for: assistantProvider)
         }
         set {
-            assistantModelByProvider[assistantProvider.rawValue] = newValue
+            assistantModelByProvider[assistantProvider.rawValue] = Self.normalizedAssistantModel(newValue, for: assistantProvider)
         }
     }
 
     var assistantEffortByProvider: [String: String] {
         didSet {
-            UserDefaults.standard.set(assistantEffortByProvider, forKey: Self.assistantEffortByProviderUserDefaultsKey)
+            UserDefaults.standard.set(
+                Self.normalizedAssistantEffortByProvider(assistantEffortByProvider),
+                forKey: Self.assistantEffortByProviderUserDefaultsKey
+            )
         }
     }
 
     var assistantEffort: String {
         get {
-            assistantEffortByProvider[assistantProvider.rawValue]
+            let value = assistantEffortByProvider[assistantProvider.rawValue]
                 ?? Self.defaultAssistantEffort(for: assistantProvider)
+            return Self.normalizedAssistantEffort(value, for: assistantProvider)
         }
         set {
-            assistantEffortByProvider[assistantProvider.rawValue] = newValue
+            assistantEffortByProvider[assistantProvider.rawValue] = Self.normalizedAssistantEffort(newValue, for: assistantProvider)
         }
+    }
+
+    var assistantModelSupportsEffort: Bool {
+        Self.supportsAssistantEffort(for: assistantProvider, model: assistantModel)
     }
 
     var mcpServerEnabled: Bool {
@@ -298,8 +398,12 @@ final class AppState {
         copyClaudeSettingsToWorktrees = UserDefaults.standard.object(forKey: "copyClaudeSettingsToWorktrees") as? Bool ?? true
         assistantProvider = AssistantProvider(rawValue: UserDefaults.standard.string(forKey: "assistantProvider") ?? "") ?? .claude
         assistantAllowedToolsByProvider = Self.loadAssistantAllowedToolsByProviderFromUserDefaults()
-        assistantModelByProvider = UserDefaults.standard.dictionary(forKey: Self.assistantModelByProviderUserDefaultsKey) as? [String: String] ?? [:]
-        assistantEffortByProvider = UserDefaults.standard.dictionary(forKey: Self.assistantEffortByProviderUserDefaultsKey) as? [String: String] ?? [:]
+        assistantModelByProvider = Self.normalizedAssistantModelByProvider(
+            UserDefaults.standard.dictionary(forKey: Self.assistantModelByProviderUserDefaultsKey) as? [String: String] ?? [:]
+        )
+        assistantEffortByProvider = Self.normalizedAssistantEffortByProvider(
+            UserDefaults.standard.dictionary(forKey: Self.assistantEffortByProviderUserDefaultsKey) as? [String: String] ?? [:]
+        )
         mcpServerEnabled = UserDefaults.standard.object(forKey: "mcpServerEnabled") as? Bool ?? true
         terminalManager.optionAsMetaKey = optionAsMetaKey
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
@@ -482,7 +586,7 @@ final class AppState {
                 mcpEnabled: mcpServerEnabled,
                 allowedTools: assistantAllowedTools,
                 model: assistantModel,
-                effort: assistantEffort,
+                effort: assistantModelSupportsEffort ? assistantEffort : "",
                 workingDirectory: assistantWorkingDirectory
             )
             for notice in notices {
