@@ -19,7 +19,7 @@ struct SessionSwitcherOverlay: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
                     .padding(.top, 10)
-                    .padding(.bottom, 4)
+                    .padding(.bottom, 8)
 
                 Divider()
 
