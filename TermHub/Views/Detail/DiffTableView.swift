@@ -57,12 +57,20 @@ enum DiffMetrics {
 // MARK: - Row Builder
 
 enum DiffRowBuilder {
-    static func buildRows(from diff: GitDiff, sideBySide: Bool) -> [DiffRow] {
+    static func buildRows(
+        from diff: GitDiff,
+        sideBySide: Bool,
+        expandedFiles: Set<String> = [],
+        fileContentsCache: [String: [String]] = [:]
+    ) -> [DiffRow] {
         var rows: [DiffRow] = []
         for (fileIdx, file) in diff.files.enumerated() {
             rows.append(DiffRow(kind: .fileHeader(file), hunkIndex: nil, fileIndex: fileIdx))
 
-            if !file.isBinary {
+            let filePath = file.newPath
+            if expandedFiles.contains(filePath), let fileLines = fileContentsCache[filePath] {
+                rows += buildExpandedRows(for: file, fileLines: fileLines, sideBySide: sideBySide, fileIndex: fileIdx)
+            } else if !file.isBinary {
                 for (hunkIdx, hunk) in file.hunks.enumerated() {
                     rows.append(DiffRow(
                         kind: .hunkHeader(hunk: hunk, file: file),
@@ -92,6 +100,64 @@ enum DiffRowBuilder {
 
             rows.append(DiffRow(kind: .fileSeparator, hunkIndex: nil, fileIndex: fileIdx))
         }
+        return rows
+    }
+
+    /// Builds rows for an expanded file: all file lines visible with gap context lines filled in.
+    /// Hunk header rows are omitted — the continuous context makes them redundant.
+    private static func buildExpandedRows(
+        for file: DiffFile,
+        fileLines: [String],
+        sideBySide: Bool,
+        fileIndex: Int
+    ) -> [DiffRow] {
+        var rows: [DiffRow] = []
+        var currentOldLine = 1
+        var currentNewLine = 1
+
+        for (hunkIdx, hunk) in file.hunks.enumerated() {
+            // Fill gap context lines before this hunk
+            while currentNewLine < hunk.newStart {
+                let content = currentNewLine <= fileLines.count ? fileLines[currentNewLine - 1] : ""
+                let gap = DiffLine(type: .context, content: content, oldLineNumber: currentOldLine, newLineNumber: currentNewLine)
+                if sideBySide {
+                    rows.append(DiffRow(kind: .sideBySideLine(old: gap, new: gap), hunkIndex: nil, fileIndex: fileIndex))
+                } else {
+                    rows.append(DiffRow(kind: .unifiedLine(gap), hunkIndex: nil, fileIndex: fileIndex))
+                }
+                currentOldLine += 1
+                currentNewLine += 1
+            }
+
+            // Emit hunk lines with their existing diff styling
+            let oldCount = hunk.lines.filter { $0.oldLineNumber != nil }.count
+            let newCount = hunk.lines.filter { $0.newLineNumber != nil }.count
+            if sideBySide {
+                for pair in pairLines(hunk.lines) {
+                    rows.append(DiffRow(kind: .sideBySideLine(old: pair.old, new: pair.new), hunkIndex: hunkIdx, fileIndex: fileIndex))
+                }
+            } else {
+                for line in hunk.lines {
+                    rows.append(DiffRow(kind: .unifiedLine(line), hunkIndex: hunkIdx, fileIndex: fileIndex))
+                }
+            }
+            currentOldLine = hunk.oldStart + oldCount
+            currentNewLine = hunk.newStart + newCount
+        }
+
+        // Fill trailing context lines after the last hunk
+        while currentNewLine <= fileLines.count {
+            let content = fileLines[currentNewLine - 1]
+            let gap = DiffLine(type: .context, content: content, oldLineNumber: currentOldLine, newLineNumber: currentNewLine)
+            if sideBySide {
+                rows.append(DiffRow(kind: .sideBySideLine(old: gap, new: gap), hunkIndex: nil, fileIndex: fileIndex))
+            } else {
+                rows.append(DiffRow(kind: .unifiedLine(gap), hunkIndex: nil, fileIndex: fileIndex))
+            }
+            currentOldLine += 1
+            currentNewLine += 1
+        }
+
         return rows
     }
 
@@ -167,7 +233,8 @@ struct DiffTableView: NSViewRepresentable {
         let delegate = DiffTableDelegate()
         delegate.diff = diff
         delegate.lastDiff = diff
-        delegate.rebuildRows(for: scrollView.frame.width)
+        delegate.rebuildRows(for: scrollView.frame.width, clearExpandState: true)
+        delegate.tableView = tableView
         context.coordinator.delegate = delegate
         context.coordinator.scrollView = scrollView
 
@@ -191,7 +258,7 @@ struct DiffTableView: NSViewRepresentable {
 
         delegate.diff = diff
         delegate.lastDiff = diff
-        delegate.rebuildRows(for: scrollView.frame.width)
+        delegate.rebuildRows(for: scrollView.frame.width, clearExpandState: true)
         tableView.reloadData()
     }
 
@@ -248,15 +315,49 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     var lastWidth: CGFloat = 0
     var lineWrapping: Bool = true
     var selection: DiffSelection?
+    var workingDir: String = ""
+    weak var tableView: NSTableView?
+    private var expandedFiles: Set<String> = []
+    private var fileContentsCache: [String: [String]] = [:]
     /// Cached row heights keyed by row index, invalidated on width/row changes.
     private var heightCache: [Int: CGFloat] = [:]
 
-    func rebuildRows(for width: CGFloat) {
+    func rebuildRows(for width: CGFloat, clearExpandState: Bool = false) {
+        if clearExpandState {
+            expandedFiles.removeAll()
+            fileContentsCache.removeAll()
+        }
         lastWidth = width
         isSideBySide = width >= 800
-        rows = DiffRowBuilder.buildRows(from: diff, sideBySide: isSideBySide)
+        rows = DiffRowBuilder.buildRows(
+            from: diff,
+            sideBySide: isSideBySide,
+            expandedFiles: expandedFiles,
+            fileContentsCache: fileContentsCache
+        )
         heightCache.removeAll(keepingCapacity: true)
         selection = nil
+    }
+
+    func isFileExpanded(_ file: DiffFile) -> Bool {
+        expandedFiles.contains(file.newPath)
+    }
+
+    func toggleExpand(for file: DiffFile) {
+        let path = file.newPath
+        if expandedFiles.contains(path) {
+            expandedFiles.remove(path)
+        } else {
+            let fullPath = (workingDir as NSString).appendingPathComponent(path)
+            guard let content = try? String(contentsOfFile: fullPath, encoding: .utf8) else { return }
+            var lines = content.components(separatedBy: .newlines)
+            // Remove trailing empty element that results from a final newline
+            if lines.last == "" { lines.removeLast() }
+            fileContentsCache[path] = lines
+            expandedFiles.insert(path)
+        }
+        rebuildRows(for: lastWidth)
+        tableView?.reloadData()
     }
 
     func selectionRange(forRow row: Int) -> (start: Int, end: Int)? {
@@ -374,14 +475,17 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
             let cell = tableView.makeView(withIdentifier: id, owner: nil) as? FileHeaderDrawView
                 ?? FileHeaderDrawView(identifier: id)
             cell.file = file
+            cell.isExpanded = isFileExpanded(file)
+            cell.onCollapse = { [weak self] in self?.toggleExpand(for: file) }
             cell.needsDisplay = true
             return cell
 
-        case .hunkHeader(let hunk, _):
+        case .hunkHeader(let hunk, let file):
             let id = NSUserInterfaceItemIdentifier("hunkHeader")
             let cell = tableView.makeView(withIdentifier: id, owner: nil) as? HunkHeaderDrawView
                 ?? HunkHeaderDrawView(identifier: id)
             cell.hunk = hunk
+            cell.onExpandFile = { [weak self] in self?.toggleExpand(for: file) }
             cell.needsDisplay = true
             return cell
 
@@ -638,14 +742,46 @@ enum DiffDrawing {
 
 private class FileHeaderDrawView: NSView {
     var file: DiffFile?
+    var isExpanded: Bool = false {
+        didSet {
+            collapseButton.isHidden = !isExpanded
+            needsDisplay = true
+        }
+    }
+    var onCollapse: (() -> Void)?
+    private let collapseButton: NSButton
 
     init(identifier: NSUserInterfaceItemIdentifier) {
+        collapseButton = NSButton()
         super.init(frame: .zero)
         self.identifier = identifier
+
+        collapseButton.title = "Show diff"
+        collapseButton.font = .systemFont(ofSize: 11)
+        collapseButton.isBordered = false
+        collapseButton.wantsLayer = true
+        collapseButton.layer?.cornerRadius = 3
+        collapseButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
+        collapseButton.contentTintColor = NSColor.white.withAlphaComponent(0.85)
+        collapseButton.isHidden = true
+        collapseButton.target = self
+        collapseButton.action = #selector(collapseTapped)
+        collapseButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(collapseButton)
+        NSLayoutConstraint.activate([
+            collapseButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            collapseButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -40),
+            collapseButton.widthAnchor.constraint(equalToConstant: 66),
+            collapseButton.heightAnchor.constraint(equalToConstant: 20),
+        ])
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    @objc private func collapseTapped() {
+        onCollapse?()
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         guard let file else { return }
@@ -667,7 +803,9 @@ private class FileHeaderDrawView: NSView {
         let pathRect = NSRect(x: 12, y: pathY, width: bounds.width - 120 - rightMargin, height: pathSize.height)
         (file.displayPath as NSString).draw(with: pathRect, options: [.truncatesLastVisibleLine, .usesLineFragmentOrigin], attributes: pathAttrs)
 
-        // Stats
+        // Stats — when expanded, also reserve space for the "Show diff" collapse button
+        // (button is 66pt wide at trailingAnchor -40, so its leading edge is at -106).
+        let statsRightMargin: CGFloat = isExpanded ? 114 : rightMargin
         if file.isBinary {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: DiffFonts.monoSmall,
@@ -676,7 +814,7 @@ private class FileHeaderDrawView: NSView {
             let text = "Binary"
             let size = (text as NSString).size(withAttributes: attrs)
             (text as NSString).draw(
-                at: NSPoint(x: bounds.maxX - size.width - rightMargin, y: bounds.midY - size.height / 2),
+                at: NSPoint(x: bounds.maxX - size.width - statsRightMargin, y: bounds.midY - size.height / 2),
                 withAttributes: attrs
             )
         } else {
@@ -693,7 +831,7 @@ private class FileHeaderDrawView: NSView {
             let addedSize = (addedStr as NSString).size(withAttributes: addedAttrs)
             let deletedSize = (deletedStr as NSString).size(withAttributes: deletedAttrs)
             let totalWidth = addedSize.width + deletedSize.width
-            let startX = bounds.maxX - totalWidth - rightMargin
+            let startX = bounds.maxX - totalWidth - statsRightMargin
             let y = bounds.midY - addedSize.height / 2
 
             (addedStr as NSString).draw(at: NSPoint(x: startX, y: y), withAttributes: addedAttrs)
@@ -706,14 +844,39 @@ private class FileHeaderDrawView: NSView {
 
 private class HunkHeaderDrawView: NSView {
     var hunk: DiffHunk?
+    var onExpandFile: (() -> Void)?
+    private let expandButton: NSButton
 
     init(identifier: NSUserInterfaceItemIdentifier) {
+        expandButton = NSButton()
         super.init(frame: .zero)
         self.identifier = identifier
+
+        expandButton.title = "Show file"
+        expandButton.font = .systemFont(ofSize: 11)
+        expandButton.isBordered = false
+        expandButton.wantsLayer = true
+        expandButton.layer?.cornerRadius = 3
+        expandButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
+        expandButton.contentTintColor = DiffColors.hunkHeaderFg
+        expandButton.target = self
+        expandButton.action = #selector(expandTapped)
+        expandButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(expandButton)
+        NSLayoutConstraint.activate([
+            expandButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            expandButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -40),
+            expandButton.widthAnchor.constraint(equalToConstant: 66),
+            expandButton.heightAnchor.constraint(equalToConstant: 17),
+        ])
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    @objc private func expandTapped() {
+        onExpandFile?()
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         guard let hunk else { return }

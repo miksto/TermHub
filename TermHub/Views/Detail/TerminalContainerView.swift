@@ -155,6 +155,7 @@ class TerminalContainerViewController: NSViewController {
         tableView.delegate = delegate
         self.diffDelegate = delegate
         self.diffScrollView = scrollView
+        delegate.tableView = tableView
 
         diffContainer.addSubview(scrollView)
         NSLayoutConstraint.activate([
@@ -303,10 +304,17 @@ class TerminalContainerViewController: NSViewController {
         guard let delegate = diffDelegate, let scrollView = diffScrollView else { return }
         let tableView = scrollView.documentView as? NSTableView
 
+        // Update working dir for file expansion
+        if let session = appState.selectedSession {
+            delegate.workingDir = session.worktreePath
+                ?? appState.folders.first(where: { $0.id == session.folderID })?.path
+                ?? ""
+        }
+
         if let diff = appState.currentDiff, !diff.files.isEmpty {
             delegate.diff = diff
             delegate.lastDiff = diff
-            delegate.rebuildRows(for: scrollView.frame.width)
+            delegate.rebuildRows(for: scrollView.frame.width, clearExpandState: true)
             tableView?.reloadData()
             diffEmptyStateView?.isHidden = true
         } else {
