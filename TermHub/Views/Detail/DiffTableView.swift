@@ -749,10 +749,10 @@ private class FileHeaderDrawView: NSView {
         }
     }
     var onCollapse: (() -> Void)?
-    private let collapseButton: NSButton
+    private let collapseButton: ArrowCursorButton
 
     init(identifier: NSUserInterfaceItemIdentifier) {
-        collapseButton = NSButton()
+        collapseButton = ArrowCursorButton()
         super.init(frame: .zero)
         self.identifier = identifier
 
@@ -845,10 +845,10 @@ private class FileHeaderDrawView: NSView {
 private class HunkHeaderDrawView: NSView {
     var hunk: DiffHunk?
     var onExpandFile: (() -> Void)?
-    private let expandButton: NSButton
+    private let expandButton: ArrowCursorButton
 
     init(identifier: NSUserInterfaceItemIdentifier) {
-        expandButton = NSButton()
+        expandButton = ArrowCursorButton()
         super.init(frame: .zero)
         self.identifier = identifier
 

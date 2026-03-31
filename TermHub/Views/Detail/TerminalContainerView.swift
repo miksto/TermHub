@@ -180,7 +180,7 @@ class TerminalContainerViewController: NSViewController {
         self.diffEmptyStateView = emptyLabel
 
         // Line wrap toggle button
-        let wrapButton = NSButton()
+        let wrapButton = ArrowCursorButton()
         wrapButton.image = NSImage(systemSymbolName: "arrow.turn.down.left", accessibilityDescription: "Toggle line wrapping")
         wrapButton.imagePosition = .imageOnly
         wrapButton.bezelStyle = .accessoryBarAction

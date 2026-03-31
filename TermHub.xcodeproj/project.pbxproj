@@ -19,6 +19,7 @@
 		14D9D109DD6048DAAF7F02E5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7479F9143E3CCC3EC7B50ED9 /* ContentView.swift */; };
 		14DE91FA5EE1F434A6FCF007 /* SandboxManagerOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FC57A280AF71DCCAABE813F /* SandboxManagerOverlay.swift */; };
 		1516020445C4D4CC3CA4535A /* PersistenceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40ECC5B491D42D4D36B1548 /* PersistenceServiceTests.swift */; };
+		1517C12471FADDC697B15B80 /* AssistantServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 291A05701EAD20F1D46F70ED /* AssistantServiceTests.swift */; };
 		183B17FD893A5DBE32155EBE /* CommandPaletteOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6789CD823BD6E6D092FFA36 /* CommandPaletteOverlay.swift */; };
 		19FB45DD0A049E04023CB3FB /* MCPProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1AE0F87D7104DAEFC8025C /* MCPProtocolTests.swift */; };
 		1DAB698DEF6120695A01F8DC /* DoubleClickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E16A5970DB7655DECDB85E /* DoubleClickView.swift */; };
@@ -39,6 +40,7 @@
 		3AC7154D2E48C07A02AD2C35 /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
 		3FB6677B52F617DC7A0C82A9 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94816DB493F9BC69DC84FAD /* CommandPaletteView.swift */; };
 		406C8854CAC641A5AAC6662D /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2D21CC5CCB192AA60F30B9 /* TerminalSession.swift */; };
+		42DC7523BD82FFB2955B296C /* ArrowCursorButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 469F604CAB5157AE38C2DA72 /* ArrowCursorButton.swift */; };
 		443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F429369FC6F6D0A32E72B81C /* PersistenceService.swift */; };
 		4BEDB1AE3D7184594B0875D3 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616E73419466D40DFD30DFAE /* main.swift */; };
 		4D0062BE42AE108A8D2A22FE /* WorktreeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A28DDD740CDD01007044AF8 /* WorktreeHeaderView.swift */; };
@@ -139,6 +141,7 @@
 		21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalContainerView.swift; sourceTree = "<group>"; };
 		2305607A9F1189FC98956101 /* GitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitService.swift; sourceTree = "<group>"; };
 		28AD17721856C8A80790F5F0 /* TermHubTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TermHubTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		291A05701EAD20F1D46F70ED /* AssistantServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantServiceTests.swift; sourceTree = "<group>"; };
 		2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolder.swift; sourceTree = "<group>"; };
 		309C94FFFD305685DF84F204 /* TmuxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxService.swift; sourceTree = "<group>"; };
 		35E16A5970DB7655DECDB85E /* DoubleClickView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleClickView.swift; sourceTree = "<group>"; };
@@ -147,6 +150,7 @@
 		3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionTests.swift; sourceTree = "<group>"; };
 		3FE5D64EF6E39C3289FAC748 /* IPCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCClient.swift; sourceTree = "<group>"; };
 		45E29E797BAE827FD73FC191 /* TmuxServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxServiceTests.swift; sourceTree = "<group>"; };
+		469F604CAB5157AE38C2DA72 /* ArrowCursorButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrowCursorButton.swift; sourceTree = "<group>"; };
 		4B36A08544BDCA24B09F7F72 /* FuzzyMatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatch.swift; sourceTree = "<group>"; };
 		503B8C574CFDAB867E3DA066 /* AppStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateTests.swift; sourceTree = "<group>"; };
 		53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewBranchSheet.swift; sourceTree = "<group>"; };
@@ -248,6 +252,7 @@
 		2A3275DFE89066C04675DD25 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
+				469F604CAB5157AE38C2DA72 /* ArrowCursorButton.swift */,
 				F378CF74856DCCAF1093332A /* DiffTableView.swift */,
 				8F30B61DD6DCBA4DE3EAA0C9 /* TermHubTerminalView.swift */,
 				21F30D21495629ABD06D4E05 /* TerminalContainerView.swift */,
@@ -413,6 +418,7 @@
 			children = (
 				A4792E5D9882521F85544D02 /* AppStateExtendedTests.swift */,
 				503B8C574CFDAB867E3DA066 /* AppStateTests.swift */,
+				291A05701EAD20F1D46F70ED /* AssistantServiceTests.swift */,
 				F71E4BEB3EBC639479D3A3E3 /* CommandPaletteStateTests.swift */,
 				17AB80572203378D68C81906 /* DockerSandboxServiceTests.swift */,
 				9ECB69224974D220FDE98A6F /* FuzzyMatchTests.swift */,
@@ -580,11 +586,13 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/termhub-mcp",
 			);
 			name = "Install termhub-mcp to Application Support";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(HOME)/Library/Application Support/TermHub/termhub-mcp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -598,6 +606,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3ABEE09ECFA59D8269E25998 /* AppState.swift in Sources */,
+				42DC7523BD82FFB2955B296C /* ArrowCursorButton.swift in Sources */,
 				51D692A095F5EDEB41E4963A /* BranchInfo.swift in Sources */,
 				11031E9388A57B9722E570AC /* BranchPickerSheet.swift in Sources */,
 				183B17FD893A5DBE32155EBE /* CommandPaletteOverlay.swift in Sources */,
@@ -704,6 +713,7 @@
 			files = (
 				0F098081BCABB1A2174F8FF2 /* AppStateExtendedTests.swift in Sources */,
 				870E7673914A54A99132975A /* AppStateTests.swift in Sources */,
+				1517C12471FADDC697B15B80 /* AssistantServiceTests.swift in Sources */,
 				E59234002788C97D87673134 /* CommandPaletteStateTests.swift in Sources */,
 				12C147FDDAE593F098E6BC95 /* DockerSandboxServiceTests.swift in Sources */,
 				DE82574D984DD29D186D830E /* FuzzyMatchTests.swift in Sources */,
