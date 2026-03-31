@@ -11,33 +11,44 @@ struct SessionSwitcherOverlay: View {
             Color.black.opacity(0.3)
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    HStack {
-                        Image(systemName: "terminal")
-                            .foregroundStyle(.secondary)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.title)
-                                .lineLimit(1)
-                            if let folder = item.folderName {
-                                Text(folder)
-                                    .font(.caption)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                            HStack {
+                                Image(systemName: "terminal")
                                     .foregroundStyle(.secondary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.title)
+                                        .lineLimit(1)
+                                    if let folder = item.folderName {
+                                        Text(folder)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Spacer()
                             }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                index == selectedIndex
+                                    ? Color.accentColor.opacity(0.3)
+                                    : Color.clear
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .id(index)
                         }
-                        Spacer()
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        index == selectedIndex
-                            ? Color.accentColor.opacity(0.3)
-                            : Color.clear
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .padding(8)
+                }
+                .frame(maxHeight: 470)
+                .onChange(of: selectedIndex) { _, newIndex in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        proxy.scrollTo(newIndex, anchor: .center)
+                    }
                 }
             }
-            .padding(8)
             .frame(width: 350)
             .background(.ultraThickMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 12))
