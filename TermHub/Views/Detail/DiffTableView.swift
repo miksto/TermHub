@@ -322,6 +322,20 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     /// Cached row heights keyed by row index, invalidated on width/row changes.
     private var heightCache: [Int: CGFloat] = [:]
 
+    // MARK: Scroll Anchor
+
+    private struct ScrollAnchor {
+        let offsetFromViewportTop: CGFloat
+        let identifier: RowIdentifier
+    }
+
+    private enum RowIdentifier {
+        case fileHeader(fileIndex: Int)
+        case hunkHeader(fileIndex: Int, newStart: Int)
+        case line(fileIndex: Int, newLineNumber: Int?, oldLineNumber: Int?)
+        case separator(fileIndex: Int)
+    }
+
     func rebuildRows(for width: CGFloat, clearExpandState: Bool = false) {
         if clearExpandState {
             expandedFiles.removeAll()
@@ -343,7 +357,31 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         expandedFiles.contains(file.newPath)
     }
 
-    func toggleExpand(for file: DiffFile) {
+    func toggleExpand(for file: DiffFile, fromHunk hunk: DiffHunk? = nil) {
+        let anchor: ScrollAnchor?
+
+        if let hunk {
+            // Clicked from a hunk header — anchor to the first line of this hunk
+            if let hunkHeaderIdx = rows.firstIndex(where: { row in
+                guard case .hunkHeader(let h, let f) = row.kind else { return false }
+                return f.newPath == file.newPath && h.newStart == hunk.newStart
+            }), hunkHeaderIdx + 1 < rows.count {
+                anchor = buildAnchor(forRow: hunkHeaderIdx + 1)
+            } else {
+                anchor = nil
+            }
+        } else {
+            // Clicked from file header — anchor to the file header itself
+            if let fileHeaderIdx = rows.firstIndex(where: { row in
+                guard case .fileHeader(let f) = row.kind else { return false }
+                return f.newPath == file.newPath
+            }) {
+                anchor = buildAnchor(forRow: fileHeaderIdx)
+            } else {
+                anchor = nil
+            }
+        }
+
         let path = file.newPath
         if expandedFiles.contains(path) {
             expandedFiles.remove(path)
@@ -358,6 +396,10 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         }
         rebuildRows(for: lastWidth)
         tableView?.reloadData()
+
+        if let anchor {
+            restoreScrollAnchor(anchor)
+        }
     }
 
     func selectionRange(forRow row: Int) -> (start: Int, end: Int)? {
@@ -404,6 +446,138 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
     func invalidateHeightCache() {
         heightCache.removeAll(keepingCapacity: true)
+    }
+
+    // MARK: Scroll Anchor Capture / Restore
+
+    private func buildAnchor(forRow rowIndex: Int) -> ScrollAnchor? {
+        guard let tableView, let scrollView = tableView.enclosingScrollView else { return nil }
+        let visibleRect = scrollView.contentView.bounds
+        let rowRect = tableView.rect(ofRow: rowIndex)
+        let offset = rowRect.origin.y - visibleRect.origin.y
+
+        let row = rows[rowIndex]
+        let identifier: RowIdentifier
+        switch row.kind {
+        case .fileHeader:
+            identifier = .fileHeader(fileIndex: row.fileIndex)
+        case .hunkHeader(let hunk, _):
+            identifier = .hunkHeader(fileIndex: row.fileIndex, newStart: hunk.newStart)
+        case .unifiedLine(let line):
+            identifier = .line(fileIndex: row.fileIndex, newLineNumber: line.newLineNumber, oldLineNumber: line.oldLineNumber)
+        case .sideBySideLine(let old, let new):
+            identifier = .line(fileIndex: row.fileIndex, newLineNumber: new?.newLineNumber, oldLineNumber: old?.oldLineNumber)
+        case .fileSeparator:
+            identifier = .separator(fileIndex: row.fileIndex)
+        }
+
+        return ScrollAnchor(offsetFromViewportTop: offset, identifier: identifier)
+    }
+
+    private func restoreScrollAnchor(_ anchor: ScrollAnchor) {
+        guard let tableView, let scrollView = tableView.enclosingScrollView else { return }
+
+        var targetRowIndex: Int?
+        var adjustedOffset = anchor.offsetFromViewportTop
+
+        switch anchor.identifier {
+        case .fileHeader(let fileIndex):
+            targetRowIndex = rows.firstIndex { row in
+                if case .fileHeader = row.kind, row.fileIndex == fileIndex { return true }
+                return false
+            }
+
+        case .separator(let fileIndex):
+            targetRowIndex = rows.firstIndex { row in
+                if case .fileSeparator = row.kind, row.fileIndex == fileIndex { return true }
+                return false
+            }
+
+        case .hunkHeader(let fileIndex, let newStart):
+            // Try to find the hunk header (still present when collapsing)
+            targetRowIndex = rows.firstIndex { row in
+                if case .hunkHeader(let h, _) = row.kind, row.fileIndex == fileIndex, h.newStart == newStart { return true }
+                return false
+            }
+            if targetRowIndex == nil {
+                // Hunk header disappeared (expanding) — anchor to the line at newStart.
+                // Shift offset so content that was below the header stays in place.
+                targetRowIndex = findClosestLineRow(fileIndex: fileIndex, targetNewLine: newStart)
+                adjustedOffset += DiffMetrics.hunkHeaderRowHeight
+            }
+
+        case .line(let fileIndex, let newLineNumber, let oldLineNumber):
+            targetRowIndex = rows.firstIndex { row in
+                guard row.fileIndex == fileIndex else { return false }
+                switch row.kind {
+                case .unifiedLine(let line):
+                    return line.newLineNumber == newLineNumber && line.oldLineNumber == oldLineNumber
+                case .sideBySideLine(let old, let new):
+                    return new?.newLineNumber == newLineNumber && old?.oldLineNumber == oldLineNumber
+                default:
+                    return false
+                }
+            }
+            if targetRowIndex == nil {
+                // Line disappeared (gap context removed on collapse) — find nearest
+                if let nl = newLineNumber {
+                    targetRowIndex = findClosestLineRow(fileIndex: fileIndex, targetNewLine: nl)
+                } else if let ol = oldLineNumber {
+                    targetRowIndex = findClosestOldLineRow(fileIndex: fileIndex, targetOldLine: ol)
+                }
+            }
+        }
+
+        guard let rowIndex = targetRowIndex else { return }
+
+        let rowRect = tableView.rect(ofRow: rowIndex)
+        let maxY = tableView.bounds.height - scrollView.contentView.bounds.height
+        let targetY = max(0, min(rowRect.origin.y - adjustedOffset, maxY))
+
+        scrollView.contentView.scroll(to: NSPoint(x: scrollView.contentView.bounds.origin.x, y: targetY))
+        scrollView.reflectScrolledClipView(scrollView.contentView)
+    }
+
+    private func findClosestLineRow(fileIndex: Int, targetNewLine: Int) -> Int? {
+        var bestIndex: Int?
+        var bestDist = Int.max
+        for (idx, row) in rows.enumerated() {
+            guard row.fileIndex == fileIndex else { continue }
+            let nl: Int?
+            switch row.kind {
+            case .unifiedLine(let line): nl = line.newLineNumber
+            case .sideBySideLine(_, let new): nl = new?.newLineNumber
+            default: continue
+            }
+            guard let lineNum = nl else { continue }
+            let dist = abs(lineNum - targetNewLine)
+            if dist < bestDist {
+                bestDist = dist
+                bestIndex = idx
+            }
+        }
+        return bestIndex
+    }
+
+    private func findClosestOldLineRow(fileIndex: Int, targetOldLine: Int) -> Int? {
+        var bestIndex: Int?
+        var bestDist = Int.max
+        for (idx, row) in rows.enumerated() {
+            guard row.fileIndex == fileIndex else { continue }
+            let ol: Int?
+            switch row.kind {
+            case .unifiedLine(let line): ol = line.oldLineNumber
+            case .sideBySideLine(let old, _): ol = old?.oldLineNumber
+            default: continue
+            }
+            guard let lineNum = ol else { continue }
+            let dist = abs(lineNum - targetOldLine)
+            if dist < bestDist {
+                bestDist = dist
+                bestIndex = idx
+            }
+        }
+        return bestIndex
     }
 
     private func unifiedContentWidth() -> CGFloat {
@@ -485,7 +659,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
             let cell = tableView.makeView(withIdentifier: id, owner: nil) as? HunkHeaderDrawView
                 ?? HunkHeaderDrawView(identifier: id)
             cell.hunk = hunk
-            cell.onExpandFile = { [weak self] in self?.toggleExpand(for: file) }
+            cell.onExpandFile = { [weak self] in self?.toggleExpand(for: file, fromHunk: hunk) }
             cell.needsDisplay = true
             return cell
 
