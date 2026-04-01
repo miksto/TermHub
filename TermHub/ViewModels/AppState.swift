@@ -923,6 +923,15 @@ final class AppState {
         saveState()
     }
 
+    func moveFolder(from sourceIndex: Int, to destinationIndex: Int) {
+        guard sourceIndex != destinationIndex,
+              folders.indices.contains(sourceIndex),
+              folders.indices.contains(destinationIndex) else { return }
+        let folder = folders.remove(at: sourceIndex)
+        folders.insert(folder, at: destinationIndex)
+        saveState()
+    }
+
 
     func renameSession(id: UUID, newTitle: String) {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }

@@ -4,6 +4,8 @@ struct SidebarView: View {
     @Environment(AppState.self) private var appState
     @State private var optionKeyDown = false
     @State private var flagsMonitor: Any?
+    @State private var draggedFolderID: UUID?
+    @State private var dropTargetFolderID: UUID?
 
     var body: some View {
         @Bindable var state = appState
@@ -15,11 +17,10 @@ struct SidebarView: View {
                         optionKeyDown: optionKeyDown,
                         onRequestRemoveFolder: {
                             appState.pendingRemoveFolderID = folder.id
-                        }
+                        },
+                        draggedFolderID: $draggedFolderID,
+                        dropTargetFolderID: $dropTargetFolderID
                     )
-                }
-                .onMove { from, to in
-                    appState.moveFolder(fromOffsets: from, toOffset: to)
                 }
             }
             .listStyle(.sidebar)

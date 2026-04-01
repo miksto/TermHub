@@ -5,6 +5,8 @@ struct FolderSectionView: View {
     let folder: ManagedFolder
     var optionKeyDown: Bool = false
     var onRequestRemoveFolder: () -> Void
+    @Binding var draggedFolderID: UUID?
+    @Binding var dropTargetFolderID: UUID?
 
     private struct WorktreeGroup: Identifiable {
         let worktreePath: String
@@ -43,22 +45,21 @@ struct FolderSectionView: View {
         return groups
     }
 
-
-    private func aheadBehindText(_ status: GitStatus) -> String {
-        var parts: [String] = []
-        if status.ahead > 0 { parts.append("↑\(status.ahead)") }
-        if status.behind > 0 { parts.append("↓\(status.behind)") }
-        return parts.joined(separator: " ")
-    }
-
+    @ViewBuilder
     var body: some View {
         // Read sessionListVersion to re-evaluate when sessions are added/removed.
-        // The sessions array itself is @ObservationIgnored for isolation.
         let _ = appState.sessionListVersion
-        Section(isExpanded: Binding(
-            get: { folder.isExpanded },
-            set: { appState.setFolderExpanded(id: folder.id, isExpanded: $0) }
-        )) {
+
+        FolderHeaderRow(
+            folder: folder,
+            onRequestRemoveFolder: onRequestRemoveFolder,
+            draggedFolderID: $draggedFolderID,
+            dropTargetFolderID: $dropTargetFolderID
+        )
+        .selectionDisabled()
+        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 2, trailing: 0))
+
+        if folder.isExpanded {
             // Plain shell sessions
             ForEach(plainSessionIDs, id: \.self) { sessionID in
                 SessionRowView(sessionID: sessionID, onRemove: {
@@ -133,42 +134,6 @@ struct FolderSectionView: View {
                     .listRowInsets(EdgeInsets(top: 0, leading: 28, bottom: 0, trailing: 0))
                 }
             }
-        } header: {
-            HStack {
-                Label(folder.name, systemImage: "folder")
-                    .font(.headline)
-                if !folder.pathExists {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.yellow)
-                        .help("Folder path no longer exists: \(folder.path)")
-                }
-                if folder.isGitRepo, let status = appState.gitStatus(forFolderPath: folder.path) {
-                    if let branch = status.currentBranch {
-                        Text(branch)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    if status.isDirty {
-                        DiffStatsText(status: status)
-                    }
-                    if status.ahead > 0 || status.behind > 0 {
-                        Text(aheadBehindText(status))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-            }
-            .contextMenu {
-                Button("Copy Path") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(folder.path, forType: .string)
-                }
-                Button("Remove Folder", role: .destructive) {
-                    onRequestRemoveFolder()
-                }
-            }
-            .selectionDisabled()
         }
     }
 }
