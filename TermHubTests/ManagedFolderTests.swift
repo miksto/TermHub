@@ -68,4 +68,36 @@ struct ManagedFolderTests {
         #expect(decoded.sessionIDs == original.sessionIDs)
         #expect(decoded.isGitRepo == original.isGitRepo)
     }
+
+    @Test("Codable round-trip preserves isExpanded")
+    func codableRoundTripIsExpanded() throws {
+        let original = ManagedFolder(
+            name: "Collapsed",
+            path: "/Users/dev/test",
+            isGitRepo: false,
+            isExpanded: false
+        )
+
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(ManagedFolder.self, from: data)
+
+        #expect(decoded.isExpanded == false)
+    }
+
+    @Test("Decoding without isExpanded defaults to true")
+    func decodingWithoutIsExpanded() throws {
+        let json = """
+        {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "name": "Old Folder",
+            "path": "/tmp/old",
+            "sessionIDs": [],
+            "isGitRepo": false
+        }
+        """
+        let data = Data(json.utf8)
+        let decoded = try JSONDecoder().decode(ManagedFolder.self, from: data)
+
+        #expect(decoded.isExpanded == true)
+    }
 }

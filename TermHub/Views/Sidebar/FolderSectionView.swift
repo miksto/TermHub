@@ -6,8 +6,6 @@ struct FolderSectionView: View {
     var optionKeyDown: Bool = false
     var onRequestRemoveFolder: () -> Void
 
-    @State private var isExpanded = true
-
     private struct WorktreeGroup: Identifiable {
         let worktreePath: String
         let branchName: String
@@ -57,7 +55,10 @@ struct FolderSectionView: View {
         // Read sessionListVersion to re-evaluate when sessions are added/removed.
         // The sessions array itself is @ObservationIgnored for isolation.
         let _ = appState.sessionListVersion
-        Section(isExpanded: $isExpanded) {
+        Section(isExpanded: Binding(
+            get: { folder.isExpanded },
+            set: { appState.setFolderExpanded(id: folder.id, isExpanded: $0) }
+        )) {
             // Plain shell sessions
             ForEach(plainSessionIDs, id: \.self) { sessionID in
                 SessionRowView(sessionID: sessionID, onRemove: {

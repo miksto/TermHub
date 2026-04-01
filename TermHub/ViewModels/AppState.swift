@@ -672,6 +672,12 @@ final class AppState {
         updateGitFileWatcher()
     }
 
+    func setFolderExpanded(id: UUID, isExpanded: Bool) {
+        guard let index = folders.firstIndex(where: { $0.id == id }) else { return }
+        folders[index].isExpanded = isExpanded
+        saveState()
+    }
+
     func addSession(
         folderID: UUID,
         title: String,
