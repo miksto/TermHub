@@ -1039,9 +1039,7 @@ private class FileHeaderDrawView: NSView {
             onDiscard?()
         } else {
             isConfirmingDiscard = true
-            discardButton.title = "Sure?"
             discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.5).cgColor
-            discardWidthConstraint.constant = 50
             confirmResetTimer?.invalidate()
             confirmResetTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
                 MainActor.assumeIsolated {
@@ -1053,9 +1051,7 @@ private class FileHeaderDrawView: NSView {
     }
 
     private func resetDiscardAppearance() {
-        discardButton.title = "Discard File"
         discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.15).cgColor
-        discardWidthConstraint.constant = 80
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -1198,9 +1194,7 @@ private class HunkHeaderDrawView: NSView {
             onDiscard?()
         } else {
             isConfirmingDiscard = true
-            discardButton.title = "Sure?"
             discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.5).cgColor
-            discardWidthConstraint.constant = 50
             confirmResetTimer?.invalidate()
             confirmResetTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
                 MainActor.assumeIsolated {
@@ -1212,9 +1206,7 @@ private class HunkHeaderDrawView: NSView {
     }
 
     private func resetDiscardAppearance() {
-        discardButton.title = "Discard Hunk"
         discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.15).cgColor
-        discardWidthConstraint.constant = 86
     }
 
     override func draw(_ dirtyRect: NSRect) {
