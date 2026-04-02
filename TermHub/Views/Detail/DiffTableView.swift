@@ -319,6 +319,10 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     weak var tableView: NSTableView?
     var onDiscardFile: ((DiffFile) -> Void)?
     var onDiscardHunk: ((DiffFile, DiffHunk) -> Void)?
+    /// The file index currently hovered by the mouse, or nil when the mouse is outside.
+    var hoveredFileIndex: Int?
+    /// The hunk index (within its file) currently hovered, or nil.
+    var hoveredHunkIndex: Int?
     private var expandedFiles: Set<String> = []
     private var fileContentsCache: [String: [String]] = [:]
     /// Cached row heights keyed by row index, invalidated on width/row changes.
@@ -353,6 +357,38 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         )
         heightCache.removeAll(keepingCapacity: true)
         selection = nil
+    }
+
+    /// Updates hover state for the given row and refreshes discard button visibility on visible cells.
+    func updateHover(forRow rowIndex: Int?) {
+        let newFileIndex: Int?
+        let newHunkIndex: Int?
+
+        if let rowIndex, rowIndex >= 0, rowIndex < rows.count {
+            let row = rows[rowIndex]
+            newFileIndex = row.fileIndex
+            newHunkIndex = row.hunkIndex
+        } else {
+            newFileIndex = nil
+            newHunkIndex = nil
+        }
+
+        guard newFileIndex != hoveredFileIndex || newHunkIndex != hoveredHunkIndex else { return }
+        hoveredFileIndex = newFileIndex
+        hoveredHunkIndex = newHunkIndex
+
+        guard let tableView else { return }
+        let visibleRange = tableView.rows(in: tableView.visibleRect)
+        for r in visibleRange.location..<(visibleRange.location + visibleRange.length) {
+            guard r < rows.count else { continue }
+            let cellView = tableView.view(atColumn: 0, row: r, makeIfNecessary: false)
+            if let fileHeader = cellView as? FileHeaderDrawView {
+                fileHeader.showDiscard = hoveredFileIndex == rows[r].fileIndex
+            } else if let hunkHeader = cellView as? HunkHeaderDrawView {
+                hunkHeader.showDiscard = hoveredFileIndex == rows[r].fileIndex
+                    && hoveredHunkIndex == rows[r].hunkIndex
+            }
+        }
     }
 
     func isFileExpanded(_ file: DiffFile) -> Bool {
@@ -652,6 +688,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
                 ?? FileHeaderDrawView(identifier: id)
             cell.file = file
             cell.isExpanded = isFileExpanded(file)
+            cell.showDiscard = hoveredFileIndex == diffRow.fileIndex
             cell.onCollapse = { [weak self] in self?.toggleExpand(for: file) }
             cell.onDiscard = { [weak self] in self?.onDiscardFile?(file) }
             cell.needsDisplay = true
@@ -663,6 +700,8 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
                 ?? HunkHeaderDrawView(identifier: id)
             cell.hunk = hunk
             cell.isUntracked = file.oldPath == "/dev/null"
+            cell.showDiscard = hoveredFileIndex == diffRow.fileIndex
+                && hoveredHunkIndex == diffRow.hunkIndex
             cell.onExpandFile = { [weak self] in self?.toggleExpand(for: file, fromHunk: hunk) }
             cell.onDiscard = { [weak self] in self?.onDiscardHunk?(file, hunk) }
             cell.needsDisplay = true
@@ -927,6 +966,9 @@ private class FileHeaderDrawView: NSView {
             needsDisplay = true
         }
     }
+    var showDiscard: Bool = false {
+        didSet { discardButton.isHidden = !showDiscard && !isConfirmingDiscard }
+    }
     var onCollapse: (() -> Void)?
     var onDiscard: (() -> Void)?
     private let collapseButton: ArrowCursorButton
@@ -962,6 +1004,7 @@ private class FileHeaderDrawView: NSView {
         discardButton.layer?.cornerRadius = 3
         discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.15).cgColor
         discardButton.contentTintColor = NSColor.systemRed
+        discardButton.isHidden = true
         discardButton.target = self
         discardButton.action = #selector(discardTapped)
         discardButton.translatesAutoresizingMaskIntoConstraints = false
@@ -1077,7 +1120,10 @@ private class FileHeaderDrawView: NSView {
 private class HunkHeaderDrawView: NSView {
     var hunk: DiffHunk?
     var isUntracked: Bool = false {
-        didSet { discardButton.isHidden = isUntracked }
+        didSet { updateDiscardVisibility() }
+    }
+    var showDiscard: Bool = false {
+        didSet { updateDiscardVisibility() }
     }
     var onExpandFile: (() -> Void)?
     var onDiscard: (() -> Void)?
@@ -1086,6 +1132,10 @@ private class HunkHeaderDrawView: NSView {
     private var isConfirmingDiscard = false
     private var confirmResetTimer: Timer?
     private let discardWidthConstraint: NSLayoutConstraint
+
+    private func updateDiscardVisibility() {
+        discardButton.isHidden = isUntracked || (!showDiscard && !isConfirmingDiscard)
+    }
 
     init(identifier: NSUserInterfaceItemIdentifier) {
         expandButton = ArrowCursorButton()
@@ -1113,6 +1163,7 @@ private class HunkHeaderDrawView: NSView {
         discardButton.layer?.cornerRadius = 3
         discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.15).cgColor
         discardButton.contentTintColor = NSColor.systemRed
+        discardButton.isHidden = true
         discardButton.target = self
         discardButton.action = #selector(discardTapped)
         discardButton.translatesAutoresizingMaskIntoConstraints = false

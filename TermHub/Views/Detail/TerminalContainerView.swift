@@ -585,6 +585,32 @@ class SelectableDiffTableView: NSTableView {
     weak var diffDelegate: DiffTableDelegate?
     private var autoScrollTimer: Timer?
     private var lastDragPoint: NSPoint?
+    private var hoverTrackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let existing = hoverTrackingArea {
+            removeTrackingArea(existing)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let rowIndex = row(at: point)
+        diffDelegate?.updateHover(forRow: rowIndex >= 0 ? rowIndex : nil)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        diffDelegate?.updateHover(forRow: nil)
+    }
 
     override func resetCursorRects() {
         if diffDelegate?.rows.isEmpty ?? true {
