@@ -5,8 +5,9 @@ struct FolderHeaderRow: View {
     let folder: ManagedFolder
     var optionKeyDown: Bool = false
     var onRequestRemoveFolder: () -> Void
-    @Binding var draggedFolderID: UUID?
-    @Binding var dropTargetFolderID: UUID?
+    @Binding var draggedSidebarItem: SidebarItem?
+    @Binding var dropTargetSidebarItem: SidebarItem?
+    var isInsideGroup: Bool = false
 
     private func aheadBehindText(_ status: GitStatus) -> String {
         var parts: [String] = []
@@ -16,16 +17,26 @@ struct FolderHeaderRow: View {
     }
 
     private var isDragSource: Bool {
-        draggedFolderID == folder.id
+        draggedSidebarItem == .folder(folder.id)
     }
 
     private var isDropTarget: Bool {
-        dropTargetFolderID == folder.id && draggedFolderID != nil && draggedFolderID != folder.id
+        dropTargetSidebarItem == .folder(folder.id)
+            && draggedSidebarItem != nil
+            && draggedSidebarItem != .folder(folder.id)
+    }
+
+    private var isReorderTarget: Bool {
+        // Only show reorder indicator for folder-to-folder reordering at the same level
+        if case .folder = draggedSidebarItem {
+            return isDropTarget
+        }
+        return false
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if isDropTarget {
+            if isReorderTarget {
                 dropIndicatorLine
             }
 
@@ -70,21 +81,27 @@ struct FolderHeaderRow: View {
             appState.setFolderExpanded(id: folder.id, isExpanded: !folder.isExpanded)
         }
         .onDrag {
-            draggedFolderID = folder.id
-            return NSItemProvider(object: folder.id.uuidString as NSString)
+            draggedSidebarItem = .folder(folder.id)
+            return NSItemProvider(object: "folder:\(folder.id.uuidString)" as NSString)
         } preview: {
             FolderDragPreview(name: folder.name)
         }
         .onDrop(of: [.text], delegate: FolderDropDelegate(
             targetFolderID: folder.id,
             appState: appState,
-            draggedFolderID: $draggedFolderID,
-            dropTargetFolderID: $dropTargetFolderID
+            draggedSidebarItem: $draggedSidebarItem,
+            dropTargetSidebarItem: $dropTargetSidebarItem,
+            isInsideGroup: isInsideGroup
         ))
         .contextMenu {
             Button("Copy Path") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(folder.path, forType: .string)
+            }
+            if isInsideGroup {
+                Button("Remove from Group") {
+                    appState.moveFolderOutOfGroup(folderID: folder.id)
+                }
             }
             Button("Remove Folder", role: .destructive) {
                 onRequestRemoveFolder()
@@ -122,24 +139,31 @@ private struct FolderDragPreview: View {
 private struct FolderDropDelegate: DropDelegate {
     let targetFolderID: UUID
     let appState: AppState
-    @Binding var draggedFolderID: UUID?
-    @Binding var dropTargetFolderID: UUID?
+    @Binding var draggedSidebarItem: SidebarItem?
+    @Binding var dropTargetSidebarItem: SidebarItem?
+    var isInsideGroup: Bool = false
 
     func validateDrop(info: DropInfo) -> Bool {
-        draggedFolderID != nil && draggedFolderID != targetFolderID
+        guard let dragged = draggedSidebarItem else { return false }
+        if case .folder(let id) = dragged {
+            return id != targetFolderID
+        }
+        return false
     }
 
     func dropEntered(info: DropInfo) {
-        guard draggedFolderID != nil, draggedFolderID != targetFolderID else { return }
-        withAnimation(.easeInOut(duration: 0.15)) {
-            dropTargetFolderID = targetFolderID
+        guard let dragged = draggedSidebarItem else { return }
+        if case .folder(let id) = dragged, id != targetFolderID {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                dropTargetSidebarItem = .folder(targetFolderID)
+            }
         }
     }
 
     func dropExited(info: DropInfo) {
         withAnimation(.easeInOut(duration: 0.15)) {
-            if dropTargetFolderID == targetFolderID {
-                dropTargetFolderID = nil
+            if dropTargetSidebarItem == .folder(targetFolderID) {
+                dropTargetSidebarItem = nil
             }
         }
     }
@@ -150,15 +174,41 @@ private struct FolderDropDelegate: DropDelegate {
 
     func performDrop(info: DropInfo) -> Bool {
         defer {
-            draggedFolderID = nil
-            dropTargetFolderID = nil
+            draggedSidebarItem = nil
+            dropTargetSidebarItem = nil
         }
-        guard let draggedID = draggedFolderID,
-              draggedID != targetFolderID,
-              let fromIndex = appState.folders.firstIndex(where: { $0.id == draggedID }),
-              let toIndex = appState.folders.firstIndex(where: { $0.id == targetFolderID })
-        else { return false }
-        appState.moveFolder(from: fromIndex, to: toIndex)
-        return true
+        guard case .folder(let draggedFolderID) = draggedSidebarItem,
+              draggedFolderID != targetFolderID else { return false }
+
+        // Determine if both folders are in the same context (same group or both ungrouped)
+        let draggedGroup = appState.group(forFolderID: draggedFolderID)
+        let targetGroup = appState.group(forFolderID: targetFolderID)
+
+        if let tg = targetGroup, draggedGroup?.id == tg.id {
+            // Both in the same group — reorder within group
+            guard let fromIndex = tg.folderIDs.firstIndex(of: draggedFolderID),
+                  let toIndex = tg.folderIDs.firstIndex(of: targetFolderID) else { return false }
+            appState.moveFolderWithinGroup(groupID: tg.id, from: fromIndex, to: toIndex)
+            return true
+        } else if targetGroup == nil && draggedGroup == nil {
+            // Both ungrouped — reorder in sidebarOrder
+            guard let fromIndex = appState.sidebarOrder.firstIndex(of: .folder(draggedFolderID)),
+                  let toIndex = appState.sidebarOrder.firstIndex(of: .folder(targetFolderID))
+            else { return false }
+            appState.moveSidebarItem(from: fromIndex, to: toIndex)
+            return true
+        } else if let tg = targetGroup {
+            // Dragged folder is moving into target's group
+            appState.moveFolderToGroup(folderID: draggedFolderID, groupID: tg.id)
+            return true
+        } else {
+            // Target is ungrouped — move dragged folder out of its group
+            if let toIndex = appState.sidebarOrder.firstIndex(of: .folder(targetFolderID)) {
+                appState.moveFolderOutOfGroup(folderID: draggedFolderID, atSidebarIndex: toIndex)
+            } else {
+                appState.moveFolderOutOfGroup(folderID: draggedFolderID)
+            }
+            return true
+        }
     }
 }

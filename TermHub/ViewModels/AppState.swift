@@ -176,6 +176,8 @@ final class AppState {
     }
 
     var folders: [ManagedFolder] = []
+    var groups: [FolderGroup] = []
+    var sidebarOrder: [SidebarItem] = []
     @ObservationIgnored var sessions: [TerminalSession] = []
     @ObservationIgnored private var displayStates: [UUID: SessionDisplayState] = [:]
 
@@ -633,6 +635,7 @@ final class AppState {
 
         let folder = ManagedFolder(path: path)
         folders.append(folder)
+        sidebarOrder.append(.folder(folder.id))
 
         // Auto-create a default session for the folder
         let session = TerminalSession(
@@ -668,6 +671,11 @@ final class AppState {
         }
 
         folders.remove(at: index)
+        sidebarOrder.removeAll { $0 == .folder(id) }
+        // Also remove from any group it belongs to
+        for i in groups.indices where groups[i].folderIDs.contains(id) {
+            groups[i].folderIDs.removeAll { $0 == id }
+        }
         saveState()
         updateGitFileWatcher()
     }
@@ -930,6 +938,104 @@ final class AppState {
         let folder = folders.remove(at: sourceIndex)
         folders.insert(folder, at: destinationIndex)
         saveState()
+    }
+
+    // MARK: - Group Management
+
+    func addGroup(name: String) {
+        let group = FolderGroup(name: name)
+        groups.append(group)
+        sidebarOrder.append(.group(group.id))
+        saveState()
+    }
+
+    func removeGroup(id: UUID) {
+        guard let groupIndex = groups.firstIndex(where: { $0.id == id }) else { return }
+        let group = groups[groupIndex]
+
+        // Move contained folders back to ungrouped, inserted where the group was
+        if let sidebarIndex = sidebarOrder.firstIndex(of: .group(id)) {
+            sidebarOrder.remove(at: sidebarIndex)
+            let folderItems = group.folderIDs.map { SidebarItem.folder($0) }
+            sidebarOrder.insert(contentsOf: folderItems, at: sidebarIndex)
+        }
+
+        groups.remove(at: groupIndex)
+        saveState()
+    }
+
+    func renameGroup(id: UUID, name: String) {
+        guard let index = groups.firstIndex(where: { $0.id == id }) else { return }
+        groups[index].name = name
+        saveState()
+    }
+
+    func setGroupExpanded(id: UUID, isExpanded: Bool) {
+        guard let index = groups.firstIndex(where: { $0.id == id }) else { return }
+        groups[index].isExpanded = isExpanded
+        saveState()
+    }
+
+    func moveFolderToGroup(folderID: UUID, groupID: UUID) {
+        guard groups.contains(where: { $0.id == groupID }),
+              folders.contains(where: { $0.id == folderID }) else { return }
+
+        // Remove from current group (if any)
+        for i in groups.indices where groups[i].folderIDs.contains(folderID) {
+            groups[i].folderIDs.removeAll { $0 == folderID }
+        }
+        // Remove from top-level sidebar order
+        sidebarOrder.removeAll { $0 == .folder(folderID) }
+
+        // Add to target group
+        if let groupIndex = groups.firstIndex(where: { $0.id == groupID }) {
+            groups[groupIndex].folderIDs.append(folderID)
+        }
+        saveState()
+    }
+
+    func moveFolderOutOfGroup(folderID: UUID, atSidebarIndex: Int? = nil) {
+        guard folders.contains(where: { $0.id == folderID }) else { return }
+
+        // Remove from any group
+        for i in groups.indices where groups[i].folderIDs.contains(folderID) {
+            groups[i].folderIDs.removeAll { $0 == folderID }
+        }
+        // Remove if already in sidebar order (shouldn't be, but be safe)
+        sidebarOrder.removeAll { $0 == .folder(folderID) }
+
+        // Insert at specified position or append
+        let item = SidebarItem.folder(folderID)
+        if let idx = atSidebarIndex, sidebarOrder.indices.contains(idx) {
+            sidebarOrder.insert(item, at: idx)
+        } else {
+            sidebarOrder.append(item)
+        }
+        saveState()
+    }
+
+    func moveSidebarItem(from sourceIndex: Int, to destinationIndex: Int) {
+        guard sourceIndex != destinationIndex,
+              sidebarOrder.indices.contains(sourceIndex),
+              sidebarOrder.indices.contains(destinationIndex) else { return }
+        let item = sidebarOrder.remove(at: sourceIndex)
+        sidebarOrder.insert(item, at: destinationIndex)
+        saveState()
+    }
+
+    func moveFolderWithinGroup(groupID: UUID, from sourceIndex: Int, to destinationIndex: Int) {
+        guard let groupIndex = groups.firstIndex(where: { $0.id == groupID }),
+              sourceIndex != destinationIndex,
+              groups[groupIndex].folderIDs.indices.contains(sourceIndex),
+              groups[groupIndex].folderIDs.indices.contains(destinationIndex) else { return }
+        let folderID = groups[groupIndex].folderIDs.remove(at: sourceIndex)
+        groups[groupIndex].folderIDs.insert(folderID, at: destinationIndex)
+        saveState()
+    }
+
+    /// Returns the group that contains a given folder, if any.
+    func group(forFolderID folderID: UUID) -> FolderGroup? {
+        groups.first { $0.folderIDs.contains(folderID) }
     }
 
 
@@ -1261,11 +1367,11 @@ final class AppState {
 
         let paths = foldersNeedingDetection.map { (index: $0.offset, path: $0.element.path) }
         Task.detached {
-            var results: [(index: Int, isGit: Bool)] = []
+            var results: [(index: Int, path: String)] = []
             for item in paths {
                 let isGit = GitService.isGitRepo(path: item.path)
                 if isGit {
-                    results.append((index: item.index, isGit: true))
+                    results.append((index: item.index, path: item.path))
                 }
             }
             let detected = results
@@ -1274,7 +1380,7 @@ final class AppState {
                 var changed = false
                 for result in detected {
                     guard result.index < self.folders.count,
-                          self.folders[result.index].path == paths[result.index].path
+                          self.folders[result.index].path == result.path
                     else { continue }
                     self.folders[result.index].isGitRepo = true
                     changed = true
@@ -1393,6 +1499,34 @@ final class AppState {
             } else {
                 assistantService.setSessionIDs(sessionIDsByProvider)
             }
+
+            // Restore groups and sidebar order with migration for existing state
+            groups = state.groups ?? []
+            let loadedOrder = state.sidebarOrder ?? []
+            if loadedOrder.isEmpty, !folders.isEmpty {
+                // Migration: build sidebarOrder from existing folder order
+                sidebarOrder = folders.map { .folder($0.id) }
+            } else {
+                sidebarOrder = loadedOrder
+                // Ensure all ungrouped folders appear in sidebarOrder
+                let groupedFolderIDs = Set(groups.flatMap(\.folderIDs))
+                let orderedIDs = Set(sidebarOrder.compactMap { item -> UUID? in
+                    if case .folder(let id) = item { return id }
+                    return nil
+                })
+                for folder in folders where !groupedFolderIDs.contains(folder.id) && !orderedIDs.contains(folder.id) {
+                    sidebarOrder.append(.folder(folder.id))
+                }
+                // Ensure all groups appear in sidebarOrder
+                let orderedGroupIDs = Set(sidebarOrder.compactMap { item -> UUID? in
+                    if case .group(let id) = item { return id }
+                    return nil
+                })
+                for group in groups where !orderedGroupIDs.contains(group.id) {
+                    sidebarOrder.append(.group(group.id))
+                }
+            }
+
             sessionListVersion += 1
         } catch {
             loadFailed = true
@@ -1414,7 +1548,9 @@ final class AppState {
             assistantMessages: assistantMessages.isEmpty ? nil : assistantMessages,
             assistantSessionId: assistantService.sessionID(for: .claude),
             assistantSessionIdsByProvider: assistantService.sessionIDs(),
-            assistantAllowedToolsByProvider: assistantAllowedToolsByProvider
+            assistantAllowedToolsByProvider: assistantAllowedToolsByProvider,
+            groups: groups.isEmpty ? nil : groups,
+            sidebarOrder: sidebarOrder.isEmpty ? nil : sidebarOrder
         )
         let persistence = self.persistence
         persistence.scheduleWrite {

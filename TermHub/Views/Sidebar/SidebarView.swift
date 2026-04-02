@@ -4,26 +4,45 @@ struct SidebarView: View {
     @Environment(AppState.self) private var appState
     @State private var optionKeyDown = false
     @State private var flagsMonitor: Any?
-    @State private var draggedFolderID: UUID?
-    @State private var dropTargetFolderID: UUID?
+    @State private var draggedSidebarItem: SidebarItem?
+    @State private var dropTargetSidebarItem: SidebarItem?
 
     var body: some View {
         @Bindable var state = appState
         VStack(spacing: 0) {
             List(selection: $state.selectedSessionID) {
-                ForEach(appState.folders) { folder in
-                    FolderSectionView(
-                        folder: folder,
-                        optionKeyDown: optionKeyDown,
-                        onRequestRemoveFolder: {
-                            appState.pendingRemoveFolderID = folder.id
-                        },
-                        draggedFolderID: $draggedFolderID,
-                        dropTargetFolderID: $dropTargetFolderID
-                    )
+                ForEach(appState.sidebarOrder, id: \.self) { item in
+                    switch item {
+                    case .folder(let folderID):
+                        if let folder = appState.folders.first(where: { $0.id == folderID }) {
+                            FolderSectionView(
+                                folder: folder,
+                                optionKeyDown: optionKeyDown,
+                                onRequestRemoveFolder: {
+                                    appState.pendingRemoveFolderID = folder.id
+                                },
+                                draggedSidebarItem: $draggedSidebarItem,
+                                dropTargetSidebarItem: $dropTargetSidebarItem
+                            )
+                        }
+                    case .group(let groupID):
+                        if let group = appState.groups.first(where: { $0.id == groupID }) {
+                            GroupSectionView(
+                                group: group,
+                                optionKeyDown: optionKeyDown,
+                                draggedSidebarItem: $draggedSidebarItem,
+                                dropTargetSidebarItem: $dropTargetSidebarItem
+                            )
+                        }
+                    }
                 }
             }
             .listStyle(.sidebar)
+            .contextMenu {
+                Button("Add Group") {
+                    appState.addGroup(name: "New Group")
+                }
+            }
 
             Button {
                 appState.showAddFolderPanel()

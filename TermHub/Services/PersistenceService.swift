@@ -56,6 +56,10 @@ struct PersistedState: Codable {
     var assistantSessionIdsByProvider: [String: UUID]? = nil
     /// Assistant allowed tools keyed by provider raw value (e.g. "claude", "copilot").
     var assistantAllowedToolsByProvider: [String: String]? = nil
+    /// Folder groups for sidebar organization.
+    var groups: [FolderGroup]? = nil
+    /// Top-level sidebar ordering of groups and ungrouped folders.
+    var sidebarOrder: [SidebarItem]? = nil
 }
 
 /// Abstraction over state persistence so AppState can be tested without touching disk.
@@ -95,7 +99,9 @@ final class DiskPersistence: StatePersistence {
             assistantMessages: result.assistantMessages,
             assistantSessionId: result.assistantSessionId,
             assistantSessionIdsByProvider: result.assistantSessionIdsByProvider,
-            assistantAllowedToolsByProvider: result.assistantAllowedToolsByProvider
+            assistantAllowedToolsByProvider: result.assistantAllowedToolsByProvider,
+            groups: result.groups,
+            sidebarOrder: result.sidebarOrder
         )
     }
 
@@ -117,7 +123,9 @@ final class NullPersistence: StatePersistence {
             assistantMessages: nil,
             assistantSessionId: nil,
             assistantSessionIdsByProvider: nil,
-            assistantAllowedToolsByProvider: nil
+            assistantAllowedToolsByProvider: nil,
+            groups: nil,
+            sidebarOrder: nil
         )
     }
     func scheduleWrite(_ work: @escaping @Sendable () -> Void) {}
@@ -174,7 +182,9 @@ enum PersistenceService {
         assistantMessages: [AssistantMessage],
         assistantSessionId: UUID?,
         assistantSessionIdsByProvider: [String: UUID],
-        assistantAllowedToolsByProvider: [String: String]
+        assistantAllowedToolsByProvider: [String: String],
+        groups: [FolderGroup],
+        sidebarOrder: [SidebarItem]
     ) {
         guard FileManager.default.fileExists(atPath: url.path) else {
             return (
@@ -186,7 +196,9 @@ enum PersistenceService {
                 assistantMessages: [],
                 assistantSessionId: nil,
                 assistantSessionIdsByProvider: [:],
-                assistantAllowedToolsByProvider: [:]
+                assistantAllowedToolsByProvider: [:],
+                groups: [],
+                sidebarOrder: []
             )
         }
         do {
@@ -201,7 +213,9 @@ enum PersistenceService {
                 assistantMessages: state.assistantMessages ?? [],
                 assistantSessionId: state.assistantSessionId,
                 assistantSessionIdsByProvider: state.assistantSessionIdsByProvider ?? [:],
-                assistantAllowedToolsByProvider: state.assistantAllowedToolsByProvider ?? [:]
+                assistantAllowedToolsByProvider: state.assistantAllowedToolsByProvider ?? [:],
+                groups: state.groups ?? [],
+                sidebarOrder: state.sidebarOrder ?? []
             )
         } catch {
             throw PersistenceError.decodingFailed(error)

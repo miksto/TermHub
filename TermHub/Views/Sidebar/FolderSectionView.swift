@@ -5,8 +5,9 @@ struct FolderSectionView: View {
     let folder: ManagedFolder
     var optionKeyDown: Bool = false
     var onRequestRemoveFolder: () -> Void
-    @Binding var draggedFolderID: UUID?
-    @Binding var dropTargetFolderID: UUID?
+    @Binding var draggedSidebarItem: SidebarItem?
+    @Binding var dropTargetSidebarItem: SidebarItem?
+    var isInsideGroup: Bool = false
 
     private struct WorktreeGroup: Identifiable {
         let worktreePath: String
@@ -45,6 +46,8 @@ struct FolderSectionView: View {
         return groups
     }
 
+    private var baseLeading: CGFloat { isInsideGroup ? 14 : 0 }
+
     @ViewBuilder
     var body: some View {
         // Read sessionListVersion to re-evaluate when sessions are added/removed.
@@ -53,11 +56,12 @@ struct FolderSectionView: View {
         FolderHeaderRow(
             folder: folder,
             onRequestRemoveFolder: onRequestRemoveFolder,
-            draggedFolderID: $draggedFolderID,
-            dropTargetFolderID: $dropTargetFolderID
+            draggedSidebarItem: $draggedSidebarItem,
+            dropTargetSidebarItem: $dropTargetSidebarItem,
+            isInsideGroup: isInsideGroup
         )
         .selectionDisabled()
-        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 2, trailing: 0))
+        .listRowInsets(EdgeInsets(top: 4, leading: baseLeading, bottom: 2, trailing: 0))
 
         if folder.isExpanded {
             // Plain shell sessions
@@ -66,7 +70,7 @@ struct FolderSectionView: View {
                     appState.removeSession(id: sessionID)
                 })
                 .tag(sessionID)
-                .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
+                .listRowInsets(EdgeInsets(top: 0, leading: baseLeading + 14, bottom: 0, trailing: 0))
             }
 
             // Action buttons for folder-level actions
@@ -112,7 +116,7 @@ struct FolderSectionView: View {
                 }
             }
             .padding(.top, 2)
-            .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
+            .listRowInsets(EdgeInsets(top: 0, leading: baseLeading + 14, bottom: 0, trailing: 0))
             .selectionDisabled()
 
             // Worktree groups
@@ -123,7 +127,7 @@ struct FolderSectionView: View {
                     branchName: group.branchName,
                     optionKeyDown: optionKeyDown
                 )
-                .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 0))
+                .listRowInsets(EdgeInsets(top: 0, leading: baseLeading + 14, bottom: 0, trailing: 0))
                 .selectionDisabled()
 
                 ForEach(group.sessionIDs, id: \.self) { sessionID in
@@ -131,7 +135,7 @@ struct FolderSectionView: View {
                         appState.removeSession(id: sessionID)
                     })
                     .tag(sessionID)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 28, bottom: 0, trailing: 0))
+                    .listRowInsets(EdgeInsets(top: 0, leading: baseLeading + 28, bottom: 0, trailing: 0))
                 }
             }
         }

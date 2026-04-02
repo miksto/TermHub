@@ -87,6 +87,8 @@ targets:
         type: file
       - path: TermHub/Models/DetailTab.swift
         type: file
+      - path: TermHub/Models/FolderGroup.swift
+        type: file
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.termhub.mcp
@@ -156,6 +158,8 @@ targets:
       - path: TermHub/Models/SandboxInfo.swift
         type: file
       - path: TermHub/Models/DetailTab.swift
+        type: file
+      - path: TermHub/Models/FolderGroup.swift
         type: file
     settings:
       base:
