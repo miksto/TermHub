@@ -157,6 +157,13 @@ class TerminalContainerViewController: NSViewController {
         self.diffScrollView = scrollView
         delegate.tableView = tableView
 
+        delegate.onDiscardFile = { [weak self] file in
+            self?.discardFile(file)
+        }
+        delegate.onDiscardHunk = { [weak self] file, hunk in
+            self?.discardHunk(file: file, hunk: hunk)
+        }
+
         diffContainer.addSubview(scrollView)
         NSLayoutConstraint.activate([
             scrollView.leadingAnchor.constraint(equalTo: diffContainer.leadingAnchor),
@@ -326,6 +333,39 @@ class TerminalContainerViewController: NSViewController {
             diffEmptyStateView?.isHidden = !hasLoadedEmpty
             if appState.currentDiff == nil {
                 appState.loadDiffForCurrentSession()
+            }
+        }
+    }
+
+    private func discardFile(_ file: DiffFile) {
+        guard let workingDir = diffDelegate?.workingDir, !workingDir.isEmpty else { return }
+        let isUntracked = file.oldPath == "/dev/null"
+        Task.detached {
+            do {
+                try GitService.discardFile(repoPath: workingDir, filePath: file.newPath, isUntracked: isUntracked)
+            } catch {
+                await MainActor.run {
+                    NSLog("Failed to discard file: \(error)")
+                }
+            }
+            await MainActor.run { [weak self] in
+                self?.appState.loadDiffForCurrentSession()
+            }
+        }
+    }
+
+    private func discardHunk(file: DiffFile, hunk: DiffHunk) {
+        guard let workingDir = diffDelegate?.workingDir, !workingDir.isEmpty else { return }
+        Task.detached {
+            do {
+                try GitService.discardHunk(repoPath: workingDir, file: file, hunk: hunk)
+            } catch {
+                await MainActor.run {
+                    NSLog("Failed to discard hunk: \(error)")
+                }
+            }
+            await MainActor.run { [weak self] in
+                self?.appState.loadDiffForCurrentSession()
             }
         }
     }

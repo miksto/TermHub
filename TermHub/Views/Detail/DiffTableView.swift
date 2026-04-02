@@ -317,6 +317,8 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     var selection: DiffSelection?
     var workingDir: String = ""
     weak var tableView: NSTableView?
+    var onDiscardFile: ((DiffFile) -> Void)?
+    var onDiscardHunk: ((DiffFile, DiffHunk) -> Void)?
     private var expandedFiles: Set<String> = []
     private var fileContentsCache: [String: [String]] = [:]
     /// Cached row heights keyed by row index, invalidated on width/row changes.
@@ -651,6 +653,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
             cell.file = file
             cell.isExpanded = isFileExpanded(file)
             cell.onCollapse = { [weak self] in self?.toggleExpand(for: file) }
+            cell.onDiscard = { [weak self] in self?.onDiscardFile?(file) }
             cell.needsDisplay = true
             return cell
 
@@ -659,7 +662,9 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
             let cell = tableView.makeView(withIdentifier: id, owner: nil) as? HunkHeaderDrawView
                 ?? HunkHeaderDrawView(identifier: id)
             cell.hunk = hunk
+            cell.isUntracked = file.oldPath == "/dev/null"
             cell.onExpandFile = { [weak self] in self?.toggleExpand(for: file, fromHunk: hunk) }
+            cell.onDiscard = { [weak self] in self?.onDiscardHunk?(file, hunk) }
             cell.needsDisplay = true
             return cell
 
@@ -923,10 +928,17 @@ private class FileHeaderDrawView: NSView {
         }
     }
     var onCollapse: (() -> Void)?
+    var onDiscard: (() -> Void)?
     private let collapseButton: ArrowCursorButton
+    private let discardButton: ArrowCursorButton
+    private var isConfirmingDiscard = false
+    private var confirmResetTimer: Timer?
+    private let discardWidthConstraint: NSLayoutConstraint
 
     init(identifier: NSUserInterfaceItemIdentifier) {
         collapseButton = ArrowCursorButton()
+        discardButton = ArrowCursorButton()
+        discardWidthConstraint = discardButton.widthAnchor.constraint(equalToConstant: 80)
         super.init(frame: .zero)
         self.identifier = identifier
 
@@ -942,9 +954,27 @@ private class FileHeaderDrawView: NSView {
         collapseButton.action = #selector(collapseTapped)
         collapseButton.translatesAutoresizingMaskIntoConstraints = false
         addSubview(collapseButton)
+
+        discardButton.title = "Discard File"
+        discardButton.font = .systemFont(ofSize: 11)
+        discardButton.isBordered = false
+        discardButton.wantsLayer = true
+        discardButton.layer?.cornerRadius = 3
+        discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.15).cgColor
+        discardButton.contentTintColor = NSColor.systemRed
+        discardButton.target = self
+        discardButton.action = #selector(discardTapped)
+        discardButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(discardButton)
+
         NSLayoutConstraint.activate([
+            discardButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            discardButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            discardWidthConstraint,
+            discardButton.heightAnchor.constraint(equalToConstant: 20),
+
             collapseButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            collapseButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -40),
+            collapseButton.trailingAnchor.constraint(equalTo: discardButton.leadingAnchor, constant: -4),
             collapseButton.widthAnchor.constraint(equalToConstant: 66),
             collapseButton.heightAnchor.constraint(equalToConstant: 20),
         ])
@@ -955,6 +985,34 @@ private class FileHeaderDrawView: NSView {
 
     @objc private func collapseTapped() {
         onCollapse?()
+    }
+
+    @objc private func discardTapped() {
+        if isConfirmingDiscard {
+            confirmResetTimer?.invalidate()
+            confirmResetTimer = nil
+            isConfirmingDiscard = false
+            resetDiscardAppearance()
+            onDiscard?()
+        } else {
+            isConfirmingDiscard = true
+            discardButton.title = "Sure?"
+            discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.5).cgColor
+            discardWidthConstraint.constant = 50
+            confirmResetTimer?.invalidate()
+            confirmResetTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.isConfirmingDiscard = false
+                    self?.resetDiscardAppearance()
+                }
+            }
+        }
+    }
+
+    private func resetDiscardAppearance() {
+        discardButton.title = "Discard File"
+        discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.15).cgColor
+        discardWidthConstraint.constant = 80
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -972,14 +1030,14 @@ private class FileHeaderDrawView: NSView {
         ]
         let pathSize = (file.displayPath as NSString).size(withAttributes: pathAttrs)
         let pathY = bounds.midY - pathSize.height / 2
-        // Right margin accounts for the floating wrap toggle button
-        let rightMargin: CGFloat = 46
+        // Right margin accounts for the discard button (80pt + 8pt trailing)
+        let rightMargin: CGFloat = 96
         let pathRect = NSRect(x: 12, y: pathY, width: bounds.width - 120 - rightMargin, height: pathSize.height)
         (file.displayPath as NSString).draw(with: pathRect, options: [.truncatesLastVisibleLine, .usesLineFragmentOrigin], attributes: pathAttrs)
 
-        // Stats — when expanded, also reserve space for the "Show diff" collapse button
-        // (button is 66pt wide at trailingAnchor -40, so its leading edge is at -106).
-        let statsRightMargin: CGFloat = isExpanded ? 114 : rightMargin
+        // Stats — when expanded, also reserve space for the "Show diff" button (66pt + 4pt gap)
+        // chained to the left of the discard button.
+        let statsRightMargin: CGFloat = isExpanded ? 142 : rightMargin
         if file.isBinary {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: DiffFonts.monoSmall,
@@ -1018,11 +1076,21 @@ private class FileHeaderDrawView: NSView {
 
 private class HunkHeaderDrawView: NSView {
     var hunk: DiffHunk?
+    var isUntracked: Bool = false {
+        didSet { discardButton.isHidden = isUntracked }
+    }
     var onExpandFile: (() -> Void)?
+    var onDiscard: (() -> Void)?
     private let expandButton: ArrowCursorButton
+    private let discardButton: ArrowCursorButton
+    private var isConfirmingDiscard = false
+    private var confirmResetTimer: Timer?
+    private let discardWidthConstraint: NSLayoutConstraint
 
     init(identifier: NSUserInterfaceItemIdentifier) {
         expandButton = ArrowCursorButton()
+        discardButton = ArrowCursorButton()
+        discardWidthConstraint = discardButton.widthAnchor.constraint(equalToConstant: 86)
         super.init(frame: .zero)
         self.identifier = identifier
 
@@ -1037,9 +1105,27 @@ private class HunkHeaderDrawView: NSView {
         expandButton.action = #selector(expandTapped)
         expandButton.translatesAutoresizingMaskIntoConstraints = false
         addSubview(expandButton)
+
+        discardButton.title = "Discard Hunk"
+        discardButton.font = .systemFont(ofSize: 11)
+        discardButton.isBordered = false
+        discardButton.wantsLayer = true
+        discardButton.layer?.cornerRadius = 3
+        discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.15).cgColor
+        discardButton.contentTintColor = NSColor.systemRed
+        discardButton.target = self
+        discardButton.action = #selector(discardTapped)
+        discardButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(discardButton)
+
         NSLayoutConstraint.activate([
+            discardButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            discardButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            discardWidthConstraint,
+            discardButton.heightAnchor.constraint(equalToConstant: 17),
+
             expandButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            expandButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -40),
+            expandButton.trailingAnchor.constraint(equalTo: discardButton.leadingAnchor, constant: -4),
             expandButton.widthAnchor.constraint(equalToConstant: 66),
             expandButton.heightAnchor.constraint(equalToConstant: 17),
         ])
@@ -1050,6 +1136,34 @@ private class HunkHeaderDrawView: NSView {
 
     @objc private func expandTapped() {
         onExpandFile?()
+    }
+
+    @objc private func discardTapped() {
+        if isConfirmingDiscard {
+            confirmResetTimer?.invalidate()
+            confirmResetTimer = nil
+            isConfirmingDiscard = false
+            resetDiscardAppearance()
+            onDiscard?()
+        } else {
+            isConfirmingDiscard = true
+            discardButton.title = "Sure?"
+            discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.5).cgColor
+            discardWidthConstraint.constant = 50
+            confirmResetTimer?.invalidate()
+            confirmResetTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.isConfirmingDiscard = false
+                    self?.resetDiscardAppearance()
+                }
+            }
+        }
+    }
+
+    private func resetDiscardAppearance() {
+        discardButton.title = "Discard Hunk"
+        discardButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.15).cgColor
+        discardWidthConstraint.constant = 86
     }
 
     override func draw(_ dirtyRect: NSRect) {

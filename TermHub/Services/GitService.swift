@@ -316,6 +316,46 @@ enum GitService {
         try run(["-C", path, "checkout", branch])
     }
 
+    /// Discards all uncommitted changes in a single file.
+    /// For tracked files: restores to HEAD and unstages any staged changes.
+    /// For untracked files (`isUntracked == true`): deletes the file from disk.
+    static func discardFile(repoPath: String, filePath: String, isUntracked: Bool) throws {
+        if isUntracked {
+            let fullPath = (repoPath as NSString).appendingPathComponent(filePath)
+            try FileManager.default.removeItem(atPath: fullPath)
+        } else {
+            // Reset staged changes, then restore working tree
+            try run(["-C", repoPath, "checkout", "HEAD", "--", filePath])
+        }
+    }
+
+    /// Discards a single hunk by constructing a reverse patch and applying it.
+    /// Not supported for untracked files (they are synthetic diffs with no HEAD to revert to).
+    static func discardHunk(repoPath: String, file: DiffFile, hunk: DiffHunk) throws {
+        // Build a minimal unified diff patch for this single hunk
+        var patch = "--- a/\(file.oldPath)\n"
+        patch += "+++ b/\(file.newPath)\n"
+        patch += "\(hunk.header)\n"
+        for line in hunk.lines {
+            switch line.type {
+            case .added:
+                patch += "+\(line.content)\n"
+            case .removed:
+                patch += "-\(line.content)\n"
+            case .context:
+                patch += " \(line.content)\n"
+            }
+        }
+
+        // Write to a temp file and apply in reverse
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("termhub-hunk-\(UUID().uuidString).patch")
+        try patch.write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        try run(["-C", repoPath, "apply", "--reverse", tempURL.path])
+    }
+
     /// Returns (linesAdded, linesDeleted) for uncommitted changes (staged + unstaged), including untracked files.
     static func diffStats(path: String) -> (added: Int, deleted: Int) {
         var added = 0
