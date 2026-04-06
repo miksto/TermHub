@@ -328,6 +328,154 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     /// Cached row heights keyed by row index, invalidated on width/row changes.
     private var heightCache: [Int: CGFloat] = [:]
 
+    // MARK: Syntax Highlighting
+
+    /// Per-file highlighted lines for the "old" (removed/context) side, keyed by file path.
+    private var highlightedOldLines: [String: [NSAttributedString]] = [:]
+    /// Per-file highlighted lines for the "new" (added/context) side, keyed by file path.
+    private var highlightedNewLines: [String: [NSAttributedString]] = [:]
+
+    /// Computes syntax highlighting for all files in the current diff.
+    func computeHighlighting() {
+        highlightedOldLines.removeAll()
+        highlightedNewLines.removeAll()
+
+        let font = DiffFonts.mono
+        for file in diff.files {
+            guard !file.isBinary else { continue }
+            guard let language = SyntaxHighlightService.language(forPath: file.newPath)
+                    ?? SyntaxHighlightService.language(forPath: file.oldPath) else { continue }
+
+            // Reconstruct old-side and new-side lines from hunks
+            let oldSourceLines = file.hunks.flatMap { hunk in
+                hunk.lines.compactMap { line -> String? in
+                    line.type == .added ? nil : line.content
+                }
+            }
+            let newSourceLines = file.hunks.flatMap { hunk in
+                hunk.lines.compactMap { line -> String? in
+                    line.type == .removed ? nil : line.content
+                }
+            }
+
+            if !oldSourceLines.isEmpty {
+                highlightedOldLines[file.newPath] = SyntaxHighlightService.highlight(
+                    lines: oldSourceLines, language: language, font: font
+                )
+            }
+            if !newSourceLines.isEmpty {
+                highlightedNewLines[file.newPath] = SyntaxHighlightService.highlight(
+                    lines: newSourceLines, language: language, font: font
+                )
+            }
+        }
+    }
+
+    /// Returns the highlighted attributed string for a given line, or nil if not available.
+    /// Uses per-file counters tracked during row building to index into the highlighted arrays.
+    func highlightedString(for line: DiffLine, filePath: String) -> NSAttributedString? {
+        let lines: [NSAttributedString]?
+        let lineNumber: Int?
+
+        switch line.type {
+        case .removed:
+            lines = highlightedOldLines[filePath]
+            lineNumber = line.oldLineNumber
+        case .added:
+            lines = highlightedNewLines[filePath]
+            lineNumber = line.newLineNumber
+        case .context:
+            // For context lines, prefer the new-side highlighting
+            lines = highlightedNewLines[filePath]
+            lineNumber = line.newLineNumber
+        }
+
+        guard let lines, let lineNumber else { return nil }
+
+        // We need to find the index of this line number in the highlighted array.
+        // The highlighted arrays are built from hunk lines in order, so we track
+        // a running index per file. Instead, we use a lookup approach:
+        // line numbers in hunks correspond to the original file, but our highlighted
+        // arrays are just the subset of lines from hunks. We need a mapping.
+        // For simplicity, use a line-number-based lookup stored per-file.
+        return highlightedLineByNumber(lineNumber: lineNumber, lines: lines, filePath: filePath, type: line.type)
+    }
+
+    /// Line-number indexed highlight lookup tables, built lazily.
+    private var oldLineNumberIndex: [String: [Int: Int]] = [:]
+    private var newLineNumberIndex: [String: [Int: Int]] = [:]
+
+    private func ensureLineNumberIndex(for file: DiffFile) {
+        let path = file.newPath
+        if oldLineNumberIndex[path] == nil {
+            var oldIndex: [Int: Int] = [:]
+            var newIndex: [Int: Int] = [:]
+            var oldCounter = 0
+            var newCounter = 0
+
+            for hunk in file.hunks {
+                for line in hunk.lines {
+                    switch line.type {
+                    case .removed:
+                        if let num = line.oldLineNumber {
+                            oldIndex[num] = oldCounter
+                        }
+                        oldCounter += 1
+                    case .added:
+                        if let num = line.newLineNumber {
+                            newIndex[num] = newCounter
+                        }
+                        newCounter += 1
+                    case .context:
+                        if let num = line.oldLineNumber {
+                            oldIndex[num] = oldCounter
+                        }
+                        oldCounter += 1
+                        if let num = line.newLineNumber {
+                            newIndex[num] = newCounter
+                        }
+                        newCounter += 1
+                    }
+                }
+            }
+            oldLineNumberIndex[path] = oldIndex
+            newLineNumberIndex[path] = newIndex
+        }
+    }
+
+    private func highlightedLineByNumber(
+        lineNumber: Int, lines: [NSAttributedString], filePath: String, type: DiffLineType
+    ) -> NSAttributedString? {
+        let index: [Int: Int]?
+        switch type {
+        case .removed:
+            index = oldLineNumberIndex[filePath]
+        case .added:
+            index = newLineNumberIndex[filePath]
+        case .context:
+            index = newLineNumberIndex[filePath]
+        }
+
+        guard let idx = index?[lineNumber], idx < lines.count else { return nil }
+        return lines[idx]
+    }
+
+    func rebuildHighlightIndex() {
+        oldLineNumberIndex.removeAll()
+        newLineNumberIndex.removeAll()
+        for file in diff.files {
+            ensureLineNumberIndex(for: file)
+        }
+    }
+
+    /// Returns the file path for a given row index.
+    func filePath(forRow row: Int) -> String? {
+        guard row >= 0, row < rows.count else { return nil }
+        let fileIndex = rows[row].fileIndex
+        guard fileIndex < diff.files.count else { return nil }
+        return diff.files[fileIndex].newPath
+    }
+
     // MARK: Scroll Anchor
 
     private struct ScrollAnchor {
@@ -357,6 +505,10 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         )
         heightCache.removeAll(keepingCapacity: true)
         selection = nil
+        if clearExpandState {
+            computeHighlighting()
+            rebuildHighlightIndex()
+        }
     }
 
     /// Updates hover state for the given row and refreshes discard button visibility on visible cells.
@@ -713,6 +865,11 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
                 ?? UnifiedLineDrawView(identifier: id)
             cell.line = line
             cell.lineWrapping = lineWrapping
+            if let path = filePath(forRow: row) {
+                cell.highlightedContent = highlightedString(for: line, filePath: path)
+            } else {
+                cell.highlightedContent = nil
+            }
             let selRange = selectionRange(forRow: row)
             cell.selectionStartChar = selRange?.start
             cell.selectionEndChar = selRange?.end
@@ -726,6 +883,13 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
             cell.oldLine = old
             cell.newLine = new
             cell.lineWrapping = lineWrapping
+            if let path = filePath(forRow: row) {
+                cell.highlightedOldContent = old.flatMap { highlightedString(for: $0, filePath: path) }
+                cell.highlightedNewContent = new.flatMap { highlightedString(for: $0, filePath: path) }
+            } else {
+                cell.highlightedOldContent = nil
+                cell.highlightedNewContent = nil
+            }
             let selRange = selectionRange(forRow: row)
             cell.selectionSide = selection?.side
             cell.selectionStartChar = selRange?.start
@@ -864,6 +1028,58 @@ enum DiffDrawing {
         }
     }
 
+    /// Draws syntax-highlighted text with diff tinting applied.
+    static func drawHighlightedText(
+        _ attrStr: NSAttributedString, in rect: NSRect, font: NSFont,
+        diffTint: NSColor?, wrap: Bool = false
+    ) {
+        let tinted: NSAttributedString
+        if let diffTint {
+            tinted = blendWithDiffTint(attrStr, tint: diffTint, font: font)
+        } else {
+            tinted = attrStr
+        }
+
+        if wrap {
+            let drawRect = NSRect(x: rect.minX, y: rect.minY + 2, width: rect.width, height: rect.height - 2)
+            tinted.draw(with: drawRect, options: [.usesLineFragmentOrigin])
+        } else {
+            let size = tinted.size()
+            let y = rect.midY - size.height / 2
+            tinted.draw(in: NSRect(x: rect.minX, y: y, width: rect.width, height: size.height))
+        }
+    }
+
+    /// Blends the foreground colors of an attributed string toward a diff tint color.
+    private static func blendWithDiffTint(
+        _ attrStr: NSAttributedString, tint: NSColor, font: NSFont
+    ) -> NSAttributedString {
+        let mutable = NSMutableAttributedString(attributedString: attrStr)
+        let fullRange = NSRange(location: 0, length: mutable.length)
+        mutable.enumerateAttribute(.foregroundColor, in: fullRange) { value, range, _ in
+            if let color = value as? NSColor {
+                let blended = blendColor(color, toward: tint, factor: 0.45)
+                mutable.addAttribute(.foregroundColor, value: blended, range: range)
+            }
+        }
+        // Ensure font consistency
+        mutable.addAttribute(.font, value: font, range: fullRange)
+        return mutable
+    }
+
+    /// Blends sourceColor toward targetColor by the given factor (0 = source, 1 = target).
+    private static func blendColor(_ source: NSColor, toward target: NSColor, factor: CGFloat) -> NSColor {
+        guard let s = source.usingColorSpace(.sRGB),
+              let t = target.usingColorSpace(.sRGB) else { return source }
+        let inv = 1.0 - factor
+        return NSColor(
+            srgbRed: s.redComponent * inv + t.redComponent * factor,
+            green: s.greenComponent * inv + t.greenComponent * factor,
+            blue: s.blueComponent * inv + t.blueComponent * factor,
+            alpha: s.alphaComponent
+        )
+    }
+
     static func drawSelectionHighlight(
         text: String, contentRect: NSRect, startChar: Int, endChar: Int,
         font: NSFont, wrap: Bool
@@ -912,7 +1128,8 @@ enum DiffDrawing {
     }
 
     static func drawLineSide(
-        line: DiffLine?, isOld: Bool, in rect: NSRect, font: NSFont, gutterFont: NSFont, wrap: Bool
+        line: DiffLine?, isOld: Bool, in rect: NSRect, font: NSFont, gutterFont: NSFont, wrap: Bool,
+        highlightedContent: NSAttributedString? = nil
     ) {
         let gw = DiffMetrics.gutterWidth
         let pw = DiffMetrics.prefixWidth
@@ -947,7 +1164,12 @@ enum DiffDrawing {
             drawText(DiffColors.prefix(for: line.type), in: prefixRect, font: font, color: fg, centered: true, wrap: wrap)
 
             // Content
-            drawText(line.content, in: contentRect, font: font, color: fg, wrap: wrap)
+            if let highlighted = highlightedContent {
+                let diffTint: NSColor? = line.type == .context ? nil : fg
+                drawHighlightedText(highlighted, in: contentRect, font: font, diffTint: diffTint, wrap: wrap)
+            } else {
+                drawText(line.content, in: contentRect, font: font, color: fg, wrap: wrap)
+            }
         } else {
             // Empty side
             DiffColors.contextGutterBg.setFill()
@@ -1234,6 +1456,7 @@ class UnifiedLineDrawView: NSView {
     var lineWrapping: Bool = false
     var selectionStartChar: Int?
     var selectionEndChar: Int?
+    var highlightedContent: NSAttributedString?
 
     init(identifier: NSUserInterfaceItemIdentifier) {
         super.init(frame: .zero)
@@ -1282,7 +1505,12 @@ class UnifiedLineDrawView: NSView {
         // Content
         let contentX = gw * 2 + pw
         let contentRect = NSRect(x: contentX, y: 0, width: bounds.width - contentX - 4, height: bounds.height)
-        DiffDrawing.drawText(line.content, in: contentRect, font: font, color: fg, wrap: wrap)
+        if let highlighted = highlightedContent {
+            let diffTint: NSColor? = line.type == .context ? nil : fg
+            DiffDrawing.drawHighlightedText(highlighted, in: contentRect, font: font, diffTint: diffTint, wrap: wrap)
+        } else {
+            DiffDrawing.drawText(line.content, in: contentRect, font: font, color: fg, wrap: wrap)
+        }
 
         // Selection highlight
         if let startChar = selectionStartChar, let endChar = selectionEndChar {
@@ -1304,6 +1532,8 @@ class SideBySideLineDrawView: NSView {
     var selectionSide: DiffSelectionSide?
     var selectionStartChar: Int?
     var selectionEndChar: Int?
+    var highlightedOldContent: NSAttributedString?
+    var highlightedNewContent: NSAttributedString?
 
     init(identifier: NSUserInterfaceItemIdentifier) {
         super.init(frame: .zero)
@@ -1320,7 +1550,7 @@ class SideBySideLineDrawView: NSView {
 
         // Left side
         let leftRect = NSRect(x: 0, y: 0, width: half, height: bounds.height)
-        DiffDrawing.drawLineSide(line: oldLine, isOld: true, in: leftRect, font: font, gutterFont: font, wrap: lineWrapping)
+        DiffDrawing.drawLineSide(line: oldLine, isOld: true, in: leftRect, font: font, gutterFont: font, wrap: lineWrapping, highlightedContent: highlightedOldContent)
 
         // Center divider
         DiffColors.dividerColor.setFill()
@@ -1328,7 +1558,7 @@ class SideBySideLineDrawView: NSView {
 
         // Right side
         let rightRect = NSRect(x: half + 1, y: 0, width: bounds.width - half - 1, height: bounds.height)
-        DiffDrawing.drawLineSide(line: newLine, isOld: false, in: rightRect, font: font, gutterFont: font, wrap: lineWrapping)
+        DiffDrawing.drawLineSide(line: newLine, isOld: false, in: rightRect, font: font, gutterFont: font, wrap: lineWrapping, highlightedContent: highlightedNewContent)
 
         // Selection highlight
         if let startChar = selectionStartChar, let endChar = selectionEndChar, let side = selectionSide {

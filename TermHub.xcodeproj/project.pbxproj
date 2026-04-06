@@ -76,6 +76,7 @@
 		8D141737EB79FF562BB85632 /* PersistenceServiceExtendedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A057686A8267AA160F36EDCE /* PersistenceServiceExtendedTests.swift */; };
 		8F874B04E394BDF09818F1DB /* SettingsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0366166774513CC87948DE2 /* SettingsOverlay.swift */; };
 		952771C820508D521A3947CE /* TmuxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C94FFFD305685DF84F204 /* TmuxService.swift */; };
+		98E22FB6C427A6EE8513A6AC /* SyntaxHighlightService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EBB2ADA4C4665DF6793675F /* SyntaxHighlightService.swift */; };
 		9936487F651BBB312F0B8C7A /* IPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE5D64EF6E39C3289FAC748 /* IPCClient.swift */; };
 		9B5126EE3D66E2FCB3BBE739 /* GitStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C8A71DCEDDF41556161E6B8 /* GitStatus.swift */; };
 		9C8CAF8F640A638B205D5C5F /* DiffStatsText.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA5DF30EB86A1AC2C6F9CC79 /* DiffStatsText.swift */; };
@@ -112,6 +113,7 @@
 		EB7C74254297045AF1230EE2 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D913661F1C9DB3AB387FCF2B /* CommandRunner.swift */; };
 		EDA0E740D5C038178D66784F /* FolderGroupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09DAC51BC115DA9789D7D56A /* FolderGroupTests.swift */; };
 		EFA489B4814F9C05DA2FC143 /* ManagedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */; };
+		EFAB5725244719DD4558DD35 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 9158EFFBE285A888511B95B1 /* Highlightr */; };
 		F17C450BB12F598CB8DF04B4 /* SessionSwitcherOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */; };
 		F373FE0C7C0583E43AFAE30A /* IPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEEB378B454E996FC3266EB0 /* IPCProtocol.swift */; };
 		F466DAF7D4C51B89B87B6668 /* GroupSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4B4A39AB2EA27E7F35F81D /* GroupSectionView.swift */; };
@@ -151,6 +153,7 @@
 		28AD17721856C8A80790F5F0 /* TermHubTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TermHubTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		291A05701EAD20F1D46F70ED /* AssistantServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantServiceTests.swift; sourceTree = "<group>"; };
 		2D7F65ED75E273C3EF761788 /* ManagedFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedFolder.swift; sourceTree = "<group>"; };
+		2EBB2ADA4C4665DF6793675F /* SyntaxHighlightService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlightService.swift; sourceTree = "<group>"; };
 		309C94FFFD305685DF84F204 /* TmuxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxService.swift; sourceTree = "<group>"; };
 		35E16A5970DB7655DECDB85E /* DoubleClickView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleClickView.swift; sourceTree = "<group>"; };
 		35FCD6AEA3D27254627DCB74 /* BranchInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchInfo.swift; sourceTree = "<group>"; };
@@ -227,6 +230,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7320427A88D31382D529A08B /* SwiftTerm in Frameworks */,
+				EFAB5725244719DD4558DD35 /* Highlightr in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -301,6 +305,7 @@
 				EEEB378B454E996FC3266EB0 /* IPCProtocol.swift */,
 				11D11B253AE12BC540968C17 /* IPCServer.swift */,
 				F429369FC6F6D0A32E72B81C /* PersistenceService.swift */,
+				2EBB2ADA4C4665DF6793675F /* SyntaxHighlightService.swift */,
 				309C94FFFD305685DF84F204 /* TmuxService.swift */,
 			);
 			path = Services;
@@ -522,6 +527,7 @@
 			name = TermHub;
 			packageProductDependencies = (
 				B9D3FC1CF2381671427FFD85 /* SwiftTerm */,
+				9158EFFBE285A888511B95B1 /* Highlightr */,
 			);
 			productName = TermHub;
 			productReference = E0AC5E3E087609AE1FC208DC /* TermHub.app */;
@@ -566,6 +572,7 @@
 			mainGroup = 873595FB2D34E27E36034042;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				4B7344BA327AA9C57BF051C4 /* XCRemoteSwiftPackageReference "Highlightr" */,
 				05B0EDE2EA222B22AC194F02 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -666,6 +673,7 @@
 				01DD14CA14BF6A73A8AEE59E /* ShellEnvironment.swift in Sources */,
 				26B3CE119D9422059C4CB11F /* ShellSplitButton.swift in Sources */,
 				7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */,
+				98E22FB6C427A6EE8513A6AC /* SyntaxHighlightService.swift in Sources */,
 				FA522806246981A6680125A0 /* TermHubApp.swift in Sources */,
 				C6DA5396377DE1E72E2DFE62 /* TermHubTerminalView.swift in Sources */,
 				5812F2FE76E7B03FD230223C /* TerminalContainerView.swift in Sources */,
@@ -1100,9 +1108,22 @@
 				minimumVersion = 1.2.0;
 			};
 		};
+		4B7344BA327AA9C57BF051C4 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/raspu/Highlightr.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		9158EFFBE285A888511B95B1 /* Highlightr */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4B7344BA327AA9C57BF051C4 /* XCRemoteSwiftPackageReference "Highlightr" */;
+			productName = Highlightr;
+		};
 		B9D3FC1CF2381671427FFD85 /* SwiftTerm */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 05B0EDE2EA222B22AC194F02 /* XCRemoteSwiftPackageReference "SwiftTerm" */;

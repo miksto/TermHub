@@ -10,6 +10,9 @@ packages:
   SwiftTerm:
     url: https://github.com/migueldeicaza/SwiftTerm.git
     from: "1.2.0"
+  Highlightr:
+    url: https://github.com/raspu/Highlightr.git
+    from: "2.2.1"
 
 schemes:
   TermHub:
@@ -56,6 +59,7 @@ targets:
             CFBundleURLName: com.termhub.app
     dependencies:
       - package: SwiftTerm
+      - package: Highlightr
   TermHubMCP:
     type: tool
     platform: macOS
