@@ -482,7 +482,10 @@ final class AppState {
 
     /// All sessions ordered by folder for keyboard navigation (matches sidebar visual order).
     var allSessionIDsOrdered: [UUID] {
-        folders.flatMap { folder in
+        var result: [UUID] = []
+
+        func appendSessions(for folder: ManagedFolder) {
+            guard folder.isExpanded else { return }
             let validIDs = folder.sessionIDs.filter { id in sessions.contains { $0.id == id } }
             let plain = validIDs.filter { id in
                 sessions.first(where: { $0.id == id })?.worktreePath == nil
@@ -498,8 +501,27 @@ final class AppState {
                 seenWorktrees[wt, default: []].append(id)
             }
             let worktree = worktreeOrder.flatMap { seenWorktrees[$0] ?? [] }
-            return plain + worktree
+            result.append(contentsOf: plain + worktree)
         }
+
+        for item in sidebarOrder {
+            switch item {
+            case .folder(let folderID):
+                if let folder = folders.first(where: { $0.id == folderID }) {
+                    appendSessions(for: folder)
+                }
+            case .group(let groupID):
+                guard let group = groups.first(where: { $0.id == groupID }),
+                      group.isExpanded else { continue }
+                for folderID in group.folderIDs {
+                    if let folder = folders.first(where: { $0.id == folderID }) {
+                        appendSessions(for: folder)
+                    }
+                }
+            }
+        }
+
+        return result
     }
 
     func toggleAssistant() {

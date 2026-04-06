@@ -436,4 +436,95 @@ struct AppStateExtendedTests {
         #expect(session.ownsBranch == true)
         #expect(session.sandboxName == "my-sandbox")
     }
+
+    // MARK: - allSessionIDsOrdered with groups and sidebarOrder
+
+    @Test("allSessionIDsOrdered respects sidebarOrder")
+    @MainActor
+    func orderedRespectssSidebarOrder() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.addFolder(path: "/var")
+
+        let firstSession = state.folders[0].sessionIDs[0]
+        let secondSession = state.folders[1].sessionIDs[0]
+
+        // Reverse the sidebar order
+        state.sidebarOrder = [.folder(state.folders[1].id), .folder(state.folders[0].id)]
+
+        let ordered = state.allSessionIDsOrdered
+        #expect(ordered == [secondSession, firstSession])
+    }
+
+    @Test("allSessionIDsOrdered includes sessions from group folders")
+    @MainActor
+    func orderedWithGroup() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.addFolder(path: "/var")
+
+        let firstSession = state.folders[0].sessionIDs[0]
+        let secondSession = state.folders[1].sessionIDs[0]
+
+        // Put second folder into a group
+        state.addGroup(name: "Backend")
+        let groupID = state.groups[0].id
+        state.moveFolderToGroup(folderID: state.folders[1].id, groupID: groupID)
+
+        // sidebarOrder should be [.folder(first), .group(backend)]
+        let ordered = state.allSessionIDsOrdered
+        #expect(ordered == [firstSession, secondSession])
+    }
+
+    @Test("allSessionIDsOrdered skips collapsed group")
+    @MainActor
+    func orderedSkipsCollapsedGroup() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.addFolder(path: "/var")
+
+        let firstSession = state.folders[0].sessionIDs[0]
+
+        state.addGroup(name: "Backend")
+        let groupID = state.groups[0].id
+        state.moveFolderToGroup(folderID: state.folders[1].id, groupID: groupID)
+        state.setGroupExpanded(id: groupID, isExpanded: false)
+
+        let ordered = state.allSessionIDsOrdered
+        #expect(ordered == [firstSession])
+    }
+
+    @Test("allSessionIDsOrdered skips collapsed folder")
+    @MainActor
+    func orderedSkipsCollapsedFolder() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.addFolder(path: "/var")
+
+        let secondSession = state.folders[1].sessionIDs[0]
+
+        state.setFolderExpanded(id: state.folders[0].id, isExpanded: false)
+
+        let ordered = state.allSessionIDsOrdered
+        #expect(ordered == [secondSession])
+    }
+
+    @Test("selectNextSession skips collapsed folder")
+    @MainActor
+    func selectNextSkipsCollapsedFolder() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.addFolder(path: "/var")
+        state.addFolder(path: "/usr")
+
+        let firstSession = state.folders[0].sessionIDs[0]
+        let thirdSession = state.folders[2].sessionIDs[0]
+
+        // Collapse the middle folder
+        state.setFolderExpanded(id: state.folders[1].id, isExpanded: false)
+
+        state.selectedSessionID = firstSession
+        state.selectNextSession()
+        #expect(state.selectedSessionID == thirdSession)
+    }
 }
