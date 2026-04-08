@@ -110,6 +110,12 @@ final class TerminalSessionManager {
                         environment: env.map { "\($0.key)=\($0.value)" },
                         execName: (executable as NSString).lastPathComponent
                     )
+
+                    // Force a layout pass so that any pending Auto Layout size
+                    // propagates to the PTY via setFrameSize → setWinSize.
+                    DispatchQueue.main.async {
+                        terminal.superview?.layoutSubtreeIfNeeded()
+                    }
                 }
 
                 if let command = pendingCommand {

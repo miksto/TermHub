@@ -423,6 +423,9 @@ class TerminalContainerViewController: NSViewController {
                     terminal.topAnchor.constraint(equalTo: terminalContainer.topAnchor, constant: inset),
                     terminal.bottomAnchor.constraint(equalTo: terminalContainer.bottomAnchor, constant: -inset),
                 ])
+                // Force Auto Layout to compute the correct frame before
+                // the process starts, so the PTY is created with the right size.
+                terminalContainer.layoutSubtreeIfNeeded()
             }
 
             (terminal as? TermHubTerminalView)?.isVisible = true
