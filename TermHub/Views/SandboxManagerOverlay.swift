@@ -403,7 +403,7 @@ struct SandboxManagerOverlay: View {
                     .onSubmit { addEnvVar(to: sandboxName, keys: keys) }
 
                 Button("Add") { addEnvVar(to: sandboxName, keys: keys) }
-                    .disabled(!DockerSandboxService.isValidEnvVarKey(newEnvVarName) || keys.contains(newEnvVarName))
+                    .disabled(!SbxService.isValidEnvVarKey(newEnvVarName) || keys.contains(newEnvVarName))
                     .font(.callout)
             }
         }
@@ -547,12 +547,12 @@ struct SandboxManagerOverlay: View {
     // MARK: - Helpers
 
     private var canCreate: Bool {
-        DockerSandboxService.isValidSandboxName(newSandboxName) && !newSandboxWorkspaces.isEmpty
+        SbxService.isValidSandboxName(newSandboxName) && !newSandboxWorkspaces.isEmpty
     }
 
     private func submitCreateForm() {
         let name = newSandboxName.trimmingCharacters(in: .whitespaces)
-        guard DockerSandboxService.isValidSandboxName(name), !newSandboxWorkspaces.isEmpty else { return }
+        guard SbxService.isValidSandboxName(name), !newSandboxWorkspaces.isEmpty else { return }
         appState.createSandbox(name: name, agent: newSandboxAgent, workspaces: newSandboxWorkspaces)
         isCreatingNew = false
         selectedSandboxName = name
@@ -583,7 +583,7 @@ struct SandboxManagerOverlay: View {
 
     private func addEnvVar(to sandboxName: String, keys: [String]) {
         let name = newEnvVarName.trimmingCharacters(in: .whitespaces)
-        guard DockerSandboxService.isValidEnvVarKey(name), !keys.contains(name) else { return }
+        guard SbxService.isValidEnvVarKey(name), !keys.contains(name) else { return }
         var updated = keys
         updated.append(name)
         appState.setSandboxEnvironmentKeys(updated, for: sandboxName)

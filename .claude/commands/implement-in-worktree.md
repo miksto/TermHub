@@ -6,7 +6,7 @@ Steps:
 
 1. Get the current repo root by running `git rev-parse --show-toplevel`.
 2. Use the plan file from the current conversation (the one you wrote during planning). If no plan was created in this conversation, ask the user which plan file to use.
-3. Check for available Docker sandboxes by running `docker sandbox ls --json`. If sandboxes exist, ask the user whether they want to run in a sandbox and which one to use. If no sandboxes exist or the user declines, proceed without a sandbox.
+3. Check for available sandboxes by running `sbx ls --json`. If sandboxes exist, ask the user whether they want to run in a sandbox and which one to use. If no sandboxes exist or the user declines, proceed without a sandbox.
 4. URL-encode the repo path and plan path (replace spaces with `%20`, etc.).
 5. Run the following command, substituting the values:
 

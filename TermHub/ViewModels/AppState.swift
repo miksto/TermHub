@@ -850,7 +850,7 @@ final class AppState {
 
     func refreshSandboxes() {
         Task.detached {
-            let list = DockerSandboxService.listSandboxes()
+            let list = SbxService.listSandboxes()
             await MainActor.run { [weak self] in
                 self?.sandboxes = list
             }
@@ -865,14 +865,14 @@ final class AppState {
         sandboxOperationInProgress.insert(name)
         Task.detached {
             do {
-                try DockerSandboxService.createSandbox(name: name, agent: agent.rawValue, workspaces: workspaces)
+                try SbxService.createSandbox(name: name, agent: agent.rawValue, workspaces: workspaces)
             } catch {
                 let msg = error.localizedDescription
                 await MainActor.run { [weak self] in
                     self?.errorMessage = "Failed to create sandbox: \(msg)"
                 }
             }
-            let list = DockerSandboxService.listSandboxes()
+            let list = SbxService.listSandboxes()
             await MainActor.run { [weak self] in
                 self?.sandboxes = list
                 self?.sandboxOperationInProgress.remove(name)
@@ -885,14 +885,14 @@ final class AppState {
         sandboxOperationInProgress.insert(name)
         Task.detached {
             do {
-                try DockerSandboxService.stopSandbox(name: name)
+                try SbxService.stopSandbox(name: name)
             } catch {
                 let msg = error.localizedDescription
                 await MainActor.run { [weak self] in
                     self?.errorMessage = "Failed to stop sandbox: \(msg)"
                 }
             }
-            let list = DockerSandboxService.listSandboxes()
+            let list = SbxService.listSandboxes()
             await MainActor.run { [weak self] in
                 self?.sandboxes = list
                 self?.sandboxOperationInProgress.remove(name)
@@ -904,14 +904,14 @@ final class AppState {
         sandboxOperationInProgress.insert(name)
         Task.detached {
             do {
-                try DockerSandboxService.removeSandbox(name: name)
+                try SbxService.removeSandbox(name: name)
             } catch {
                 let msg = error.localizedDescription
                 await MainActor.run { [weak self] in
                     self?.errorMessage = "Failed to remove sandbox: \(msg)"
                 }
             }
-            let list = DockerSandboxService.listSandboxes()
+            let list = SbxService.listSandboxes()
             await MainActor.run { [weak self] in
                 self?.sandboxes = list
                 self?.sandboxOperationInProgress.remove(name)
@@ -935,7 +935,7 @@ final class AppState {
     /// Resolves the configured environment variable names for a sandbox to their current host values.
     func resolvedEnvironmentVariables(for sandboxName: String) -> [String: String] {
         let keys = environmentKeysForSandbox(sandboxName)
-        return DockerSandboxService.resolveEnvironmentVariables(keys: keys)
+        return SbxService.resolveEnvironmentVariables(keys: keys)
     }
 
     private func startSandboxPolling() {
@@ -1205,7 +1205,7 @@ final class AppState {
         let sessionsSnapshot = sessions.map { session -> (name: String, cwd: String, shellCommand: String?) in
             let cwd = session.worktreePath ?? session.workingDirectory
             let shellCommand: String? = if let sandboxName = session.sandboxName {
-                DockerSandboxService.execCommand(
+                SbxService.execCommand(
                     sandboxName: sandboxName,
                     cwd: cwd,
                     environmentVariables: resolvedEnvironmentVariables(for: sandboxName)

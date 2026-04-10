@@ -2,108 +2,108 @@ import Foundation
 import Testing
 @testable import TermHub
 
-@Suite("DockerSandboxService Tests")
-struct DockerSandboxServiceTests {
+@Suite("SbxService Tests")
+struct SbxServiceTests {
     private let mock = MockCommandRunner()
-    private let fakeDockerPath = "/usr/local/bin/docker"
+    private let fakeSbxPath = "/usr/local/bin/sbx"
 
     init() {
-        DockerSandboxService.commandRunner = mock
-        DockerSandboxService.dockerPathOverride = fakeDockerPath
+        SbxService.commandRunner = mock
+        SbxService.sbxPathOverride = fakeSbxPath
     }
 
     // MARK: - isValidSandboxName
 
     @Test("isValidSandboxName accepts valid names")
     func validNames() {
-        #expect(DockerSandboxService.isValidSandboxName("my-sandbox") == true)
-        #expect(DockerSandboxService.isValidSandboxName("test123") == true)
-        #expect(DockerSandboxService.isValidSandboxName("My.Sandbox_v2") == true)
-        #expect(DockerSandboxService.isValidSandboxName("a") == true)
+        #expect(SbxService.isValidSandboxName("my-sandbox") == true)
+        #expect(SbxService.isValidSandboxName("test123") == true)
+        #expect(SbxService.isValidSandboxName("My.Sandbox_v2") == true)
+        #expect(SbxService.isValidSandboxName("a") == true)
     }
 
     @Test("isValidSandboxName rejects invalid names")
     func invalidNames() {
-        #expect(DockerSandboxService.isValidSandboxName("") == false)
-        #expect(DockerSandboxService.isValidSandboxName("-starts-with-dash") == false)
-        #expect(DockerSandboxService.isValidSandboxName(".starts-with-dot") == false)
-        #expect(DockerSandboxService.isValidSandboxName("_starts-with-underscore") == false)
-        #expect(DockerSandboxService.isValidSandboxName("has spaces") == false)
-        #expect(DockerSandboxService.isValidSandboxName("has/slash") == false)
-        #expect(DockerSandboxService.isValidSandboxName("has@special") == false)
+        #expect(SbxService.isValidSandboxName("") == false)
+        #expect(SbxService.isValidSandboxName("-starts-with-dash") == false)
+        #expect(SbxService.isValidSandboxName(".starts-with-dot") == false)
+        #expect(SbxService.isValidSandboxName("_starts-with-underscore") == false)
+        #expect(SbxService.isValidSandboxName("has spaces") == false)
+        #expect(SbxService.isValidSandboxName("has/slash") == false)
+        #expect(SbxService.isValidSandboxName("has@special") == false)
     }
 
     // MARK: - execCommand
 
-    @Test("execCommand generates correct docker command")
+    @Test("execCommand generates correct sbx command")
     func execCommandBasic() {
-        let cmd = DockerSandboxService.execCommand(sandboxName: "test-sb", cwd: "/home/user/project")
-        #expect(cmd.contains("docker sandbox exec -it test-sb"))
+        let cmd = SbxService.execCommand(sandboxName: "test-sb", cwd: "/home/user/project")
+        #expect(cmd.contains("sbx exec -it test-sb"))
         #expect(cmd.contains("cd /home/user/project"))
     }
 
     @Test("execCommand escapes single quotes in cwd")
     func execCommandEscapesSingleQuotes() {
-        let cmd = DockerSandboxService.execCommand(sandboxName: "sb", cwd: "/home/user/project's dir")
+        let cmd = SbxService.execCommand(sandboxName: "sb", cwd: "/home/user/project's dir")
         #expect(cmd.contains("'\\''"))
     }
 
     @Test("execCommand returns error message for invalid sandbox name")
     func execCommandInvalidName() {
-        let cmd = DockerSandboxService.execCommand(sandboxName: "-bad", cwd: "/tmp")
+        let cmd = SbxService.execCommand(sandboxName: "-bad", cwd: "/tmp")
         #expect(cmd.contains("Invalid sandbox name"))
     }
 
-    @Test("execCommand returns error when docker not found")
-    func execCommandNoDocker() {
-        DockerSandboxService.dockerPathOverride = nil
-        let savedPath = DockerSandboxService.dockerPath
-        // If docker is not installed, resolvedDockerPath will be nil
+    @Test("execCommand returns error when sbx not found")
+    func execCommandNoSbx() {
+        SbxService.sbxPathOverride = nil
+        let savedPath = SbxService.sbxPath
+        // If sbx is not installed, resolvedSbxPath will be nil
         if savedPath == nil {
-            let cmd = DockerSandboxService.execCommand(sandboxName: "test", cwd: "/tmp")
-            #expect(cmd.contains("docker not found"))
+            let cmd = SbxService.execCommand(sandboxName: "test", cwd: "/tmp")
+            #expect(cmd.contains("sbx not found"))
         }
-        DockerSandboxService.dockerPathOverride = fakeDockerPath
+        SbxService.sbxPathOverride = fakeSbxPath
     }
 
     // MARK: - isValidEnvVarKey
 
     @Test("isValidEnvVarKey accepts valid keys")
     func validEnvVarKeys() {
-        #expect(DockerSandboxService.isValidEnvVarKey("HOME") == true)
-        #expect(DockerSandboxService.isValidEnvVarKey("NODE_ENV") == true)
-        #expect(DockerSandboxService.isValidEnvVarKey("_PRIVATE") == true)
-        #expect(DockerSandboxService.isValidEnvVarKey("a") == true)
-        #expect(DockerSandboxService.isValidEnvVarKey("PATH123") == true)
+        #expect(SbxService.isValidEnvVarKey("HOME") == true)
+        #expect(SbxService.isValidEnvVarKey("NODE_ENV") == true)
+        #expect(SbxService.isValidEnvVarKey("_PRIVATE") == true)
+        #expect(SbxService.isValidEnvVarKey("a") == true)
+        #expect(SbxService.isValidEnvVarKey("PATH123") == true)
     }
 
     @Test("isValidEnvVarKey rejects invalid keys")
     func invalidEnvVarKeys() {
-        #expect(DockerSandboxService.isValidEnvVarKey("") == false)
-        #expect(DockerSandboxService.isValidEnvVarKey("123BAD") == false)
-        #expect(DockerSandboxService.isValidEnvVarKey("has-dash") == false)
-        #expect(DockerSandboxService.isValidEnvVarKey("has space") == false)
-        #expect(DockerSandboxService.isValidEnvVarKey("has.dot") == false)
+        #expect(SbxService.isValidEnvVarKey("") == false)
+        #expect(SbxService.isValidEnvVarKey("123BAD") == false)
+        #expect(SbxService.isValidEnvVarKey("has-dash") == false)
+        #expect(SbxService.isValidEnvVarKey("has space") == false)
+        #expect(SbxService.isValidEnvVarKey("has.dot") == false)
     }
 
     // MARK: - execCommand with environment variables
 
     @Test("execCommand includes environment variable flags")
     func execCommandWithEnvVars() {
-        let cmd = DockerSandboxService.execCommand(
+        let cmd = SbxService.execCommand(
             sandboxName: "test-sb",
             cwd: "/home/user/project",
             environmentVariables: ["NODE_ENV": "development", "DEBUG": "true"]
         )
         #expect(cmd.contains("-e 'DEBUG=true'"))
         #expect(cmd.contains("-e 'NODE_ENV=development'"))
-        #expect(cmd.contains("sandbox exec -e"))
+        #expect(cmd.contains("exec -e"))
         #expect(cmd.contains("-it test-sb"))
     }
 
     @Test("execCommand escapes single quotes in env var values")
     func execCommandEnvVarEscaping() {
-        let cmd = DockerSandboxService.execCommand(
+        let cmd = SbxService.execCommand(
             sandboxName: "sb",
             cwd: "/tmp",
             environmentVariables: ["MSG": "it's working"]
@@ -113,7 +113,7 @@ struct DockerSandboxServiceTests {
 
     @Test("execCommand skips invalid env var keys")
     func execCommandInvalidEnvKey() {
-        let cmd = DockerSandboxService.execCommand(
+        let cmd = SbxService.execCommand(
             sandboxName: "sb",
             cwd: "/tmp",
             environmentVariables: ["VALID_KEY": "ok", "invalid-key": "skip", "123bad": "skip"]
@@ -125,8 +125,8 @@ struct DockerSandboxServiceTests {
 
     @Test("execCommand with empty env vars matches original format")
     func execCommandEmptyEnvVars() {
-        let cmd = DockerSandboxService.execCommand(sandboxName: "test-sb", cwd: "/tmp", environmentVariables: [:])
-        #expect(cmd.contains("sandbox exec -it test-sb"))
+        let cmd = SbxService.execCommand(sandboxName: "test-sb", cwd: "/tmp", environmentVariables: [:])
+        #expect(cmd.contains("exec -it test-sb"))
     }
 
     // MARK: - listSandboxes
@@ -138,7 +138,7 @@ struct DockerSandboxServiceTests {
         """
         mock.enqueueSuccess(json)
 
-        let sandboxes = DockerSandboxService.listSandboxes()
+        let sandboxes = SbxService.listSandboxes()
         #expect(sandboxes.count == 2)
         #expect(sandboxes[0].name == "sb1")
         #expect(sandboxes[0].isRunning == true)
@@ -150,26 +150,26 @@ struct DockerSandboxServiceTests {
 
     @Test("listSandboxes returns empty on failure")
     func listSandboxesFailure() {
-        mock.enqueueFailure("docker not running")
-        let sandboxes = DockerSandboxService.listSandboxes()
+        mock.enqueueFailure("sbx not running")
+        let sandboxes = SbxService.listSandboxes()
         #expect(sandboxes.isEmpty)
     }
 
     @Test("listSandboxes returns empty for malformed JSON")
     func listSandboxesMalformedJSON() {
         mock.enqueueSuccess("not json at all")
-        let sandboxes = DockerSandboxService.listSandboxes()
+        let sandboxes = SbxService.listSandboxes()
         #expect(sandboxes.isEmpty)
     }
 
     @Test("listSandboxes sends correct arguments")
     func listSandboxesArgs() {
         mock.enqueueSuccess("{\"vms\":[]}")
-        _ = DockerSandboxService.listSandboxes()
+        _ = SbxService.listSandboxes()
 
         let call = mock.lastCall!
-        #expect(call.executablePath == fakeDockerPath)
-        #expect(call.arguments == ["sandbox", "ls", "--json"])
+        #expect(call.executablePath == fakeSbxPath)
+        #expect(call.arguments == ["ls", "--json"])
     }
 
     // MARK: - createSandbox
@@ -177,33 +177,33 @@ struct DockerSandboxServiceTests {
     @Test("createSandbox sends correct arguments")
     func createSandboxArgs() throws {
         mock.enqueueSuccess()
-        try DockerSandboxService.createSandbox(name: "test-sb", agent: "claude", workspaces: ["/tmp/p1", "/tmp/p2"])
+        try SbxService.createSandbox(name: "test-sb", agent: "claude", workspaces: ["/tmp/p1", "/tmp/p2"])
 
         let call = mock.lastCall!
-        #expect(call.arguments == ["sandbox", "create", "--name", "test-sb", "claude", "/tmp/p1", "/tmp/p2"])
+        #expect(call.arguments == ["create", "--name", "test-sb", "claude", "/tmp/p1", "/tmp/p2"])
     }
 
     @Test("createSandbox throws on failure")
     func createSandboxFailure() {
         mock.enqueueFailure("name already in use")
 
-        #expect(throws: DockerSandboxError.self) {
-            try DockerSandboxService.createSandbox(name: "dup", workspaces: ["/tmp"])
+        #expect(throws: SbxError.self) {
+            try SbxService.createSandbox(name: "dup", workspaces: ["/tmp"])
         }
     }
 
-    @Test("createSandbox throws dockerNotFound when no path")
-    func createSandboxNoDocker() {
-        DockerSandboxService.dockerPathOverride = nil
-        let savedPath = DockerSandboxService.dockerPath
+    @Test("createSandbox throws sbxNotFound when no path")
+    func createSandboxNoSbx() {
+        SbxService.sbxPathOverride = nil
+        let savedPath = SbxService.sbxPath
         if savedPath == nil {
             #expect {
-                try DockerSandboxService.createSandbox(name: "x", workspaces: ["/tmp"])
+                try SbxService.createSandbox(name: "x", workspaces: ["/tmp"])
             } throws: { error in
-                (error as? DockerSandboxError) == .dockerNotFound
+                (error as? SbxError) == .sbxNotFound
             }
         }
-        DockerSandboxService.dockerPathOverride = fakeDockerPath
+        SbxService.sbxPathOverride = fakeSbxPath
     }
 
     // MARK: - stopSandbox
@@ -211,18 +211,18 @@ struct DockerSandboxServiceTests {
     @Test("stopSandbox sends correct arguments")
     func stopSandboxArgs() throws {
         mock.enqueueSuccess()
-        try DockerSandboxService.stopSandbox(name: "my-sb")
+        try SbxService.stopSandbox(name: "my-sb")
 
         let call = mock.lastCall!
-        #expect(call.arguments == ["sandbox", "stop", "my-sb"])
+        #expect(call.arguments == ["stop", "my-sb"])
     }
 
     @Test("stopSandbox throws on failure")
     func stopSandboxFailure() {
         mock.enqueueFailure("sandbox not found")
 
-        #expect(throws: DockerSandboxError.self) {
-            try DockerSandboxService.stopSandbox(name: "missing")
+        #expect(throws: SbxError.self) {
+            try SbxService.stopSandbox(name: "missing")
         }
     }
 
@@ -231,18 +231,18 @@ struct DockerSandboxServiceTests {
     @Test("removeSandbox sends correct arguments")
     func removeSandboxArgs() throws {
         mock.enqueueSuccess()
-        try DockerSandboxService.removeSandbox(name: "old-sb")
+        try SbxService.removeSandbox(name: "old-sb")
 
         let call = mock.lastCall!
-        #expect(call.arguments == ["sandbox", "rm", "old-sb"])
+        #expect(call.arguments == ["rm", "old-sb"])
     }
 
     @Test("removeSandbox throws on failure")
     func removeSandboxFailure() {
         mock.enqueueFailure("cannot remove running sandbox")
 
-        #expect(throws: DockerSandboxError.self) {
-            try DockerSandboxService.removeSandbox(name: "running-sb")
+        #expect(throws: SbxError.self) {
+            try SbxService.removeSandbox(name: "running-sb")
         }
     }
 
@@ -250,13 +250,13 @@ struct DockerSandboxServiceTests {
 
     @Test("commandFailed error includes message")
     func commandFailedMessage() {
-        mock.enqueue(output: "", errorOutput: "specific docker error", exitCode: 1)
+        mock.enqueue(output: "", errorOutput: "specific sbx error", exitCode: 1)
 
         do {
-            try DockerSandboxService.stopSandbox(name: "x")
+            try SbxService.stopSandbox(name: "x")
             Issue.record("Expected error")
-        } catch let error as DockerSandboxError {
-            #expect(error.errorDescription?.contains("specific docker error") == true)
+        } catch let error as SbxError {
+            #expect(error.errorDescription?.contains("specific sbx error") == true)
         } catch {
             Issue.record("Wrong error type")
         }

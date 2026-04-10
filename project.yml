@@ -73,7 +73,7 @@ targets:
         type: file
       - path: TermHub/Services/TmuxService.swift
         type: file
-      - path: TermHub/Services/DockerSandboxService.swift
+      - path: TermHub/Services/SbxService.swift
         type: file
       - path: TermHub/Services/PersistenceService.swift
         type: file
@@ -145,7 +145,7 @@ targets:
         type: file
       - path: TermHub/Services/TmuxService.swift
         type: file
-      - path: TermHub/Services/DockerSandboxService.swift
+      - path: TermHub/Services/SbxService.swift
         type: file
       - path: TermHub/Services/PersistenceService.swift
         type: file

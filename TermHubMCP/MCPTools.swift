@@ -180,7 +180,7 @@ enum MCPTools {
                 """,
             properties: [
                 "name": propString("Unique name for the sandbox. Example: 'my-feature-sandbox'"),
-                "agent": propString("Agent type to run in the sandbox. Valid values: claude, copilot, codex, gemini, cagent, kiro, opencode, shell. Defaults to 'claude' if omitted."),
+                "agent": propString("Agent type to run in the sandbox. Valid values: claude, copilot, codex, gemini, docker-agent, kiro, opencode, shell. Defaults to 'claude' if omitted."),
                 "workspaces": .object([
                     "type": .string("array"),
                     "items": .object(["type": .string("string")]),

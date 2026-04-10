@@ -48,7 +48,7 @@ final class TerminalSessionManager {
     }
 
     /// Start the shell/tmux process. Must be called after the view is in the window hierarchy.
-    /// `sandboxEnvironmentVariables` are resolved host env vars to pass via `-e` flags to `docker sandbox exec`.
+    /// `sandboxEnvironmentVariables` are resolved host env vars to pass via `-e` flags to `sbx exec`.
     func startProcessIfNeeded(for session: TerminalSession, tmuxAvailable: Bool, sandboxEnvironmentVariables: [String: String] = [:]) {
         guard !startedSessions.contains(session.id) else { return }
         guard let terminal = terminals[session.id] else { return }
@@ -80,7 +80,7 @@ final class TerminalSessionManager {
             let pendingCommand = pendingCommands.removeValue(forKey: session.id)
             let env = ShellEnvironment.shellEnvironment
             let sandboxCmd: String? = if let sandboxName = session.sandboxName {
-                DockerSandboxService.execCommand(sandboxName: sandboxName, cwd: cwd, environmentVariables: sandboxEnvironmentVariables)
+                SbxService.execCommand(sandboxName: sandboxName, cwd: cwd, environmentVariables: sandboxEnvironmentVariables)
             } else {
                 nil
             }

@@ -9,7 +9,7 @@ enum SandboxAgent: String, CaseIterable, Sendable {
     case copilot
     case codex
     case gemini
-    case cagent
+    case dockerAgent = "docker-agent"
     case kiro
     case opencode
     case shell
@@ -20,7 +20,7 @@ enum SandboxAgent: String, CaseIterable, Sendable {
         case .copilot: "GitHub Copilot"
         case .codex: "Codex"
         case .gemini: "Gemini"
-        case .cagent: "Docker Agent"
+        case .dockerAgent: "Docker Agent"
         case .kiro: "Kiro"
         case .opencode: "OpenCode"
         case .shell: "Shell"
@@ -28,31 +28,31 @@ enum SandboxAgent: String, CaseIterable, Sendable {
     }
 }
 
-enum DockerSandboxError: Error, LocalizedError, Equatable {
-    case dockerNotFound
+enum SbxError: Error, LocalizedError, Equatable {
+    case sbxNotFound
     case commandFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .dockerNotFound:
-            return "docker binary not found"
+        case .sbxNotFound:
+            return "sbx binary not found"
         case .commandFailed(let message):
-            return "docker sandbox command failed: \(message)"
+            return "sbx command failed: \(message)"
         }
     }
 }
 
-enum DockerSandboxService {
-    static let dockerPath: String? = resolveDockerPath()
+enum SbxService {
+    static let sbxPath: String? = resolveSbxPath()
     nonisolated(unsafe) static var commandRunner: CommandRunner = ProcessCommandRunner()
-    /// Override for testing. When set, bypasses the resolved dockerPath.
-    nonisolated(unsafe) static var dockerPathOverride: String?
+    /// Override for testing. When set, bypasses the resolved sbxPath.
+    nonisolated(unsafe) static var sbxPathOverride: String?
 
-    private static var resolvedDockerPath: String? {
-        dockerPathOverride ?? dockerPath
+    private static var resolvedSbxPath: String? {
+        sbxPathOverride ?? sbxPath
     }
 
-    /// Docker sandbox names must start with an alphanumeric character and contain only `[a-zA-Z0-9_.-]`.
+    /// Sandbox names must start with an alphanumeric character and contain only `[a-zA-Z0-9_.-]`.
     static func isValidSandboxName(_ name: String) -> Bool {
         let pattern = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/
         return name.wholeMatch(of: pattern) != nil
@@ -78,8 +78,8 @@ enum DockerSandboxService {
 
     /// Returns the shell command string for tmux to execute inside a sandbox.
     static func execCommand(sandboxName: String, cwd: String, environmentVariables: [String: String] = [:]) -> String {
-        guard let docker = resolvedDockerPath else {
-            return "echo 'docker not found'; exit 1"
+        guard let sbx = resolvedSbxPath else {
+            return "echo 'sbx not found'; exit 1"
         }
         guard isValidSandboxName(sandboxName) else {
             return "echo 'Invalid sandbox name'; exit 1"
@@ -94,30 +94,30 @@ enum DockerSandboxService {
             .joined(separator: " ")
         let escapedCwd = cwd.replacingOccurrences(of: "'", with: "'\\''")
         let envPart = envFlags.isEmpty ? "" : " \(envFlags)"
-        return "\(docker) sandbox exec\(envPart) -it \(sandboxName) bash -c 'cd \(escapedCwd) && exec bash'"
+        return "\(sbx) exec\(envPart) -it \(sandboxName) bash -c 'cd \(escapedCwd) && exec bash'"
     }
 
     // MARK: - Lifecycle Methods
 
     @discardableResult
     private static func run(_ arguments: [String]) throws -> String {
-        guard let docker = resolvedDockerPath else {
-            throw DockerSandboxError.dockerNotFound
+        guard let sbx = resolvedSbxPath else {
+            throw SbxError.sbxNotFound
         }
         let result = commandRunner.run(
-            executablePath: docker,
-            arguments: ["sandbox"] + arguments,
+            executablePath: sbx,
+            arguments: arguments,
             environment: ShellEnvironment.shellEnvironment
         )
 
         if result.exitCode != 0 {
             let message = result.errorOutput.isEmpty ? result.output : result.errorOutput
-            throw DockerSandboxError.commandFailed(message)
+            throw SbxError.commandFailed(message)
         }
         return result.output.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Lists all Docker sandboxes. Returns empty array on failure.
+    /// Lists all sandboxes. Returns empty array on failure.
     static func listSandboxes() -> [SandboxInfo] {
         do {
             let output = try run(["ls", "--json"])
@@ -145,11 +145,11 @@ enum DockerSandboxService {
         try run(["rm", name])
     }
 
-    private static func resolveDockerPath() -> String? {
+    private static func resolveSbxPath() -> String? {
         let candidates = [
-            "/usr/local/bin/docker",
-            "/opt/homebrew/bin/docker",
-            "/usr/bin/docker",
+            "/usr/local/bin/sbx",
+            "/opt/homebrew/bin/sbx",
+            "/usr/bin/sbx",
         ]
         for candidate in candidates {
             if FileManager.default.fileExists(atPath: candidate) {
@@ -158,7 +158,7 @@ enum DockerSandboxService {
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = ["docker"]
+        process.arguments = ["sbx"]
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = Pipe()
