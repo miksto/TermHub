@@ -30,5 +30,5 @@ struct SandboxInfo: Sendable, Equatable, Decodable {
 }
 
 struct SandboxListResponse: Decodable {
-    let vms: [SandboxInfo]
+    let sandboxes: [SandboxInfo]
 }

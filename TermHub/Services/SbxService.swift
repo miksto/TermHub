@@ -123,7 +123,7 @@ enum SbxService {
             let output = try run(["ls", "--json"])
             guard let data = output.data(using: .utf8) else { return [] }
             let response = try JSONDecoder().decode(SandboxListResponse.self, from: data)
-            return response.vms
+            return response.sandboxes
         } catch {
             return []
         }

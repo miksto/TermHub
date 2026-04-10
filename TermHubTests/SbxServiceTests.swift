@@ -134,7 +134,7 @@ struct SbxServiceTests {
     @Test("listSandboxes parses JSON response")
     func listSandboxesParsesJSON() {
         let json = """
-        {"vms":[{"name":"sb1","agent":"claude","status":"running","workspaces":["/tmp/project"]},{"name":"sb2","agent":"copilot","status":"stopped","workspaces":[]}]}
+        {"sandboxes":[{"name":"sb1","agent":"claude","status":"running","workspaces":["/tmp/project"]},{"name":"sb2","agent":"copilot","status":"stopped","workspaces":[]}]}
         """
         mock.enqueueSuccess(json)
 
@@ -164,7 +164,7 @@ struct SbxServiceTests {
 
     @Test("listSandboxes sends correct arguments")
     func listSandboxesArgs() {
-        mock.enqueueSuccess("{\"vms\":[]}")
+        mock.enqueueSuccess("{\"sandboxes\":[]}")
         _ = SbxService.listSandboxes()
 
         let call = mock.lastCall!
