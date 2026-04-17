@@ -801,12 +801,6 @@ final class AppState {
                     do { try GitService.deleteLocalBranch(repoPath: repoPath, branch: branchName) }
                     catch { print("[TermHub] Failed to delete branch '\(branchName)': \(error)") }
                 }
-
-                let container = GitService.worktreeContainerPath(repoPath: repoPath)
-                let fm = FileManager.default
-                if let contents = try? fm.contentsOfDirectory(atPath: container), contents.isEmpty {
-                    try? fm.removeItem(atPath: container)
-                }
             }
         }
     }
