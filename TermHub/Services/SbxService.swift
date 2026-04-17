@@ -84,7 +84,9 @@ enum SbxService {
         guard isValidSandboxName(sandboxName) else {
             return "echo 'Invalid sandbox name'; exit 1"
         }
-        let envFlags = environmentVariables
+        var mergedEnv = ["TERM": "xterm-256color"]
+        mergedEnv.merge(environmentVariables) { _, caller in caller }
+        let envFlags = mergedEnv
             .sorted(by: { $0.key < $1.key })
             .compactMap { key, value -> String? in
                 guard isValidEnvVarKey(key) else { return nil }

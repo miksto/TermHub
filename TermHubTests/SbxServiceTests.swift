@@ -38,7 +38,8 @@ struct SbxServiceTests {
     @Test("execCommand generates correct sbx command")
     func execCommandBasic() {
         let cmd = SbxService.execCommand(sandboxName: "test-sb", cwd: "/home/user/project")
-        #expect(cmd.contains("sbx exec -it test-sb"))
+        #expect(cmd.contains("-e 'TERM=xterm-256color'"))
+        #expect(cmd.contains("-it test-sb"))
         #expect(cmd.contains("cd /home/user/project"))
     }
 
@@ -123,10 +124,11 @@ struct SbxServiceTests {
         #expect(!cmd.contains("123bad"))
     }
 
-    @Test("execCommand with empty env vars matches original format")
+    @Test("execCommand with empty env vars still includes TERM")
     func execCommandEmptyEnvVars() {
         let cmd = SbxService.execCommand(sandboxName: "test-sb", cwd: "/tmp", environmentVariables: [:])
-        #expect(cmd.contains("exec -it test-sb"))
+        #expect(cmd.contains("-e 'TERM=xterm-256color'"))
+        #expect(cmd.contains("-it test-sb"))
     }
 
     // MARK: - listSandboxes
