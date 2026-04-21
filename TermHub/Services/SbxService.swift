@@ -26,6 +26,21 @@ enum SandboxAgent: String, CaseIterable, Sendable {
         case .shell: "Shell"
         }
     }
+
+    /// The CLI command to auto-launch this agent with permissive flags inside a sandbox.
+    /// Returns `nil` for agents that should not be auto-launched (shell, docker-agent).
+    var autoLaunchCommand: String? {
+        switch self {
+        case .claude: "claude --dangerously-skip-permissions"
+        case .copilot: "copilot --allow-all --autopilot"
+        case .codex: "codex --full-auto"
+        case .gemini: "gemini --yolo"
+        case .kiro: "kiro"
+        case .opencode: "opencode"
+        case .dockerAgent: nil
+        case .shell: nil
+        }
+    }
 }
 
 enum SbxError: Error, LocalizedError, Equatable {

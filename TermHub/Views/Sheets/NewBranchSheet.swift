@@ -10,6 +10,7 @@ struct NewBranchSheet: View {
     @State private var branchName = ""
     @State private var baseBranch = ""
     @State private var selectedSandbox: String?
+    @State private var autoOpenAgent = true
     @State private var availableBranches: [String] = []
     @State private var errorMessage: String?
     @State private var isCreating = false
@@ -17,6 +18,13 @@ struct NewBranchSheet: View {
 
     private var isValid: Bool {
         !branchName.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var selectedSandboxAgent: SandboxAgent? {
+        guard let name = selectedSandbox,
+              let sandbox = appState.sandboxes.first(where: { $0.name == name })
+        else { return nil }
+        return SandboxAgent(rawValue: sandbox.agent)
     }
 
     var body: some View {
@@ -68,6 +76,11 @@ struct NewBranchSheet: View {
                 }
             }
 
+            if let agent = selectedSandboxAgent, agent.autoLaunchCommand != nil {
+                Toggle("Auto-open \(agent.displayName)", isOn: $autoOpenAgent)
+                    .font(.subheadline)
+            }
+
             if let errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(.red)
@@ -107,10 +120,10 @@ struct NewBranchSheet: View {
         Task.detached {
             do {
                 let branches = try GitService.listBranches(repoPath: folderPath)
-                let current = GitService.currentBranch(repoPath: folderPath)
+                let preferred = GitService.defaultBranch(repoPath: folderPath)
                 await MainActor.run {
                     availableBranches = branches
-                    baseBranch = current ?? branches.first ?? ""
+                    baseBranch = preferred ?? branches.first ?? ""
                     isLoading = false
                 }
             } catch {
@@ -155,6 +168,12 @@ struct NewBranchSheet: View {
                         ownsBranch: true,
                         sandboxName: selectedSandbox
                     )
+                    if autoOpenAgent,
+                       let agent = selectedSandboxAgent,
+                       let command = agent.autoLaunchCommand,
+                       let sessionID = appState.selectedSessionID {
+                        appState.terminalManager.pendingCommands[sessionID] = command
+                    }
                     dismiss()
                 }
             } catch GitServiceError.worktreeAlreadyExists {

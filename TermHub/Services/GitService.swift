@@ -116,6 +116,21 @@ enum GitService {
         return output
     }
 
+    /// Returns the repo's default branch (e.g. "main" or "develop") by reading
+    /// `refs/remotes/origin/HEAD`. Falls back to `currentBranch` if unavailable.
+    static func defaultBranch(repoPath: String) -> String? {
+        if let output = try? run(["-C", repoPath, "symbolic-ref", "refs/remotes/origin/HEAD"]),
+           !output.isEmpty {
+            // output is e.g. "refs/remotes/origin/main" — strip the prefix
+            let prefix = "refs/remotes/origin/"
+            if output.hasPrefix(prefix) {
+                return String(output.dropFirst(prefix.count))
+            }
+            return output
+        }
+        return currentBranch(repoPath: repoPath)
+    }
+
     static func listBranchesWithDates(repoPath: String) throws -> [(branch: String, date: Date)] {
         let output = try run([
             "-C", repoPath,

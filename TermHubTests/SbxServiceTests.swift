@@ -307,4 +307,22 @@ struct SbxServiceTests {
         #expect(info.agent == "")
         #expect(info.workspaces.isEmpty)
     }
+
+    // MARK: - SandboxAgent.autoLaunchCommand
+
+    @Test("autoLaunchCommand returns correct commands for each agent")
+    func autoLaunchCommands() {
+        #expect(SandboxAgent.claude.autoLaunchCommand == "claude --dangerously-skip-permissions")
+        #expect(SandboxAgent.copilot.autoLaunchCommand == "copilot --allow-all --autopilot")
+        #expect(SandboxAgent.codex.autoLaunchCommand == "codex --full-auto")
+        #expect(SandboxAgent.gemini.autoLaunchCommand == "gemini --yolo")
+        #expect(SandboxAgent.kiro.autoLaunchCommand == "kiro")
+        #expect(SandboxAgent.opencode.autoLaunchCommand == "opencode")
+    }
+
+    @Test("autoLaunchCommand returns nil for shell and docker-agent")
+    func autoLaunchCommandNilCases() {
+        #expect(SandboxAgent.shell.autoLaunchCommand == nil)
+        #expect(SandboxAgent.dockerAgent.autoLaunchCommand == nil)
+    }
 }

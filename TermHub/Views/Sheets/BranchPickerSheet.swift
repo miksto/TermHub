@@ -11,6 +11,7 @@ struct BranchPickerSheet: View {
     @State private var searchText = ""
     @State private var selectedIndex = 0
     @State private var selectedSandbox: String?
+    @State private var autoOpenAgent = true
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var createError: String?
@@ -40,6 +41,13 @@ struct BranchPickerSheet: View {
         let filtered = filteredBranches
         guard selectedIndex < filtered.count else { return nil }
         return filtered[selectedIndex]
+    }
+
+    private var selectedSandboxAgent: SandboxAgent? {
+        guard let name = selectedSandbox,
+              let sandbox = appState.sandboxes.first(where: { $0.name == name })
+        else { return nil }
+        return SandboxAgent(rawValue: sandbox.agent)
     }
 
     var body: some View {
@@ -102,6 +110,15 @@ struct BranchPickerSheet: View {
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 6)
+
+                Divider()
+            }
+
+            if let agent = selectedSandboxAgent, agent.autoLaunchCommand != nil {
+                Toggle("Auto-open \(agent.displayName)", isOn: $autoOpenAgent)
+                    .font(.subheadline)
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
 
                 Divider()
             }
@@ -330,6 +347,12 @@ struct BranchPickerSheet: View {
                         branchName: branchName,
                         sandboxName: selectedSandbox
                     )
+                    if autoOpenAgent,
+                       let agent = selectedSandboxAgent,
+                       let command = agent.autoLaunchCommand,
+                       let sessionID = appState.selectedSessionID {
+                        appState.terminalManager.pendingCommands[sessionID] = command
+                    }
                     dismiss()
                 }
             } catch {
@@ -354,6 +377,12 @@ struct BranchPickerSheet: View {
             isExternalWorktree: true,
             sandboxName: selectedSandbox
         )
+        if autoOpenAgent,
+           let agent = selectedSandboxAgent,
+           let command = agent.autoLaunchCommand,
+           let sessionID = appState.selectedSessionID {
+            appState.terminalManager.pendingCommands[sessionID] = command
+        }
 
         dismiss()
     }
