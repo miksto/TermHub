@@ -759,8 +759,6 @@ final class AppState {
         let tmuxName = session.tmuxSessionName
         let worktreePath = session.worktreePath
         let isExternal = session.isExternalWorktree
-        let ownsBranch = session.ownsBranch
-        let branchName = session.branchName
         let otherSessionUsesWorktree = sessions.contains {
             $0.id != id && $0.worktreePath == worktreePath
         }
@@ -796,11 +794,6 @@ final class AppState {
             if let worktreePath, !isExternal, !otherSessionUsesWorktree, let repoPath {
                 do { try GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath) }
                 catch { print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)") }
-
-                if ownsBranch, let branchName {
-                    do { try GitService.deleteLocalBranch(repoPath: repoPath, branch: branchName) }
-                    catch { print("[TermHub] Failed to delete branch '\(branchName)': \(error)") }
-                }
             }
         }
     }
