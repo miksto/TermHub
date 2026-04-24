@@ -255,6 +255,8 @@ final class AppState {
     var sandboxOperationInProgress: Set<String> = []
     /// Per-sandbox environment variable names to forward from the host into sandbox shells.
     var sandboxEnvironmentKeys: [String: [String]] = [:]
+    /// Tracks sandbox sessions that have received their initial stty resize command.
+    @ObservationIgnored private var sandboxInitialResizeSent: Set<UUID> = []
     private var sandboxRefreshTimer: Timer?
     var currentDiff: GitDiff?
     var isDiffLoading = false
@@ -445,6 +447,10 @@ final class AppState {
 
         terminalManager.onTitleChange = { [weak self] sessionID, title in
             self?.handleTerminalTitleChange(sessionID: sessionID, title: title)
+        }
+
+        terminalManager.onResize = { [weak self] sessionID, cols, rows in
+            self?.handleTerminalResize(sessionID: sessionID, cols: cols, rows: rows)
         }
 
         if !isTestHost {
@@ -771,6 +777,7 @@ final class AppState {
 
         terminalManager.destroyTerminal(for: id)
         sessionsNeedingAttention.remove(id)
+        sandboxInitialResizeSent.remove(id)
         lastBellTime.removeValue(forKey: id)
         displayStates.removeValue(forKey: id)
         sessionMRUOrder.removeAll { $0 == id }
@@ -813,6 +820,24 @@ final class AppState {
         sessions[index].title = trimmed
         displayStates[sessionID]?.title = trimmed
         scheduleSave()
+    }
+
+    /// Propagates terminal dimensions to sandbox sessions via stty.
+    /// sbx exec does not forward SIGWINCH, so on the first resize after attach
+    /// we set the correct size before the user starts any TUI app.
+    private func handleTerminalResize(sessionID: UUID, cols: Int, rows: Int) {
+        guard let session = sessions.first(where: { $0.id == sessionID }),
+              session.isSandboxSession,
+              !sandboxInitialResizeSent.contains(sessionID)
+        else { return }
+        sandboxInitialResizeSent.insert(sessionID)
+        let tmuxName = session.tmuxSessionName
+        Task.detached {
+            try? TmuxService.sendKeys(
+                sessionName: tmuxName,
+                text: "stty rows \(rows) cols \(cols); clear"
+            )
+        }
     }
 
     func startRenamingSession(id: UUID) {

@@ -44,7 +44,7 @@ struct SbxServiceTests {
     }
 
     @Test("execCommand escapes single quotes in cwd")
-    func execCommandEscapesSingleQuotes() {
+    func execCommandEscapesCwd() {
         let cmd = SbxService.execCommand(sandboxName: "sb", cwd: "/home/user/project's dir")
         #expect(cmd.contains("'\\''"))
     }

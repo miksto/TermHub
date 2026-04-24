@@ -14,6 +14,8 @@ final class TerminalSessionManager {
     var optionAsMetaKey: Bool = true
     var onBell: ((UUID) -> Void)?
     var onTitleChange: ((UUID, String) -> Void)?
+    /// Called when the terminal is resized. Parameters: sessionID, cols, rows.
+    var onResize: ((UUID, Int, Int) -> Void)?
 
     func getOrCreateTerminal(for session: TerminalSession, tmuxAvailable: Bool) -> LocalProcessTerminalView? {
         if let existing = terminals[session.id] {
@@ -182,7 +184,13 @@ private final class TerminalProcessDelegate: LocalProcessTerminalViewDelegate {
             manager?.onTitleChange?(sessionID, title)
         }
     }
-    nonisolated func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
+    nonisolated func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {
+        let manager = manager
+        let sessionID = sessionID
+        Task { @MainActor in
+            manager?.onResize?(sessionID, newCols, newRows)
+        }
+    }
     nonisolated func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
     nonisolated func processTerminated(source: TerminalView, exitCode: Int32?) {
         let manager = manager
