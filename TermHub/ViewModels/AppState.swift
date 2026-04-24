@@ -255,8 +255,8 @@ final class AppState {
     var sandboxOperationInProgress: Set<String> = []
     /// Per-sandbox environment variable names to forward from the host into sandbox shells.
     var sandboxEnvironmentKeys: [String: [String]] = [:]
-    /// Tracks sandbox sessions that have received their initial stty resize command.
-    @ObservationIgnored private var sandboxInitialResizeSent: Set<UUID> = []
+    /// Debounce work items for sandbox terminal resize stty commands.
+    @ObservationIgnored private var sandboxResizeDebounce: [UUID: DispatchWorkItem] = [:]
     private var sandboxRefreshTimer: Timer?
     var currentDiff: GitDiff?
     var isDiffLoading = false
@@ -777,7 +777,8 @@ final class AppState {
 
         terminalManager.destroyTerminal(for: id)
         sessionsNeedingAttention.remove(id)
-        sandboxInitialResizeSent.remove(id)
+        sandboxResizeDebounce[id]?.cancel()
+        sandboxResizeDebounce.removeValue(forKey: id)
         lastBellTime.removeValue(forKey: id)
         displayStates.removeValue(forKey: id)
         sessionMRUOrder.removeAll { $0 == id }
@@ -823,21 +824,25 @@ final class AppState {
     }
 
     /// Propagates terminal dimensions to sandbox sessions via stty.
-    /// sbx exec does not forward SIGWINCH, so on the first resize after attach
-    /// we set the correct size before the user starts any TUI app.
+    /// sbx exec does not forward SIGWINCH, so we must explicitly set the
+    /// terminal size inside the container on every resize.
+    /// Debounced to avoid flooding stty commands during drag-resize.
     private func handleTerminalResize(sessionID: UUID, cols: Int, rows: Int) {
         guard let session = sessions.first(where: { $0.id == sessionID }),
-              session.isSandboxSession,
-              !sandboxInitialResizeSent.contains(sessionID)
+              session.isSandboxSession
         else { return }
-        sandboxInitialResizeSent.insert(sessionID)
+
+        sandboxResizeDebounce[sessionID]?.cancel()
+
         let tmuxName = session.tmuxSessionName
-        Task.detached {
+        let workItem = DispatchWorkItem {
             try? TmuxService.sendKeys(
                 sessionName: tmuxName,
-                text: "stty rows \(rows) cols \(cols); clear"
+                text: "stty rows \(rows) cols \(cols)"
             )
         }
+        sandboxResizeDebounce[sessionID] = workItem
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.15, execute: workItem)
     }
 
     func startRenamingSession(id: UUID) {

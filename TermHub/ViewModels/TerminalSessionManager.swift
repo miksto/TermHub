@@ -89,6 +89,7 @@ final class TerminalSessionManager {
 
             // Run blocking tmux process calls off the main thread to avoid
             // re-entrant run-loop spinning during SwiftUI layout updates.
+            let isSandbox = sandboxCmd != nil
             Task.detached {
                 if !TmuxService.sessionExists(name: tmuxSessionName) {
                     do {
@@ -120,7 +121,23 @@ final class TerminalSessionManager {
                     }
                 }
 
-                if let command = pendingCommand {
+                if isSandbox {
+                    // Wait for the container shell to be ready, then set
+                    // the correct terminal size before launching any TUI app.
+                    try? await Task.sleep(for: .milliseconds(500))
+                    let (cols, rows) = await MainActor.run {
+                        let t = terminal.getTerminal()
+                        return (t.cols, t.rows)
+                    }
+                    try? TmuxService.sendKeys(
+                        sessionName: tmuxSessionName,
+                        text: "stty rows \(rows) cols \(cols)"
+                    )
+                    if let command = pendingCommand {
+                        try? await Task.sleep(for: .milliseconds(200))
+                        try? TmuxService.sendKeys(sessionName: tmuxSessionName, text: command)
+                    }
+                } else if let command = pendingCommand {
                     try? await Task.sleep(for: .milliseconds(500))
                     try? TmuxService.sendKeys(sessionName: tmuxSessionName, text: command)
                 }
