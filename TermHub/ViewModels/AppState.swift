@@ -198,6 +198,7 @@ final class AppState {
         }
     }
     private(set) var sessionMRUOrder: [UUID] = []
+    private(set) var sessionInputMRUOrder: [UUID] = []
     var isSessionSwitcherActive = false
     var switcherSelectedIndex: Int = 0
     var tmuxAvailable: Bool = false
@@ -431,6 +432,10 @@ final class AppState {
 
         terminalManager.onBell = { [weak self] sessionID in
             self?.markNeedsAttention(sessionID: sessionID)
+        }
+
+        terminalManager.onKeyboardInput = { [weak self] sessionID in
+            self?.recordSessionKeyboardInput(sessionID: sessionID)
         }
 
         NotificationCenter.default.addObserver(
@@ -782,6 +787,7 @@ final class AppState {
         lastBellTime.removeValue(forKey: id)
         displayStates.removeValue(forKey: id)
         sessionMRUOrder.removeAll { $0 == id }
+        sessionInputMRUOrder.removeAll { $0 == id }
         sessions.removeAll { $0.id == id }
 
         for i in folders.indices {
@@ -1142,6 +1148,22 @@ final class AppState {
     private func updateMRUOrder(selectedID: UUID) {
         sessionMRUOrder.removeAll { $0 == selectedID }
         sessionMRUOrder.insert(selectedID, at: 0)
+    }
+
+    func recordSessionKeyboardInput(sessionID: UUID) {
+        guard sessions.contains(where: { $0.id == sessionID }) else { return }
+        guard sessionInputMRUOrder.first != sessionID else { return }
+        sessionInputMRUOrder.removeAll { $0 == sessionID }
+        sessionInputMRUOrder.insert(sessionID, at: 0)
+        scheduleSave()
+    }
+
+    func selectMostRecentInputSession() {
+        let validIDs = sessionInputMRUOrder.filter { id in
+            id != selectedSessionID && sessions.contains { $0.id == id }
+        }
+        guard let id = validIDs.first else { return }
+        selectedSessionID = id
     }
 
     /// Sessions in MRU order with display info for the switcher overlay.
@@ -1525,6 +1547,7 @@ final class AppState {
             let persisted = (state.sessionMRUOrder ?? []).filter { validSessionIDs.contains($0) }
             let missing = allSessionIDsOrdered.filter { !persisted.contains($0) }
             sessionMRUOrder = persisted + missing
+            sessionInputMRUOrder = (state.sessionInputMRUOrder ?? []).filter { validSessionIDs.contains($0) }
             selectedSessionID = state.selectedSessionID
             sandboxEnvironmentKeys = state.sandboxEnvironmentKeys ?? [:]
             assistantMessages = state.assistantMessages ?? []
@@ -1583,6 +1606,7 @@ final class AppState {
             sessions: sessions,
             selectedSessionID: selectedSessionID,
             sessionMRUOrder: sessionMRUOrder,
+            sessionInputMRUOrder: sessionInputMRUOrder,
             sandboxEnvironmentKeys: sandboxEnvironmentKeys.isEmpty ? nil : sandboxEnvironmentKeys,
             assistantMessages: assistantMessages.isEmpty ? nil : assistantMessages,
             assistantSessionId: assistantService.sessionID(for: .claude),

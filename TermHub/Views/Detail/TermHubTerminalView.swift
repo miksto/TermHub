@@ -3,6 +3,7 @@ import SwiftTerm
 
 class TermHubTerminalView: LocalProcessTerminalView {
     var onBell: (() -> Void)?
+    var onKeyboardInput: (() -> Void)?
     /// When true, scroll events are consumed and not forwarded to the terminal.
     var blockScrollEvents = false
     /// When true, the terminal just started a process and is receiving the
@@ -207,8 +208,14 @@ class TermHubTerminalView: LocalProcessTerminalView {
                 return event
             }
 
+            guard self.isTerminalFirstResponder else { return event }
+            let shouldRecordInput = !event.modifierFlags.contains(.command)
+
             // Shift+Enter: send LF (0x0A) instead of CR
             if event.keyCode == 36, event.modifierFlags.contains(.shift) {
+                if shouldRecordInput {
+                    self.onKeyboardInput?()
+                }
                 self.send([0x0A])
                 return nil
             }
@@ -224,22 +231,29 @@ class TermHubTerminalView: LocalProcessTerminalView {
                let scalar = chars.unicodeScalars.first {
                 switch Int(scalar.value) {
                 case NSLeftArrowFunctionKey:
+                    self.onKeyboardInput?()
                     self.send(EscapeSequences.emacsBack)
                     return nil
                 case NSRightArrowFunctionKey:
+                    self.onKeyboardInput?()
                     self.send(EscapeSequences.emacsForward)
                     return nil
                 case 0x7f: // Backspace — delete word backward
+                    self.onKeyboardInput?()
                     self.send(EscapeSequences.cmdEsc)
                     self.send(EscapeSequences.cmdDel)
                     return nil
                 case NSDeleteFunctionKey: // Forward Delete — delete word forward
+                    self.onKeyboardInput?()
                     self.send([0x1b, 0x1b, 0x5b, 0x33, 0x7e])
                     return nil
                 default: break
                 }
             }
 
+            if shouldRecordInput {
+                self.onKeyboardInput?()
+            }
             return event
         }
 
@@ -297,6 +311,15 @@ class TermHubTerminalView: LocalProcessTerminalView {
             }
             return nil // Consume the event
         }
+    }
+
+    private var isTerminalFirstResponder: Bool {
+        guard let firstResponder = window?.firstResponder else { return false }
+        if firstResponder === self { return true }
+        if let view = firstResponder as? NSView {
+            return view.isDescendant(of: self)
+        }
+        return false
     }
 
     func removeEventMonitors() {

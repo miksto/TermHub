@@ -104,6 +104,91 @@ struct AppStateExtendedTests {
         #expect(items[1].id == secondSessionID)
     }
 
+    @Test("recordSessionKeyboardInput moves session to front of input MRU")
+    @MainActor
+    func keyboardInputMovesSessionToFront() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let firstSessionID = state.sessions[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let secondSessionID = state.sessions[1].id
+
+        state.recordSessionKeyboardInput(sessionID: firstSessionID)
+        state.recordSessionKeyboardInput(sessionID: secondSessionID)
+
+        #expect(state.sessionInputMRUOrder == [secondSessionID, firstSessionID])
+    }
+
+    @Test("selectMostRecentInputSession excludes currently selected session")
+    @MainActor
+    func selectMostRecentInputExcludesCurrent() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let firstSessionID = state.sessions[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let secondSessionID = state.sessions[1].id
+
+        state.recordSessionKeyboardInput(sessionID: secondSessionID)
+        state.recordSessionKeyboardInput(sessionID: firstSessionID)
+        state.selectedSessionID = firstSessionID
+
+        state.selectMostRecentInputSession()
+
+        #expect(state.selectedSessionID == secondSessionID)
+    }
+
+    @Test("selectMostRecentInputSession no-ops without another interacted session")
+    @MainActor
+    func selectMostRecentInputNoOtherSession() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let current = state.sessions[0].id
+
+        state.recordSessionKeyboardInput(sessionID: current)
+        state.selectMostRecentInputSession()
+
+        #expect(state.selectedSessionID == current)
+    }
+
+    @Test("focus-only selection does not update input MRU")
+    @MainActor
+    func focusOnlyDoesNotUpdateInputMRU() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let firstSessionID = state.sessions[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let secondSessionID = state.sessions[1].id
+
+        state.recordSessionKeyboardInput(sessionID: firstSessionID)
+        state.selectedSessionID = secondSessionID
+
+        #expect(state.sessionInputMRUOrder == [firstSessionID])
+    }
+
+    @Test("loaded input MRU filters stale session IDs")
+    @MainActor
+    func loadedInputMRUFiltersStaleIDs() {
+        let folder = ManagedFolder(path: "/tmp", isGitRepo: false)
+        let session = TerminalSession(folderID: folder.id, title: "Shell", workingDirectory: "/tmp")
+        var persistedFolder = folder
+        persistedFolder.sessionIDs = [session.id]
+        let staleID = UUID()
+        let persisted = PersistedState(
+            folders: [persistedFolder],
+            sessions: [session],
+            selectedSessionID: session.id,
+            sessionMRUOrder: [session.id],
+            sessionInputMRUOrder: [staleID, session.id]
+        )
+
+        let state = AppState(persistence: AppStateExtendedInMemoryPersistence(state: persisted))
+
+        #expect(state.sessionInputMRUOrder == [session.id])
+    }
+
     // MARK: - selectSessionByIndex
 
     @Test("selectSessionByIndex selects correct session")
@@ -526,5 +611,25 @@ struct AppStateExtendedTests {
         state.selectedSessionID = firstSession
         state.selectNextSession()
         #expect(state.selectedSessionID == thirdSession)
+    }
+}
+
+private final class AppStateExtendedInMemoryPersistence: StatePersistence, @unchecked Sendable {
+    private var state: PersistedState
+
+    init(state: PersistedState) {
+        self.state = state
+    }
+
+    func save(state: PersistedState) throws {
+        self.state = state
+    }
+
+    func load() throws -> PersistedState {
+        state
+    }
+
+    func scheduleWrite(_ work: @escaping @Sendable () -> Void) {
+        work()
     }
 }

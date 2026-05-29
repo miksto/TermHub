@@ -93,6 +93,24 @@ struct PersistenceServiceExtendedTests {
         #expect(loaded.sessionMRUOrder == [id1, id2, id3])
     }
 
+    @Test("save and load preserves sessionInputMRUOrder")
+    func inputMRUOrderPersisted() throws {
+        let url = makeTempURL()
+        defer { cleanup(url) }
+
+        let id1 = UUID()
+        let id2 = UUID()
+
+        try PersistenceService.save(
+            folders: [],
+            sessions: [],
+            sessionInputMRUOrder: [id1, id2],
+            to: url
+        )
+        let loaded = try PersistenceService.load(from: url)
+        #expect(loaded.sessionInputMRUOrder == [id1, id2])
+    }
+
     @Test("load returns empty MRU order when not present in JSON")
     func mruOrderMissingInJSON() throws {
         let url = makeTempURL()
@@ -108,6 +126,7 @@ struct PersistenceServiceExtendedTests {
 
         let loaded = try PersistenceService.load(from: url)
         #expect(loaded.sessionMRUOrder.isEmpty)
+        #expect(loaded.sessionInputMRUOrder.isEmpty)
     }
 
     // MARK: - Directory creation
@@ -146,6 +165,7 @@ struct PersistenceServiceExtendedTests {
             sessions: [session],
             selectedSessionID: session.id,
             sessionMRUOrder: [session.id],
+            sessionInputMRUOrder: [session.id],
             assistantSessionIdsByProvider: ["claude": UUID()],
             assistantAllowedToolsByProvider: ["claude": "WebFetch,mcp__termhub__*", "copilot": "WebFetch"]
         )
@@ -158,6 +178,7 @@ struct PersistenceServiceExtendedTests {
         #expect(decoded.sessions.count == 1)
         #expect(decoded.selectedSessionID == session.id)
         #expect(decoded.sessionMRUOrder == [session.id])
+        #expect(decoded.sessionInputMRUOrder == [session.id])
         #expect(decoded.assistantSessionIdsByProvider?["claude"] != nil)
         #expect(decoded.assistantAllowedToolsByProvider?["claude"] == "WebFetch,mcp__termhub__*")
         #expect(decoded.assistantAllowedToolsByProvider?["copilot"] == "WebFetch")

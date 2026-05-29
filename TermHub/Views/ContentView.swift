@@ -122,6 +122,14 @@ struct ContentView: View {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             // Escape dismisses overlays before the terminal can consume it
 
+            // Cmd+Shift+Backspace jumps to the most recently keyboard-interacted session.
+            if event.keyCode == 51,
+               event.modifierFlags.contains(.command),
+               event.modifierFlags.contains(.shift) {
+                appState.selectMostRecentInputSession()
+                return nil
+            }
+
             // Ctrl+Space toggles assistant
             if event.keyCode == 49, event.modifierFlags.contains(.control) {
                 appState.toggleAssistant()

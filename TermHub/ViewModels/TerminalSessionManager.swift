@@ -13,6 +13,7 @@ final class TerminalSessionManager {
     var pendingCommands: [UUID: String] = [:]
     var optionAsMetaKey: Bool = true
     var onBell: ((UUID) -> Void)?
+    var onKeyboardInput: ((UUID) -> Void)?
     var onTitleChange: ((UUID, String) -> Void)?
     /// Called when the terminal is resized. Parameters: sessionID, cols, rows.
     var onResize: ((UUID, Int, Int) -> Void)?
@@ -38,6 +39,11 @@ final class TerminalSessionManager {
         terminal.onBell = { [weak self] in
             Task { @MainActor in
                 self?.onBell?(sessionID)
+            }
+        }
+        terminal.onKeyboardInput = { [weak self] in
+            Task { @MainActor in
+                self?.onKeyboardInput?(sessionID)
             }
         }
 
