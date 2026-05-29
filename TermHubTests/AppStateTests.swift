@@ -217,6 +217,46 @@ struct AppStateTests {
         #expect(state.selectedSession?.id == sessionID)
     }
 
+    @Test("session toolbar title is nil when no session is selected")
+    @MainActor
+    func sessionToolbarTitleNilWhenNoSelection() {
+        let state = makeCleanAppState()
+        #expect(SessionToolbarTitleView.toolbarTitle(in: state) == nil)
+    }
+
+    @Test("session toolbar title omits group for ungrouped repo")
+    @MainActor
+    func sessionToolbarTitleUngrouped() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+
+        #expect(SessionToolbarTitleView.toolbarTitle(in: state) == "tmp - tmp")
+    }
+
+    @Test("session toolbar title includes group when repo is grouped")
+    @MainActor
+    func sessionToolbarTitleGrouped() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        state.addGroup(name: "Backend")
+        state.moveFolderToGroup(folderID: folderID, groupID: state.groups[0].id)
+
+        #expect(SessionToolbarTitleView.toolbarTitle(in: state) == "Backend - tmp - tmp")
+    }
+
+    @Test("session toolbar title prefers display state title")
+    @MainActor
+    func sessionToolbarTitleUsesDisplayState() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let sessionID = state.sessions[0].id
+        state.sessions[0].title = "Stored"
+        state.displayState(for: sessionID)?.title = "Displayed"
+
+        #expect(SessionToolbarTitleView.toolbarTitle(in: state) == "tmp - Displayed")
+    }
+
     @Test("assistant clear chat removes all messages")
     @MainActor
     func assistantClearChat() {

@@ -10,16 +10,20 @@ struct ContentView: View {
         mainContent
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 4) {
-                        Button {
-                            appState.showSettings = true
-                        } label: {
-                            Image(systemName: "gearshape")
-                        }
-                        .help("Settings")
-
-                        SandboxToolbarButton()
+                    Button {
+                        appState.showSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
                     }
+                    .help("Settings")
+                }
+
+                ToolbarItem(placement: .primaryAction) {
+                    SandboxToolbarButton()
+                }
+
+                ToolbarItem(placement: .automatic) {
+                    SessionToolbarTitleView()
                 }
             }
             .sheet(isPresented: Binding(
@@ -247,6 +251,46 @@ struct SandboxToolbarButton: View {
                 .foregroundStyle(color)
         }
         .help("Sandbox Manager")
+    }
+}
+
+struct SessionToolbarTitleView: View {
+    @Environment(AppState.self) private var appState
+
+    var body: some View {
+        if let title = Self.toolbarTitle(in: appState) {
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(Color(nsColor: .separatorColor))
+                    .frame(width: 1, height: 18)
+
+                Text(title)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: 360, alignment: .leading)
+            }
+            .padding(.leading, 6)
+            .padding(.trailing, 10)
+            .help(title)
+        }
+    }
+
+    @MainActor
+    static func toolbarTitle(in appState: AppState) -> String? {
+        guard let session = appState.selectedSession,
+              let folder = appState.folders.first(where: { $0.id == session.folderID })
+        else { return nil }
+
+        let sessionTitle = appState.displayState(for: session.id)?.title ?? session.title
+        return title(groupName: appState.group(forFolderID: folder.id)?.name, repoName: folder.name, sessionTitle: sessionTitle)
+    }
+
+    static func title(groupName: String?, repoName: String, sessionTitle: String) -> String {
+        [groupName, repoName, sessionTitle]
+            .compactMap { $0 }
+            .joined(separator: " - ")
     }
 }
 
