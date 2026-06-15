@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 for scheme in TermHub TermHubMCP; do
   echo "=== Testing $scheme ==="
   xcodebuild \
-    -workspace TermHub.xcodeproj/project.xcworkspace \
+    -project TermHub.xcodeproj \
     -scheme "$scheme" \
     -configuration Debug \
     test 2>&1 \

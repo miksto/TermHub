@@ -15,18 +15,18 @@ The Xcode project is generated from `project.yml` using [XcodeGen](https://githu
 xcodegen generate
 
 # Build
-xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub build
+xcodebuild -project TermHub.xcodeproj -scheme TermHub build
 
 # Run all tests (both schemes)
-xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test
-xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHubMCP test
+xcodebuild -project TermHub.xcodeproj -scheme TermHub test
+xcodebuild -project TermHub.xcodeproj -scheme TermHubMCP test
 
 # Run a single test class
-xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test -only-testing:TermHubTests/AppStateTests
-xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHubMCP test -only-testing:TermHubMCPTests/MCPServerTests
+xcodebuild -project TermHub.xcodeproj -scheme TermHub test -only-testing:TermHubTests/AppStateTests
+xcodebuild -project TermHub.xcodeproj -scheme TermHubMCP test -only-testing:TermHubMCPTests/MCPServerTests
 
 # Run a single test method
-xcodebuild -workspace TermHub.xcodeproj/project.xcworkspace -scheme TermHub test -only-testing:TermHubTests/AppStateTests/testMethodName
+xcodebuild -project TermHub.xcodeproj -scheme TermHub test -only-testing:TermHubTests/AppStateTests/testMethodName
 ```
 
 Slash commands: `/build`, `/run` (build & launch), `/test`, `/regenerate-project`.

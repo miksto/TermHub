@@ -841,14 +841,18 @@ final class AppState {
         sandboxResizeDebounce[sessionID]?.cancel()
 
         let tmuxName = session.tmuxSessionName
-        let workItem = DispatchWorkItem {
-            try? TmuxService.sendKeys(
-                sessionName: tmuxName,
-                text: "stty rows \(rows) cols \(cols)"
-            )
+        let workItem = DispatchWorkItem { [tmuxName, cols, rows] in
+            Self.sendSandboxResize(sessionName: tmuxName, cols: cols, rows: rows)
         }
         sandboxResizeDebounce[sessionID] = workItem
         DispatchQueue.global().asyncAfter(deadline: .now() + 0.15, execute: workItem)
+    }
+
+    nonisolated private static func sendSandboxResize(sessionName: String, cols: Int, rows: Int) {
+        try? TmuxService.sendKeys(
+            sessionName: sessionName,
+            text: "stty rows \(rows) cols \(cols)"
+        )
     }
 
     func startRenamingSession(id: UUID) {

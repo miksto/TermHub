@@ -166,7 +166,13 @@ This uses the plan file from the current conversation, creates a new worktree an
 
 The project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the Xcode project and [xcode-build-server](https://github.com/SolaWing/xcode-build-server) for LSP support.
 
-If you get `cannot execute tool 'metal' due to missing Metal Toolchain`, make sure the full Xcode app is installed and selected:
+If you get `cannot execute tool 'metal' due to missing Metal Toolchain`, install the component once with:
+
+```bash
+xcodebuild -downloadComponent MetalToolchain
+```
+
+Also make sure the full Xcode app is installed and selected:
 
 ```bash
 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
@@ -186,6 +192,12 @@ Or open in Xcode directly:
 ```bash
 xcodegen generate
 open TermHub.xcodeproj
+```
+
+For command-line builds, this repo is best treated as a project-based app, not a top-level workspace-based app. The canonical entrypoint is:
+
+```bash
+xcodebuild -project TermHub.xcodeproj -scheme TermHub -configuration Debug build
 ```
 
 ## Claude Code

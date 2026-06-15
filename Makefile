@@ -14,7 +14,7 @@ test: ## Run the test suite
 
 build-mcp: ## Build the MCP server
 	xcodebuild \
-		-workspace TermHub.xcodeproj/project.xcworkspace \
+		-project TermHub.xcodeproj \
 		-scheme TermHubMCP \
 		-configuration Release \
 		build 2>&1 \
@@ -24,7 +24,7 @@ build-mcp: ## Build the MCP server
 install-mcp: build-mcp ## Build and install the MCP server to ~/.local/bin
 	@mkdir -p ~/.local/bin
 	@build_dir=$$(xcodebuild \
-		-workspace TermHub.xcodeproj/project.xcworkspace \
+		-project TermHub.xcodeproj \
 		-scheme TermHubMCP \
 		-configuration Release \
 		-showBuildSettings 2>/dev/null \
