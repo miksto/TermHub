@@ -43,125 +43,127 @@ struct SettingsOverlay: View {
 
             Divider()
 
-            // Content
-            VStack(spacing: 12) {
-                // Terminal card
-                sectionCard("Terminal") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        toggleRow(
-                            "Option as Meta Key",
-                            isOn: $appState.optionAsMetaKey,
-                            caption: "When enabled, the Option key sends ESC sequences (Meta) for terminal apps. When disabled, Option produces special characters (e.g. @ on Swedish keyboards)."
-                        )
+            ScrollView {
+                // Content
+                VStack(spacing: 12) {
+                    // Terminal card
+                    sectionCard("Terminal") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            toggleRow(
+                                "Option as Meta Key",
+                                isOn: $appState.optionAsMetaKey,
+                                caption: "When enabled, the Option key sends ESC sequences (Meta) for terminal apps. When disabled, Option produces special characters (e.g. @ on Swedish keyboards)."
+                            )
 
-                        Divider()
+                            Divider()
 
-                        toggleRow(
-                            "Send TTY size to sandbox terminals",
-                            isOn: $appState.sendTTYSizeToSandboxTerminals,
-                            caption: "Sends the current rows and columns to sandbox terminals when they start and when the terminal view is resized."
-                        )
-                    }
-                }
-
-                // Integrations card
-                sectionCard("Integrations") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        toggleRow(
-                            "Copy Claude settings to worktrees",
-                            isOn: $appState.copyClaudeSettingsToWorktrees,
-                            caption: "Copies .claude/settings.local.json from the repo into new worktrees so Claude Code inherits the same permissions."
-                        )
-
-                        Divider()
-
-                        toggleRow(
-                            "MCP Server",
-                            isOn: $appState.mcpServerEnabled,
-                            caption: "Runs a local MCP server so AI agents (e.g. Claude Code) can manage sessions, folders, and worktrees in TermHub."
-                        )
-                    }
-                }
-
-                // Bottom row: Assistant full width
-                sectionCard("Assistant") {
-                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 0) {
-                        // Provider
-                        GridRow {
-                            formLabel("Provider")
-                            Picker("Provider", selection: $appState.assistantProvider) {
-                                ForEach(AssistantProvider.allCases, id: \.self) { provider in
-                                    Text(provider.displayName).tag(provider)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        GridRow {
-                            Color.clear.frame(width: 0, height: 0)
-                            formCaption("Choose which CLI powers the assistant chat.")
-                        }
-
-                        GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
-
-                        // Model
-                        GridRow {
-                            formLabel("Model")
-                            Picker("Model", selection: $appState.assistantModel) {
-                                ForEach(AppState.assistantModelOptions(for: appState.assistantProvider), id: \.self) { model in
-                                    Text(AppState.assistantModelDisplayName(for: appState.assistantProvider, model: model)).tag(model)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        GridRow {
-                            Color.clear.frame(width: 0, height: 0)
-                            formCaption("Model passed to --model.")
-                        }
-
-                        GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
-
-                        // Reasoning Effort
-                        GridRow {
-                            formLabel("Reasoning Effort")
-                            Picker("Reasoning Effort", selection: $appState.assistantEffort) {
-                                Text("Default").tag("")
-                                ForEach(AppState.assistantEffortOptions(for: appState.assistantProvider).filter { !$0.isEmpty }, id: \.self) { effort in
-                                    Text(effort.capitalized).tag(effort)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .disabled(!appState.assistantModelSupportsEffort)
-                        }
-                        GridRow {
-                            Color.clear.frame(width: 0, height: 0)
-                            formCaption(
-                                appState.assistantModelSupportsEffort
-                                    ? "Reasoning effort is passed to the selected assistant model."
-                                    : "This model does not support reasoning effort; no effort argument will be sent."
+                            toggleRow(
+                                "Send TTY size to sandbox terminals",
+                                isOn: $appState.sendTTYSizeToSandboxTerminals,
+                                caption: "Sends the current rows and columns to sandbox terminals when they start and when the terminal view is resized."
                             )
                         }
+                    }
 
-                        GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
+                    // Integrations card
+                    sectionCard("Integrations") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            toggleRow(
+                                "Copy Claude settings to worktrees",
+                                isOn: $appState.copyClaudeSettingsToWorktrees,
+                                caption: "Copies .claude/settings.local.json from the repo into new worktrees so Claude Code inherits the same permissions."
+                            )
 
-                        // Allowed Tools
-                        GridRow {
-                            formLabel("Allowed Tools")
-                            TextField(appState.assistantAllowedToolsPlaceholder, text: $appState.assistantAllowedTools)
-                                .textFieldStyle(.roundedBorder)
-                                .font(.callout.monospaced())
-                                .frame(maxWidth: .infinity)
+                            Divider()
+
+                            toggleRow(
+                                "MCP Server",
+                                isOn: $appState.mcpServerEnabled,
+                                caption: "Runs a local MCP server so AI agents (e.g. Claude Code) can manage sessions, folders, and worktrees in TermHub."
+                            )
                         }
-                        GridRow {
-                            Color.clear.frame(width: 0, height: 0)
-                            formCaption(appState.assistantAllowedToolsHelpText)
+                    }
+
+                    // Bottom row: Assistant full width
+                    sectionCard("Assistant") {
+                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 0) {
+                            // Provider
+                            GridRow {
+                                formLabel("Provider")
+                                Picker("Provider", selection: $appState.assistantProvider) {
+                                    ForEach(AssistantProvider.allCases, id: \.self) { provider in
+                                        Text(provider.displayName).tag(provider)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            GridRow {
+                                Color.clear.frame(width: 0, height: 0)
+                                formCaption("Choose which CLI powers the assistant chat.")
+                            }
+
+                            GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
+
+                            // Model
+                            GridRow {
+                                formLabel("Model")
+                                Picker("Model", selection: $appState.assistantModel) {
+                                    ForEach(AppState.assistantModelOptions(for: appState.assistantProvider), id: \.self) { model in
+                                        Text(AppState.assistantModelDisplayName(for: appState.assistantProvider, model: model)).tag(model)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            GridRow {
+                                Color.clear.frame(width: 0, height: 0)
+                                formCaption("Model passed to --model.")
+                            }
+
+                            GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
+
+                            // Reasoning Effort
+                            GridRow {
+                                formLabel("Reasoning Effort")
+                                Picker("Reasoning Effort", selection: $appState.assistantEffort) {
+                                    Text("Default").tag("")
+                                    ForEach(AppState.assistantEffortOptions(for: appState.assistantProvider).filter { !$0.isEmpty }, id: \.self) { effort in
+                                        Text(effort.capitalized).tag(effort)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .disabled(!appState.assistantModelSupportsEffort)
+                            }
+                            GridRow {
+                                Color.clear.frame(width: 0, height: 0)
+                                formCaption(
+                                    appState.assistantModelSupportsEffort
+                                        ? "Reasoning effort is passed to the selected assistant model."
+                                        : "This model does not support reasoning effort; no effort argument will be sent."
+                                )
+                            }
+
+                            GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
+
+                            // Allowed Tools
+                            GridRow {
+                                formLabel("Allowed Tools")
+                                TextField(appState.assistantAllowedToolsPlaceholder, text: $appState.assistantAllowedTools)
+                                    .textFieldStyle(.roundedBorder)
+                                    .font(.callout.monospaced())
+                                    .frame(maxWidth: .infinity)
+                            }
+                            GridRow {
+                                Color.clear.frame(width: 0, height: 0)
+                                formCaption(appState.assistantAllowedToolsHelpText)
+                            }
                         }
                     }
                 }
+                .padding(16)
             }
-            .padding(16)
 
             // Hidden button so Enter dismisses the panel
             Button("") { dismiss() }
