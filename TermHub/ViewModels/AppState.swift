@@ -288,6 +288,17 @@ final class AppState {
         }
     }
 
+    var sendTTYSizeToSandboxTerminals: Bool {
+        didSet {
+            UserDefaults.standard.set(sendTTYSizeToSandboxTerminals, forKey: "sendTTYSizeToSandboxTerminals")
+            terminalManager.sendTTYSizeToSandboxTerminals = sendTTYSizeToSandboxTerminals
+            if !sendTTYSizeToSandboxTerminals {
+                sandboxResizeDebounce.values.forEach { $0.cancel() }
+                sandboxResizeDebounce.removeAll()
+            }
+        }
+    }
+
     var assistantAllowedToolsByProvider: [String: String] {
         didSet {
             UserDefaults.standard.set(
@@ -412,6 +423,7 @@ final class AppState {
             optionAsMetaKey = Self.detectUSKeyboardLayout()
         }
         copyClaudeSettingsToWorktrees = UserDefaults.standard.object(forKey: "copyClaudeSettingsToWorktrees") as? Bool ?? true
+        sendTTYSizeToSandboxTerminals = UserDefaults.standard.object(forKey: "sendTTYSizeToSandboxTerminals") as? Bool ?? true
         assistantProvider = AssistantProvider(rawValue: UserDefaults.standard.string(forKey: "assistantProvider") ?? "") ?? .claude
         assistantAllowedToolsByProvider = Self.loadAssistantAllowedToolsByProviderFromUserDefaults()
         assistantModelByProvider = Self.normalizedAssistantModelByProvider(
@@ -422,6 +434,7 @@ final class AppState {
         )
         mcpServerEnabled = UserDefaults.standard.object(forKey: "mcpServerEnabled") as? Bool ?? true
         terminalManager.optionAsMetaKey = optionAsMetaKey
+        terminalManager.sendTTYSizeToSandboxTerminals = sendTTYSizeToSandboxTerminals
         tmuxAvailable = isTestHost ? false : TmuxService.isAvailable()
         loadState()
         configureAssistantService()
@@ -834,6 +847,7 @@ final class AppState {
     /// terminal size inside the container on every resize.
     /// Debounced to avoid flooding stty commands during drag-resize.
     private func handleTerminalResize(sessionID: UUID, cols: Int, rows: Int) {
+        guard sendTTYSizeToSandboxTerminals else { return }
         guard let session = sessions.first(where: { $0.id == sessionID }),
               session.isSandboxSession
         else { return }

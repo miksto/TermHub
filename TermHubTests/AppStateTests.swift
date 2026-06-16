@@ -270,6 +270,28 @@ struct AppStateTests {
         #expect(state.assistantMessages.isEmpty)
     }
 
+    @Test("send TTY size to sandbox terminals defaults enabled")
+    @MainActor
+    func sendTTYSizeToSandboxTerminalsDefault() {
+        removeUserDefaultIfPresent("sendTTYSizeToSandboxTerminals")
+        let state = makeCleanAppState()
+
+        #expect(state.sendTTYSizeToSandboxTerminals)
+        #expect(state.terminalManager.sendTTYSizeToSandboxTerminals)
+    }
+
+    @Test("send TTY size to sandbox terminals persists and updates manager")
+    @MainActor
+    func sendTTYSizeToSandboxTerminalsPersists() {
+        removeUserDefaultIfPresent("sendTTYSizeToSandboxTerminals")
+        let state = makeCleanAppState()
+
+        state.sendTTYSizeToSandboxTerminals = false
+
+        #expect(!state.terminalManager.sendTTYSizeToSandboxTerminals)
+        #expect(UserDefaults.standard.object(forKey: "sendTTYSizeToSandboxTerminals") as? Bool == false)
+    }
+
     @Test("assistant provider defaults to claude")
     @MainActor
     func assistantProviderDefault() {

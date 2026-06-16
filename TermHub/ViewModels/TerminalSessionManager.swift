@@ -12,6 +12,7 @@ final class TerminalSessionManager {
     private static let maxStartRetries = 50
     var pendingCommands: [UUID: String] = [:]
     var optionAsMetaKey: Bool = true
+    var sendTTYSizeToSandboxTerminals: Bool = true
     var onBell: ((UUID) -> Void)?
     var onKeyboardInput: ((UUID) -> Void)?
     var onTitleChange: ((UUID, String) -> Void)?
@@ -130,15 +131,17 @@ final class TerminalSessionManager {
                 if isSandbox {
                     // Wait for the container shell to be ready, then set
                     // the correct terminal size before launching any TUI app.
-                    try? await Task.sleep(for: .milliseconds(500))
-                    let (cols, rows) = await MainActor.run {
-                        let t = terminal.getTerminal()
-                        return (t.cols, t.rows)
+                    if await MainActor.run(body: { self.sendTTYSizeToSandboxTerminals }) {
+                        try? await Task.sleep(for: .milliseconds(500))
+                        let (cols, rows) = await MainActor.run {
+                            let t = terminal.getTerminal()
+                            return (t.cols, t.rows)
+                        }
+                        try? TmuxService.sendKeys(
+                            sessionName: tmuxSessionName,
+                            text: "stty rows \(rows) cols \(cols)"
+                        )
                     }
-                    try? TmuxService.sendKeys(
-                        sessionName: tmuxSessionName,
-                        text: "stty rows \(rows) cols \(cols)"
-                    )
                     if let command = pendingCommand {
                         try? await Task.sleep(for: .milliseconds(200))
                         try? TmuxService.sendKeys(sessionName: tmuxSessionName, text: command)

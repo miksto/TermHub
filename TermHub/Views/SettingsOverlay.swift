@@ -47,11 +47,21 @@ struct SettingsOverlay: View {
             VStack(spacing: 12) {
                 // Terminal card
                 sectionCard("Terminal") {
-                    toggleRow(
-                        "Option as Meta Key",
-                        isOn: $appState.optionAsMetaKey,
-                        caption: "When enabled, the Option key sends ESC sequences (Meta) for terminal apps. When disabled, Option produces special characters (e.g. @ on Swedish keyboards)."
-                    )
+                    VStack(alignment: .leading, spacing: 10) {
+                        toggleRow(
+                            "Option as Meta Key",
+                            isOn: $appState.optionAsMetaKey,
+                            caption: "When enabled, the Option key sends ESC sequences (Meta) for terminal apps. When disabled, Option produces special characters (e.g. @ on Swedish keyboards)."
+                        )
+
+                        Divider()
+
+                        toggleRow(
+                            "Send TTY size to sandbox terminals",
+                            isOn: $appState.sendTTYSizeToSandboxTerminals,
+                            caption: "Sends the current rows and columns to sandbox terminals when they start and when the terminal view is resized."
+                        )
+                    }
                 }
 
                 // Integrations card
