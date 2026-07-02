@@ -250,6 +250,12 @@ struct BranchPickerSheet: View {
 
             Spacer()
 
+            if let remoteName = branch.remoteName {
+                Text(remoteName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             // Relative date
             Text(branch.relativeDate)
                 .font(.caption)
@@ -284,13 +290,14 @@ struct BranchPickerSheet: View {
 
         Task.detached {
             do {
-                let (branchesWithDates, currentBranch) = try GitService.listBranchesWithDatesAndCurrent(repoPath: folderPath)
-                let result = branchesWithDates.map { entry in
+                let result = try GitService.listWorktreeBranchesWithDatesAndCurrent(repoPath: folderPath).map { branch in
                     BranchInfo(
-                        name: entry.branch,
-                        lastCommitDate: entry.date,
-                        isCurrentBranch: entry.branch == currentBranch,
-                        hasActiveSession: activeBranches.contains(entry.branch)
+                        name: branch.name,
+                        lastCommitDate: branch.lastCommitDate,
+                        isCurrentBranch: branch.isCurrentBranch,
+                        hasActiveSession: activeBranches.contains(branch.name),
+                        remoteName: branch.remoteName,
+                        remoteStartPoint: branch.remoteStartPoint
                     )
                 }
                 await MainActor.run {
@@ -332,7 +339,16 @@ struct BranchPickerSheet: View {
                     return
                 }
 
-                let worktreePath = try GitService.addWorktree(repoPath: folderPath, branch: branchName)
+                let worktreePath: String
+                if let remoteStartPoint = branch.remoteStartPoint {
+                    worktreePath = try GitService.addWorktreeTrackingRemote(
+                        repoPath: folderPath,
+                        branch: branchName,
+                        remoteStartPoint: remoteStartPoint
+                    )
+                } else {
+                    worktreePath = try GitService.addWorktree(repoPath: folderPath, branch: branchName)
+                }
                 let shouldCopy = await MainActor.run { appState.copyClaudeSettingsToWorktrees }
                 if shouldCopy {
                     GitService.copyClaudeLocalSettings(from: folderPath, to: worktreePath)

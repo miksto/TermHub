@@ -55,7 +55,8 @@ final class CommandPaletteState {
     var query: String = ""
     var selectedIndex: Int = 0
     var modeStack: [PaletteMode] = [.commands]
-    var branches: [String] = []
+    var worktreeBranches: [BranchInfo] = []
+    var checkoutBranches: [String] = []
     var isLoadingBranches: Bool = false
     var branchLoadError: String?
 
@@ -128,7 +129,8 @@ final class CommandPaletteState {
         query = ""
         selectedIndex = 0
         modeStack = [.commands]
-        branches = []
+        worktreeBranches = []
+        checkoutBranches = []
         isLoadingBranches = false
         branchLoadError = nil
         gitActionTitle = ""
@@ -424,23 +426,33 @@ final class CommandPaletteState {
         appState: AppState,
         dismiss: @escaping @MainActor @Sendable () -> Void
     ) -> [PaletteItem] {
-        let items = branches.map { branch in
+        let items = worktreeBranches.map { branch in
             PaletteItem(
-                id: "branch-\(branch)",
+                id: "branch-\(branch.id)",
                 icon: "arrow.triangle.branch",
-                title: branch
+                title: branch.name,
+                subtitle: branch.remoteName
             ) { [weak appState] in
                 do {
-                    let worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch)
+                    let worktreePath: String
+                    if let remoteStartPoint = branch.remoteStartPoint {
+                        worktreePath = try GitService.addWorktreeTrackingRemote(
+                            repoPath: folder.path,
+                            branch: branch.name,
+                            remoteStartPoint: remoteStartPoint
+                        )
+                    } else {
+                        worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch.name)
+                    }
                     if appState?.copyClaudeSettingsToWorktrees ?? true {
                         GitService.copyClaudeLocalSettings(from: folder.path, to: worktreePath)
                     }
                     appState?.addSession(
                         folderID: folder.id,
-                        title: "\(folder.name) / \(branch)",
+                        title: "\(folder.name) / \(branch.name)",
                         cwd: worktreePath,
                         worktreePath: worktreePath,
-                        branchName: branch
+                        branchName: branch.name
                     )
                 } catch {
                     appState?.errorMessage = error.localizedDescription
@@ -458,7 +470,7 @@ final class CommandPaletteState {
         dismiss: @escaping @MainActor @Sendable () -> Void
     ) -> [PaletteItem] {
         let currentBranch = appState.gitStatus(forFolderPath: folder.path)?.currentBranch
-        let items = branches.map { branch in
+        let items = checkoutBranches.map { branch in
             let isCurrent = branch == currentBranch
             return PaletteItem(
                 id: "checkout-\(branch)",
@@ -546,9 +558,20 @@ final class CommandPaletteState {
 
         Task.detached { [weak self] in
             do {
-                let branchList = try GitService.listBranches(repoPath: folder.path)
+                if forCheckout {
+                    let branchList = try GitService.listBranches(repoPath: folder.path)
+                    await MainActor.run { [weak self] in
+                        self?.checkoutBranches = branchList
+                        self?.worktreeBranches = []
+                        self?.isLoadingBranches = false
+                    }
+                    return
+                }
+
+                let branchList = try GitService.listWorktreeBranchesWithDatesAndCurrent(repoPath: folder.path)
                 await MainActor.run { [weak self] in
-                    self?.branches = branchList
+                    self?.worktreeBranches = branchList
+                    self?.checkoutBranches = []
                     self?.isLoadingBranches = false
                 }
             } catch {

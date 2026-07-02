@@ -65,13 +65,17 @@ struct CommandPaletteStateTests {
         state.pushMode(.folderPicker(action: .newShell))
         state.query = "test"
         state.selectedIndex = 3
-        state.branches = ["main", "dev"]
+        state.worktreeBranches = [
+            BranchInfo(name: "main", lastCommitDate: Date(), isCurrentBranch: true, hasActiveSession: false)
+        ]
+        state.checkoutBranches = ["main", "dev"]
 
         state.reset()
         #expect(state.query == "")
         #expect(state.selectedIndex == 0)
         #expect(state.modeStack.count == 1)
-        #expect(state.branches.isEmpty)
+        #expect(state.worktreeBranches.isEmpty)
+        #expect(state.checkoutBranches.isEmpty)
         #expect(state.isLoadingBranches == false)
     }
 
@@ -216,6 +220,32 @@ struct CommandPaletteStateTests {
         let items = paletteState.items(appState: appState) { }
 
         #expect(items.isEmpty)
+    }
+
+    @Test("branch picker items include remote subtitle")
+    @MainActor
+    func branchPickerItemsIncludeRemoteSubtitle() {
+        let appState = makeCleanAppState()
+        let folder = ManagedFolder(path: "/tmp")
+
+        let paletteState = CommandPaletteState()
+        paletteState.worktreeBranches = [
+            BranchInfo(
+                name: "feature/login",
+                lastCommitDate: Date(),
+                isCurrentBranch: false,
+                hasActiveSession: false,
+                remoteName: "origin",
+                remoteStartPoint: "origin/feature/login"
+            )
+        ]
+        paletteState.pushMode(.branchPicker(folder: folder))
+
+        let items = paletteState.items(appState: appState) { }
+
+        #expect(items.count == 1)
+        #expect(items[0].title == "feature/login")
+        #expect(items[0].subtitle == "origin")
     }
 
     // MARK: - Helpers

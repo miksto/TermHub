@@ -52,6 +52,45 @@ struct GitServiceIOTests {
         }
     }
 
+    // MARK: - listWorktreeBranchesWithDatesAndCurrent
+
+    @Test("listWorktreeBranchesWithDatesAndCurrent merges local and remote refs")
+    func listWorktreeBranchesMergesRefs() throws {
+        mock.enqueueSuccess("""
+        refs/heads/main\tmain\t2024-01-15 10:30:00 +0000\t*
+        refs/remotes/origin/main\torigin/main\t2024-01-15 09:00:00 +0000\t
+        refs/remotes/origin/feature/login\torigin/feature/login\t2024-01-14 08:00:00 +0000\t
+        refs/remotes/upstream/feature/login\tupstream/feature/login\t2024-01-13 08:00:00 +0000\t
+        refs/remotes/origin/HEAD\torigin/HEAD\t2024-01-12 08:00:00 +0000\t
+        """)
+
+        let branches = try GitService.listWorktreeBranchesWithDatesAndCurrent(repoPath: "/tmp/repo")
+
+        #expect(branches.count == 3)
+        #expect(branches[0].name == "main")
+        #expect(branches[0].isCurrentBranch == true)
+        #expect(branches[0].remoteName == nil)
+        #expect(branches[1].name == "feature/login")
+        #expect(branches[1].remoteName == "origin")
+        #expect(branches[1].remoteStartPoint == "origin/feature/login")
+        #expect(branches[2].remoteName == "upstream")
+        #expect(branches.contains { $0.remoteStartPoint == "origin/HEAD" } == false)
+    }
+
+    @Test("listWorktreeBranchesWithDatesAndCurrent drops remote when local exists")
+    func listWorktreeBranchesDropsDuplicateRemote() throws {
+        mock.enqueueSuccess("""
+        refs/heads/feature/login\tfeature/login\t2024-01-15 10:30:00 +0000\t
+        refs/remotes/origin/feature/login\torigin/feature/login\t2024-01-14 08:00:00 +0000\t
+        """)
+
+        let branches = try GitService.listWorktreeBranchesWithDatesAndCurrent(repoPath: "/tmp/repo")
+
+        #expect(branches.count == 1)
+        #expect(branches[0].name == "feature/login")
+        #expect(branches[0].remoteStartPoint == nil)
+    }
+
     // MARK: - currentBranch
 
     @Test("currentBranch returns branch name")
@@ -138,6 +177,25 @@ struct GitServiceIOTests {
         } throws: { error in
             (error as? GitServiceError) == .worktreeAlreadyExists
         }
+    }
+
+    @Test("addWorktreeTrackingRemote uses track and local branch name")
+    func addWorktreeTrackingRemoteCommand() throws {
+        mock.enqueueSuccess()
+        let path = try GitService.addWorktreeTrackingRemote(
+            repoPath: "/tmp/repo",
+            branch: "feature/login",
+            remoteStartPoint: "origin/feature/login"
+        )
+
+        #expect(path == "/tmp/repo-termhub/feature-login")
+        let call = mock.lastCall!
+        #expect(call.arguments.contains("worktree"))
+        #expect(call.arguments.contains("add"))
+        #expect(call.arguments.contains("--track"))
+        #expect(call.arguments.contains("-b"))
+        #expect(call.arguments.contains("feature/login"))
+        #expect(call.arguments.contains("origin/feature/login"))
     }
 
     // MARK: - addWorktreeNewBranch

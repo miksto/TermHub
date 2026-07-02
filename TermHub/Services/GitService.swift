@@ -108,6 +108,86 @@ enum GitService {
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }
     }
 
+    static func listWorktreeBranchesWithDatesAndCurrent(repoPath: String) throws -> [BranchInfo] {
+        let output = try run([
+            "-C", repoPath,
+            "for-each-ref",
+            "--sort=-committerdate",
+            "--format=%(refname)\t%(refname:short)\t%(committerdate:iso8601)\t%(HEAD)",
+            "refs/heads/",
+            "refs/remotes/",
+        ])
+        guard !output.isEmpty else { return [] }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+
+        struct ParsedBranch {
+            let name: String
+            let date: Date
+            let isCurrentBranch: Bool
+            let remoteName: String?
+            let remoteStartPoint: String?
+        }
+
+        var parsed: [ParsedBranch] = []
+        var localBranchNames: Set<String> = []
+
+        for line in output.components(separatedBy: "\n") {
+            let parts = line.split(separator: "\t", maxSplits: 3, omittingEmptySubsequences: false)
+            guard parts.count >= 3,
+                  let date = formatter.date(from: String(parts[2]))
+            else { continue }
+
+            let fullRef = String(parts[0])
+            let shortRef = String(parts[1])
+            let isCurrentBranch = parts.count >= 4 && parts[3] == "*"
+
+            if fullRef.hasPrefix("refs/heads/") {
+                let name = String(fullRef.dropFirst("refs/heads/".count))
+                localBranchNames.insert(name)
+                parsed.append(ParsedBranch(
+                    name: name,
+                    date: date,
+                    isCurrentBranch: isCurrentBranch,
+                    remoteName: nil,
+                    remoteStartPoint: nil
+                ))
+                continue
+            }
+
+            guard fullRef.hasPrefix("refs/remotes/") else { continue }
+            let remotePath = String(fullRef.dropFirst("refs/remotes/".count))
+            guard let slashIndex = remotePath.firstIndex(of: "/") else { continue }
+            let remoteName = String(remotePath[..<slashIndex])
+            let branchName = String(remotePath[remotePath.index(after: slashIndex)...])
+            guard branchName != "HEAD" else { continue }
+
+            parsed.append(ParsedBranch(
+                name: branchName,
+                date: date,
+                isCurrentBranch: false,
+                remoteName: remoteName,
+                remoteStartPoint: shortRef
+            ))
+        }
+
+        return parsed.compactMap { branch in
+            if branch.remoteStartPoint != nil, localBranchNames.contains(branch.name) {
+                return nil
+            }
+            return BranchInfo(
+                name: branch.name,
+                lastCommitDate: branch.date,
+                isCurrentBranch: branch.isCurrentBranch,
+                hasActiveSession: false,
+                remoteName: branch.remoteName,
+                remoteStartPoint: branch.remoteStartPoint
+            )
+        }
+    }
+
     static func currentBranch(repoPath: String) -> String? {
         guard let output = try? run(["-C", repoPath, "symbolic-ref", "--short", "HEAD"]),
               !output.isEmpty else {
@@ -219,6 +299,13 @@ enum GitService {
         let path = worktreePath(repoPath: repoPath, branch: branch)
         try ensureWorktreeContainer(repoPath: repoPath)
         try run(["-C", repoPath, "worktree", "add", path, branch])
+        return path
+    }
+
+    static func addWorktreeTrackingRemote(repoPath: String, branch: String, remoteStartPoint: String) throws -> String {
+        let path = worktreePath(repoPath: repoPath, branch: branch)
+        try ensureWorktreeContainer(repoPath: repoPath)
+        try run(["-C", repoPath, "worktree", "add", "--track", "-b", branch, path, remoteStartPoint])
         return path
     }
 
