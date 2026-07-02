@@ -33,7 +33,7 @@ enum SandboxAgent: String, CaseIterable, Sendable {
         switch self {
         case .claude: "claude --dangerously-skip-permissions"
         case .copilot: "copilot --allow-all --autopilot"
-        case .codex: "codex --full-auto"
+        case .codex: "codex"
         case .gemini: "gemini --yolo"
         case .kiro: "kiro"
         case .opencode: "opencode"

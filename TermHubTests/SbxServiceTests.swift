@@ -314,7 +314,7 @@ struct SbxServiceTests {
     func autoLaunchCommands() {
         #expect(SandboxAgent.claude.autoLaunchCommand == "claude --dangerously-skip-permissions")
         #expect(SandboxAgent.copilot.autoLaunchCommand == "copilot --allow-all --autopilot")
-        #expect(SandboxAgent.codex.autoLaunchCommand == "codex --full-auto")
+        #expect(SandboxAgent.codex.autoLaunchCommand == "codex")
         #expect(SandboxAgent.gemini.autoLaunchCommand == "gemini --yolo")
         #expect(SandboxAgent.kiro.autoLaunchCommand == "kiro")
         #expect(SandboxAgent.opencode.autoLaunchCommand == "opencode")
