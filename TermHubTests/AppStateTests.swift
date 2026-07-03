@@ -327,12 +327,16 @@ struct AppStateTests {
         state.assistantAllowedTools = "WebFetch,bash"
         state.assistantProvider = .claude
         #expect(state.assistantAllowedTools == "WebFetch,mcp__termhub__*,Bash")
+
+        state.assistantProvider = .codex
+        #expect(state.assistantAllowedTools == "")
     }
 
     @Test("legacy assistantAllowedTools migrates to Claude only")
     @MainActor
     func assistantAllowedToolsLegacyMigration() {
         removeUserDefaultIfPresent("assistantAllowedToolsByProvider")
+        removeUserDefaultIfPresent("assistantProvider")
         UserDefaults.standard.set("WebFetch,mcp__termhub__*", forKey: "assistantAllowedTools")
 
         let state = makeCleanAppState()
@@ -341,6 +345,9 @@ struct AppStateTests {
 
         state.assistantProvider = .copilot
         #expect(state.assistantAllowedTools == "WebFetch")
+
+        state.assistantProvider = .codex
+        #expect(state.assistantAllowedTools == "")
     }
 
     @Test("Copilot argument build strips wildcard allowed tools")
@@ -373,6 +380,10 @@ struct AppStateTests {
         state.assistantProvider = .copilot
         #expect(state.assistantAllowedToolsHelpText.contains("Copilot-only"))
         #expect(state.assistantAllowedToolsPlaceholder.contains("WebFetch,bash"))
+
+        state.assistantProvider = .codex
+        #expect(state.assistantAllowedToolsHelpText.contains("ignored"))
+        #expect(state.assistantAllowedToolsPlaceholder.contains("Not used"))
     }
 
     @Test("assistant model defaults per provider")
@@ -386,6 +397,9 @@ struct AppStateTests {
 
         state.assistantProvider = .copilot
         #expect(state.assistantModel == "claude-haiku-4.5")
+
+        state.assistantProvider = .codex
+        #expect(state.assistantModel == "")
     }
 
     @Test("assistant Copilot model options include full supported list")
@@ -415,6 +429,9 @@ struct AppStateTests {
 
         state.assistantProvider = .copilot
         #expect(state.assistantModel == "gpt-5.2")
+
+        state.assistantProvider = .codex
+        #expect(state.assistantModel == "")
     }
 
     @Test("assistant effort defaults per provider")
@@ -427,6 +444,9 @@ struct AppStateTests {
         #expect(state.assistantEffort == "low")
 
         state.assistantProvider = .copilot
+        #expect(state.assistantEffort == "")
+
+        state.assistantProvider = .codex
         #expect(state.assistantEffort == "")
     }
 
@@ -446,6 +466,9 @@ struct AppStateTests {
 
         state.assistantProvider = .copilot
         #expect(state.assistantEffort == "medium")
+
+        state.assistantProvider = .codex
+        #expect(state.assistantEffort == "")
     }
 
     @Test("assistant model persists to UserDefaults")
@@ -470,6 +493,10 @@ struct AppStateTests {
         state.assistantProvider = .copilot
         state.assistantModel = "not-a-model"
         #expect(state.assistantModel == "claude-haiku-4.5")
+
+        state.assistantProvider = .codex
+        state.assistantModel = "gpt-5"
+        #expect(state.assistantModel == "")
     }
 
     @Test("assistant effort persists to UserDefaults")
@@ -494,6 +521,10 @@ struct AppStateTests {
         state.assistantProvider = .copilot
         state.assistantEffort = "ultra"
         #expect(state.assistantEffort == "")
+
+        state.assistantProvider = .codex
+        state.assistantEffort = "high"
+        #expect(state.assistantEffort == "")
     }
 
     @Test("assistant model support for effort depends on provider and model")
@@ -514,5 +545,15 @@ struct AppStateTests {
 
         state.assistantModel = "haiku"
         #expect(state.assistantModelSupportsEffort == false)
+
+        state.assistantProvider = .codex
+        #expect(state.assistantModelSupportsEffort == false)
+    }
+
+    @Test("assistant Codex model options are default-only")
+    @MainActor
+    func assistantCodexModelOptions() {
+        let options = AppState.assistantModelOptions(for: .codex)
+        #expect(options == [""])
     }
 }

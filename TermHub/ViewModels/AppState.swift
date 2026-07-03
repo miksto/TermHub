@@ -6,6 +6,7 @@ import Observation
 enum AssistantProvider: String, CaseIterable, Codable, Sendable {
     case claude
     case copilot
+    case codex
 
     var displayName: String {
         switch self {
@@ -13,6 +14,8 @@ enum AssistantProvider: String, CaseIterable, Codable, Sendable {
             return "Claude"
         case .copilot:
             return "GitHub Copilot"
+        case .codex:
+            return "OpenAI Codex"
         }
     }
 }
@@ -31,6 +34,8 @@ final class AppState {
             return "WebFetch,mcp__termhub__*"
         case .copilot:
             return "WebFetch"
+        case .codex:
+            return ""
         }
     }
 
@@ -38,17 +43,24 @@ final class AppState {
         switch provider {
         case .claude: return "default"
         case .copilot: return "claude-haiku-4.5"
+        case .codex: return ""
         }
     }
 
     static func assistantModelDisplayName(for provider: AssistantProvider, model: String) -> String {
-        guard provider == .claude else { return model }
-        switch model {
-        case "default": return "Default (recommended) · Opus 4.6 · 1M context"
-        case "sonnet": return "Sonnet · Sonnet 4.6"
-        case "sonnet-1m": return "Sonnet (1M context) · Sonnet 4.6"
-        case "haiku": return "Haiku · Haiku 4.5"
-        default: return model
+        switch provider {
+        case .claude:
+            switch model {
+            case "default": return "Default (recommended) · Opus 4.6 · 1M context"
+            case "sonnet": return "Sonnet · Sonnet 4.6"
+            case "sonnet-1m": return "Sonnet (1M context) · Sonnet 4.6"
+            case "haiku": return "Haiku · Haiku 4.5"
+            default: return model
+            }
+        case .copilot:
+            return model
+        case .codex:
+            return model.isEmpty ? "Default (recommended)" : model
         }
     }
 
@@ -75,6 +87,8 @@ final class AppState {
                 "gpt-5-mini",
                 "gpt-4.1",
             ]
+        case .codex:
+            return [""]
         }
     }
 
@@ -82,6 +96,7 @@ final class AppState {
         switch provider {
         case .claude: return "low"
         case .copilot: return ""
+        case .codex: return ""
         }
     }
 
@@ -89,6 +104,8 @@ final class AppState {
         switch provider {
         case .claude, .copilot:
             return ["", "low", "medium", "high", "xhigh"]
+        case .codex:
+            return [""]
         }
     }
 
@@ -108,6 +125,8 @@ final class AppState {
                 "gpt-5.1-codex-mini",
             ]
             return supportingModels.contains(model)
+        case .codex:
+            return false
         }
     }
 
@@ -391,6 +410,8 @@ final class AppState {
             return "e.g. WebFetch,mcp__termhub__*"
         case .copilot:
             return "e.g. WebFetch,bash"
+        case .codex:
+            return "Not used by Codex"
         }
     }
 
@@ -400,6 +421,8 @@ final class AppState {
             return "Claude-only setting. Comma-separated tools for Claude `--allowedTools`."
         case .copilot:
             return "Copilot-only setting. Use concrete tool names only (no wildcards like `*`)."
+        case .codex:
+            return "Codex does not currently accept TermHub Allowed Tools or one-shot MCP injection, so this setting is ignored."
         }
     }
 
@@ -409,6 +432,8 @@ final class AppState {
             return "Ask anything. Claude can use the TermHub MCP server to manage sessions, worktrees, and sandboxes."
         case .copilot:
             return "Ask anything. Copilot can use the TermHub MCP server when enabled. If responses fail, verify Copilot Allowed Tools use concrete names (no wildcards)."
+        case .codex:
+            return "Ask anything. Codex runs through `codex exec`. In TermHub this currently behaves as one-shot prompts rather than a resumable conversation."
         }
     }
 
@@ -1760,6 +1785,8 @@ final class AssistantService: @unchecked Sendable {
             return commandExists("claude")
         case .copilot:
             return commandExists("copilot")
+        case .codex:
+            return commandExists("codex")
         }
     }
 
@@ -1814,11 +1841,17 @@ final class AssistantService: @unchecked Sendable {
             guard Self.commandExists("copilot") else {
                 throw AssistantServiceError.cliNotFound(.copilot)
             }
+        case .codex:
+            guard Self.commandExists("codex") else {
+                throw AssistantServiceError.cliNotFound(.codex)
+            }
         }
 
-        let isFirstMessage = sessionIDsByProvider[provider.rawValue] == nil
+        let isFirstMessage = provider == .codex || sessionIDsByProvider[provider.rawValue] == nil
         let sessionID: UUID
-        if let existing = sessionIDsByProvider[provider.rawValue] {
+        if provider == .codex {
+            sessionID = UUID()
+        } else if let existing = sessionIDsByProvider[provider.rawValue] {
             sessionID = existing
         } else {
             sessionID = UUID()
@@ -1929,6 +1962,11 @@ final class AssistantService: @unchecked Sendable {
                 supportsWildcardAllowedTools: true
             )
         case .copilot:
+            return ProviderCapabilities(
+                supportsSystemPrompt: false,
+                supportsWildcardAllowedTools: false
+            )
+        case .codex:
             return ProviderCapabilities(
                 supportsSystemPrompt: false,
                 supportsWildcardAllowedTools: false
@@ -2045,6 +2083,23 @@ final class AssistantService: @unchecked Sendable {
                         + "Use concrete tool names only (no wildcards)."
                 )
             }
+        case .codex:
+            args = ["codex", "exec"]
+            if !resolvedModel.isEmpty { args += ["--model", resolvedModel] }
+            args += [
+                "--skip-git-repo-check",
+                "--color", "never"
+            ]
+            if !resolvedEffort.isEmpty {
+                notices.append("Ignored Codex reasoning effort setting. `codex exec` does not expose a matching flag.")
+            }
+            if mcpEnabled {
+                notices.append("TermHub MCP server is not injected into Codex yet. Configure MCP servers in Codex separately if needed.")
+            }
+            if !safeToolsList.isEmpty || !ignoredToolsList.isEmpty {
+                notices.append("Ignored Codex Allowed Tools setting. `codex exec` does not expose a matching allowlist flag.")
+            }
+            args += [text]
         }
         return (args, notices)
     }

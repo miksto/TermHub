@@ -185,6 +185,34 @@ struct AssistantServiceTests {
         #expect(!result.args.contains("--reasoning-effort"))
     }
 
+    @Test("buildArguments for Codex uses non-interactive exec and ignores unsupported settings")
+    func codexExecArgs() {
+        let service = AssistantService()
+        let sessionID = UUID()
+
+        let result = service.testBuildArguments(
+            text: "hello",
+            provider: .codex,
+            mcpEnabled: true,
+            allowedTools: "WebFetch,mcp__termhub__*",
+            model: "",
+            effort: "medium",
+            isFirstMessage: false,
+            sessionID: sessionID
+        )
+
+        #expect(result.args.starts(with: ["codex", "exec"]))
+        #expect(result.args.contains("--skip-git-repo-check"))
+        #expect(result.args.contains("--color"))
+        #expect(result.args.contains("never"))
+        #expect(result.args.last == "hello")
+        #expect(!result.args.contains("--resume"))
+        #expect(!result.args.contains("--reasoning-effort"))
+        #expect(result.notices.contains { $0.contains("MCP server is not injected into Codex yet") })
+        #expect(result.notices.contains { $0.contains("Ignored Codex Allowed Tools setting") })
+        #expect(result.notices.contains { $0.contains("Ignored Codex reasoning effort setting") })
+    }
+
     @Test("send throws clear error when provider CLI is missing")
     func missingCLIFailsClearly() {
         let service = AssistantService()
