@@ -70,6 +70,7 @@
 		7320427A88D31382D529A08B /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B9D3FC1CF2381671427FFD85 /* SwiftTerm */; };
 		776E44D0A8978563B34F0BA9 /* IPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE5D64EF6E39C3289FAC748 /* IPCClient.swift */; };
 		7AA2DDBF9E329C9429606ADF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9636C089AF563FC8C56018 /* SidebarView.swift */; };
+		7ED4A2C107D9EB322B11FED5 /* BranchInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FCD6AEA3D27254627DCB74 /* BranchInfo.swift */; };
 		832DB36E0B15BF02688F3886 /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F3949FA374894F3DD12A156 /* ShellEnvironment.swift */; };
 		870E7673914A54A99132975A /* AppStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503B8C574CFDAB867E3DA066 /* AppStateTests.swift */; };
 		8B0F66C3A6BB19C0F1B48C07 /* IPCProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84BEBBACA028BC696931546 /* IPCProtocolTests.swift */; };
@@ -99,6 +100,7 @@
 		C93A2680B133DEDC59A27F52 /* CommandPaletteState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1710253731113037A911775C /* CommandPaletteState.swift */; };
 		C9524BFE0769E21BC47564D9 /* IPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEEB378B454E996FC3266EB0 /* IPCProtocol.swift */; };
 		CB3CFF86047FEA728E8C15AB /* SbxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42D7DFD5B5A9A91B0D94FFC4 /* SbxService.swift */; };
+		CF4921A7981E0CC6D87CDB7C /* BranchInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FCD6AEA3D27254627DCB74 /* BranchInfo.swift */; };
 		D0873C36638C88BB109E5C6A /* GitDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC97B1440980E92FE85562A7 /* GitDiff.swift */; };
 		D31094FDAF7E04158A12E36A /* TerminalSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA6DD24187FFCA83737B9CA /* TerminalSessionTests.swift */; };
 		D73AFE06A71A03DE38856E0F /* SessionDisplayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80290449765DD56337BC111 /* SessionDisplayState.swift */; };
@@ -688,6 +690,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CF4921A7981E0CC6D87CDB7C /* BranchInfo.swift in Sources */,
 				EB7C74254297045AF1230EE2 /* CommandRunner.swift in Sources */,
 				70455D74D3B97B66B0E0F3E0 /* DetailTab.swift in Sources */,
 				5FD5368C5A55375548B16152 /* FolderGroup.swift in Sources */,
@@ -716,6 +719,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7ED4A2C107D9EB322B11FED5 /* BranchInfo.swift in Sources */,
 				27DB07BF564DA1F9F6E61287 /* CommandRunner.swift in Sources */,
 				1DFA7A473FE2E0CBFEEB2636 /* DetailTab.swift in Sources */,
 				DFB0A0389DD9FF45B2A34362 /* FolderGroup.swift in Sources */,

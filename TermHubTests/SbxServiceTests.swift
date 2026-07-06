@@ -40,7 +40,8 @@ struct SbxServiceTests {
         let cmd = SbxService.execCommand(sandboxName: "test-sb", cwd: "/home/user/project")
         #expect(cmd.contains("-e 'TERM=xterm-256color'"))
         #expect(cmd.contains("-it test-sb"))
-        #expect(cmd.contains("cd /home/user/project"))
+        #expect(cmd.contains("--workdir '/home/user/project'"))
+        #expect(cmd.contains("bash -i"))
     }
 
     @Test("execCommand escapes single quotes in cwd")
@@ -99,7 +100,7 @@ struct SbxServiceTests {
         #expect(cmd.contains("-e 'DEBUG=true'"))
         #expect(cmd.contains("-e 'NODE_ENV=development'"))
         #expect(cmd.contains("exec -e"))
-        #expect(cmd.contains("-it test-sb"))
+        #expect(cmd.contains("-it --workdir '/home/user/project' test-sb"))
     }
 
     @Test("execCommand escapes single quotes in env var values")

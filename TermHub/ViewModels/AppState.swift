@@ -278,6 +278,7 @@ final class AppState {
     /// Debounce work items for sandbox terminal resize stty commands.
     @ObservationIgnored private var sandboxResizeDebounce: [UUID: DispatchWorkItem] = [:]
     private var sandboxRefreshTimer: Timer?
+    private var sandboxRefreshInProgress = false
     var currentDiff: GitDiff?
     var isDiffLoading = false
     @ObservationIgnored private let gitFileWatcher = GitFileWatcher()
@@ -926,10 +927,13 @@ final class AppState {
     }
 
     func refreshSandboxes() {
+        guard !sandboxRefreshInProgress else { return }
+        sandboxRefreshInProgress = true
         Task.detached {
             let list = SbxService.listSandboxes()
             await MainActor.run { [weak self] in
                 self?.sandboxes = list
+                self?.sandboxRefreshInProgress = false
             }
         }
     }

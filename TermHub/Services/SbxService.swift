@@ -105,13 +105,12 @@ enum SbxService {
             .sorted(by: { $0.key < $1.key })
             .compactMap { key, value -> String? in
                 guard isValidEnvVarKey(key) else { return nil }
-                let escapedValue = value.replacingOccurrences(of: "'", with: "'\\''")
-                return "-e '\(key)=\(escapedValue)'"
+                return "-e \(shellQuote("\(key)=\(value)"))"
             }
             .joined(separator: " ")
-        let escapedCwd = cwd.replacingOccurrences(of: "'", with: "'\\''")
+        let escapedCwd = shellQuote(cwd)
         let envPart = envFlags.isEmpty ? "" : " \(envFlags)"
-        return "\(sbx) exec\(envPart) -it \(sandboxName) bash -c 'cd \(escapedCwd) && exec bash'"
+        return "\(sbx) exec\(envPart) -it --workdir \(escapedCwd) \(sandboxName) bash -i"
     }
 
     // MARK: - Lifecycle Methods
@@ -191,5 +190,9 @@ enum SbxService {
             }
         } catch {}
         return nil
+    }
+
+    private static func shellQuote(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 }

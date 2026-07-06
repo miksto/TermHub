@@ -13,13 +13,12 @@ test: ## Run the test suite
 	./scripts/test.sh
 
 build-mcp: ## Build the MCP server
-	xcodebuild \
+	@set -o pipefail; xcodebuild \
 		-project TermHub.xcodeproj \
 		-scheme TermHubMCP \
 		-configuration Release \
 		build 2>&1 \
-		| grep -E '(warning:|error:|BUILD SUCCEEDED|BUILD FAILED|fatal)' \
-		|| echo "Build completed with no issues"
+		| grep -E '(warning:|error:|BUILD SUCCEEDED|BUILD FAILED|fatal)' || true
 
 install-mcp: build-mcp ## Build and install the MCP server to ~/.local/bin
 	@mkdir -p ~/.local/bin
@@ -30,5 +29,6 @@ install-mcp: build-mcp ## Build and install the MCP server to ~/.local/bin
 		-showBuildSettings 2>/dev/null \
 		| grep ' BUILT_PRODUCTS_DIR' \
 		| awk '{print $$NF}'); \
+	test -f "$$build_dir/termhub-mcp"; \
 	cp "$$build_dir/termhub-mcp" ~/.local/bin/termhub-mcp
 	@echo "Installed termhub-mcp to ~/.local/bin/termhub-mcp"
