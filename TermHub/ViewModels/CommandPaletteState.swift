@@ -176,7 +176,7 @@ final class CommandPaletteState {
                 title: session.title,
                 subtitle: subtitle.isEmpty ? nil : subtitle
             ) { [weak appState] in
-                appState?.selectedSessionID = session.id
+                appState?.selectSession(id: session.id, revealInSidebar: true)
                 dismiss()
             }
         }

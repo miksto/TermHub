@@ -69,6 +69,7 @@ struct FolderSectionView: View {
                 SessionRowView(sessionID: sessionID, onRemove: {
                     appState.removeSession(id: sessionID)
                 })
+                .id(sessionID)
                 .tag(sessionID)
                 .listRowInsets(EdgeInsets(top: 0, leading: baseLeading + 14, bottom: 0, trailing: 0))
             }
@@ -134,6 +135,7 @@ struct FolderSectionView: View {
                     SessionRowView(sessionID: sessionID, onRemove: {
                         appState.removeSession(id: sessionID)
                     })
+                    .id(sessionID)
                     .tag(sessionID)
                     .listRowInsets(EdgeInsets(top: 0, leading: baseLeading + 28, bottom: 0, trailing: 0))
                 }

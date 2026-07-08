@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct SidebarView: View {
@@ -10,37 +11,48 @@ struct SidebarView: View {
     var body: some View {
         @Bindable var state = appState
         VStack(spacing: 0) {
-            List(selection: $state.selectedSessionID) {
-                ForEach(appState.sidebarOrder, id: \.self) { item in
-                    switch item {
-                    case .folder(let folderID):
-                        if let folder = appState.folders.first(where: { $0.id == folderID }) {
-                            FolderSectionView(
-                                folder: folder,
-                                optionKeyDown: optionKeyDown,
-                                onRequestRemoveFolder: {
-                                    appState.pendingRemoveFolderID = folder.id
-                                },
-                                draggedSidebarItem: $draggedSidebarItem,
-                                dropTargetSidebarItem: $dropTargetSidebarItem
-                            )
-                        }
-                    case .group(let groupID):
-                        if let group = appState.groups.first(where: { $0.id == groupID }) {
-                            GroupSectionView(
-                                group: group,
-                                optionKeyDown: optionKeyDown,
-                                draggedSidebarItem: $draggedSidebarItem,
-                                dropTargetSidebarItem: $dropTargetSidebarItem
-                            )
+            ScrollViewReader { proxy in
+                List(selection: $state.selectedSessionID) {
+                    ForEach(appState.sidebarOrder, id: \.self) { item in
+                        switch item {
+                        case .folder(let folderID):
+                            if let folder = appState.folders.first(where: { $0.id == folderID }) {
+                                FolderSectionView(
+                                    folder: folder,
+                                    optionKeyDown: optionKeyDown,
+                                    onRequestRemoveFolder: {
+                                        appState.pendingRemoveFolderID = folder.id
+                                    },
+                                    draggedSidebarItem: $draggedSidebarItem,
+                                    dropTargetSidebarItem: $dropTargetSidebarItem
+                                )
+                            }
+                        case .group(let groupID):
+                            if let group = appState.groups.first(where: { $0.id == groupID }) {
+                                GroupSectionView(
+                                    group: group,
+                                    optionKeyDown: optionKeyDown,
+                                    draggedSidebarItem: $draggedSidebarItem,
+                                    dropTargetSidebarItem: $dropTargetSidebarItem
+                                )
+                            }
                         }
                     }
                 }
-            }
-            .listStyle(.sidebar)
-            .contextMenu {
-                Button("Add Group") {
-                    appState.addGroup(name: "New Group")
+                .listStyle(.sidebar)
+                .contextMenu {
+                    Button("Add Group") {
+                        appState.addGroup(name: "New Group")
+                    }
+                }
+                .onChange(of: appState.sidebarRevealSessionID) { _, sessionID in
+                    guard let sessionID else { return }
+                    DispatchQueue.main.async {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            proxy.scrollTo(sessionID, anchor: .center)
+                        }
+                        appState.clearSidebarRevealRequest()
+                    }
                 }
             }
 

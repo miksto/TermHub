@@ -143,7 +143,7 @@ struct TermHubApp: App {
                 .keyboardShortcut(.downArrow, modifiers: [.command, .option])
 
                 Button("Jump to Notification") {
-                    appState.selectNextSessionNeedingAttention()
+                    appState.selectNextSessionNeedingAttention(revealInSidebar: true)
                 }
                 .keyboardShortcut("j", modifiers: .command)
                 .disabled(appState.sessionsNeedingAttention.isEmpty)

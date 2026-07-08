@@ -65,6 +65,17 @@ struct SettingsOverlay: View {
                         }
                     }
 
+                    // Navigation card
+                    sectionCard("Navigation") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            toggleRow(
+                                "Reveal selected session in sidebar when using Ctrl+Tab",
+                                isOn: $appState.revealSelectedSessionInSidebarOnCtrlTab,
+                                caption: "When enabled, the sidebar expands and scrolls to the session chosen with Ctrl+Tab. Cmd+P and Cmd+J always reveal the selected session."
+                            )
+                        }
+                    }
+
                     // Integrations card
                     sectionCard("Integrations") {
                         VStack(alignment: .leading, spacing: 10) {

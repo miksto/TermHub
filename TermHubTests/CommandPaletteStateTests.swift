@@ -179,6 +179,25 @@ struct CommandPaletteStateTests {
         #expect(sessionItems.count == 1)
     }
 
+    @Test("session picker action reveals the selected session in the sidebar")
+    @MainActor
+    func sessionPickerRevealsSelection() {
+        let appState = makeCleanAppState()
+        appState.addFolder(path: "/tmp")
+        let sessionID = appState.sessions[0].id
+        appState.folders[0].isExpanded = false
+
+        let paletteState = CommandPaletteState()
+        paletteState.pushMode(.sessionPicker)
+        let items = paletteState.items(appState: appState) { }
+
+        items[0].action()
+
+        #expect(appState.selectedSessionID == sessionID)
+        #expect(appState.sidebarRevealSessionID == sessionID)
+        #expect(appState.folders[0].isExpanded == true)
+    }
+
     @Test("query filters items by fuzzy match")
     @MainActor
     func queryFiltersItems() {

@@ -39,6 +39,13 @@ struct AppStateTests {
         #expect(state.selectedSessionID == state.sessions[0].id)
     }
 
+    @Test("Ctrl+Tab sidebar reveal is enabled by default")
+    @MainActor
+    func ctrlTabRevealEnabledByDefault() {
+        let state = makeCleanAppState()
+        #expect(state.revealSelectedSessionInSidebarOnCtrlTab == true)
+    }
+
     @Test("addFolder with non-existent path sets error message")
     @MainActor
     func addFolderNonExistentPath() {

@@ -83,6 +83,43 @@ struct AppStateExtendedTests {
         #expect(state.selectedSessionID == items[1].id)
     }
 
+    @Test("commitSessionSwitcher reveals the selected session when enabled")
+    @MainActor
+    func commitSwitcherRevealsWhenEnabled() {
+        let state = makeCleanAppState()
+        defer {
+            UserDefaults.standard.removeObject(forKey: "revealSelectedSessionInSidebarOnCtrlTab")
+        }
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+
+        state.beginSessionSwitcher()
+        state.commitSessionSwitcher()
+
+        #expect(state.selectedSessionID == state.sessions[0].id)
+        #expect(state.sidebarRevealSessionID == state.sessions[0].id)
+    }
+
+    @Test("commitSessionSwitcher does not reveal the selected session when disabled")
+    @MainActor
+    func commitSwitcherDoesNotRevealWhenDisabled() {
+        let state = makeCleanAppState()
+        defer {
+            UserDefaults.standard.removeObject(forKey: "revealSelectedSessionInSidebarOnCtrlTab")
+        }
+        state.revealSelectedSessionInSidebarOnCtrlTab = false
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+
+        state.beginSessionSwitcher()
+        state.commitSessionSwitcher()
+
+        #expect(state.selectedSessionID == state.sessions[0].id)
+        #expect(state.sidebarRevealSessionID == nil)
+    }
+
     @Test("sessionSwitcherItems returns sessions in MRU order")
     @MainActor
     func switcherItemsMRUOrder() {
@@ -216,6 +253,39 @@ struct AppStateExtendedTests {
 
         state.selectSessionByIndex(-1)
         #expect(state.selectedSessionID == current)
+    }
+
+    @Test("selectSession with reveal opens ancestors and requests sidebar scroll")
+    @MainActor
+    func selectSessionRevealsAncestors() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        state.addGroup(name: "Backend")
+        state.moveFolderToGroup(folderID: folderID, groupID: state.groups[0].id)
+        state.setFolderExpanded(id: folderID, isExpanded: false)
+        state.setGroupExpanded(id: state.groups[0].id, isExpanded: false)
+        let sessionID = state.sessions[0].id
+
+        state.selectSession(id: sessionID, revealInSidebar: true)
+
+        #expect(state.selectedSessionID == sessionID)
+        #expect(state.folders[0].isExpanded == true)
+        #expect(state.groups[0].isExpanded == true)
+        #expect(state.sidebarRevealSessionID == sessionID)
+    }
+
+    @Test("selectSession without reveal does not request sidebar scroll")
+    @MainActor
+    func selectSessionWithoutReveal() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let sessionID = state.sessions[0].id
+
+        state.selectSession(id: sessionID)
+
+        #expect(state.selectedSessionID == sessionID)
+        #expect(state.sidebarRevealSessionID == nil)
     }
 
     // MARK: - Detail Tabs

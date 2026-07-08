@@ -27,6 +27,7 @@ final class AppState {
     private static let legacyAssistantAllowedToolsUserDefaultsKey = "assistantAllowedTools"
     private static let assistantModelByProviderUserDefaultsKey = "assistantModelByProvider"
     private static let assistantEffortByProviderUserDefaultsKey = "assistantEffortByProvider"
+    private static let revealSelectedSessionInSidebarOnCtrlTabUserDefaultsKey = "revealSelectedSessionInSidebarOnCtrlTab"
 
     private static func defaultAssistantAllowedTools(for provider: AssistantProvider) -> String {
         switch provider {
@@ -216,10 +217,19 @@ final class AppState {
             }
         }
     }
+    private(set) var sidebarRevealSessionID: UUID?
     private(set) var sessionMRUOrder: [UUID] = []
     private(set) var sessionInputMRUOrder: [UUID] = []
     var isSessionSwitcherActive = false
     var switcherSelectedIndex: Int = 0
+    var revealSelectedSessionInSidebarOnCtrlTab: Bool {
+        didSet {
+            UserDefaults.standard.set(
+                revealSelectedSessionInSidebarOnCtrlTab,
+                forKey: Self.revealSelectedSessionInSidebarOnCtrlTabUserDefaultsKey
+            )
+        }
+    }
     var tmuxAvailable: Bool = false
     var pendingWorktreeFolder: ManagedFolder?
     var pendingNewBranchFolder: ManagedFolder?
@@ -450,6 +460,9 @@ final class AppState {
         }
         copyClaudeSettingsToWorktrees = UserDefaults.standard.object(forKey: "copyClaudeSettingsToWorktrees") as? Bool ?? true
         sendTTYSizeToSandboxTerminals = UserDefaults.standard.object(forKey: "sendTTYSizeToSandboxTerminals") as? Bool ?? true
+        revealSelectedSessionInSidebarOnCtrlTab = UserDefaults.standard.object(
+            forKey: Self.revealSelectedSessionInSidebarOnCtrlTabUserDefaultsKey
+        ) as? Bool ?? true
         assistantProvider = AssistantProvider(rawValue: UserDefaults.standard.string(forKey: "assistantProvider") ?? "") ?? .claude
         assistantAllowedToolsByProvider = Self.loadAssistantAllowedToolsByProviderFromUserDefaults()
         assistantModelByProvider = Self.normalizedAssistantModelByProvider(
@@ -528,6 +541,45 @@ final class AppState {
     var selectedSession: TerminalSession? {
         guard let id = selectedSessionID else { return nil }
         return sessions.first { $0.id == id }
+    }
+
+    func selectSession(id: UUID, revealInSidebar: Bool = false) {
+        guard sessions.contains(where: { $0.id == id }) else { return }
+        selectedSessionID = id
+        if revealInSidebar {
+            revealSessionInSidebar(id)
+        }
+    }
+
+    func requestSidebarReveal(for sessionID: UUID) {
+        guard sessions.contains(where: { $0.id == sessionID }) else { return }
+        sidebarRevealSessionID = sessionID
+    }
+
+    func clearSidebarRevealRequest() {
+        sidebarRevealSessionID = nil
+    }
+
+    private func revealSessionInSidebar(_ sessionID: UUID) {
+        guard let session = sessions.first(where: { $0.id == sessionID }),
+              let folderIndex = folders.firstIndex(where: { $0.id == session.folderID })
+        else {
+            requestSidebarReveal(for: sessionID)
+            return
+        }
+
+        if let groupID = group(forFolderID: session.folderID)?.id,
+           let group = groups.first(where: { $0.id == groupID }),
+           !group.isExpanded
+        {
+            setGroupExpanded(id: groupID, isExpanded: true)
+        }
+
+        if !folders[folderIndex].isExpanded {
+            setFolderExpanded(id: session.folderID, isExpanded: true)
+        }
+
+        requestSidebarReveal(for: sessionID)
     }
 
     /// All sessions ordered by folder for keyboard navigation (matches sidebar visual order).
@@ -1181,23 +1233,27 @@ final class AppState {
         selectedSessionID = ordered[index]
     }
 
-    func selectNextSessionNeedingAttention() {
+    func selectNextSessionNeedingAttention(revealInSidebar: Bool = false) {
         guard !sessionsNeedingAttention.isEmpty else { return }
         let ordered = allSessionIDsOrdered.filter { sessionsNeedingAttention.contains($0) }
         guard !ordered.isEmpty else { return }
 
         if let current = selectedSessionID, let idx = ordered.firstIndex(of: current) {
             // Cycle to next attention session after current
-            selectedSessionID = ordered[(idx + 1) % ordered.count]
+            selectSession(id: ordered[(idx + 1) % ordered.count], revealInSidebar: revealInSidebar)
         } else if let current = selectedSessionID,
                   let currentGlobal = allSessionIDsOrdered.firstIndex(of: current) {
             // Pick the first attention session after the current position
-            selectedSessionID = ordered.first { id in
+            if let next = ordered.first(where: { id in
                 guard let idx = allSessionIDsOrdered.firstIndex(of: id) else { return false }
                 return idx > currentGlobal
-            } ?? ordered.first
+            }) ?? ordered.first {
+                selectSession(id: next, revealInSidebar: revealInSidebar)
+            }
         } else {
-            selectedSessionID = ordered.first
+            if let next = ordered.first {
+                selectSession(id: next, revealInSidebar: revealInSidebar)
+            }
         }
     }
 
@@ -1258,7 +1314,10 @@ final class AppState {
         let index = switcherSelectedIndex
         isSessionSwitcherActive = false
         if index < items.count {
-            selectedSessionID = items[index].id
+            selectSession(
+                id: items[index].id,
+                revealInSidebar: revealSelectedSessionInSidebarOnCtrlTab
+            )
         }
     }
 
