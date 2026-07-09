@@ -146,8 +146,12 @@ enum SbxService {
     }
 
     /// Creates a new sandbox for the given agent with workspace paths.
-    static func createSandbox(name: String, agent: String = "claude", workspaces: [String]) throws {
-        let args = ["create", "--name", name, agent] + workspaces
+    static func createSandbox(name: String, agent: String = "claude", workspaces: [String], kitPath: String? = nil) throws {
+        var args = ["create", "--name", name]
+        if let kitPath, !kitPath.isEmpty {
+            args += ["--kit", kitPath]
+        }
+        args += [agent] + workspaces
         try run(args)
     }
 

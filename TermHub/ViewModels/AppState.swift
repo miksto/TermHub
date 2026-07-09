@@ -990,15 +990,15 @@ final class AppState {
         }
     }
 
-    func createSandbox(name: String, agent: SandboxAgent = .claude, workspacePath: String) {
-        createSandbox(name: name, agent: agent, workspaces: [workspacePath])
+    func createSandbox(name: String, agent: SandboxAgent = .claude, workspacePath: String, kitPath: String? = nil) {
+        createSandbox(name: name, agent: agent, workspaces: [workspacePath], kitPath: kitPath)
     }
 
-    func createSandbox(name: String, agent: SandboxAgent = .claude, workspaces: [String]) {
+    func createSandbox(name: String, agent: SandboxAgent = .claude, workspaces: [String], kitPath: String? = nil) {
         sandboxOperationInProgress.insert(name)
         Task.detached {
             do {
-                try SbxService.createSandbox(name: name, agent: agent.rawValue, workspaces: workspaces)
+                try SbxService.createSandbox(name: name, agent: agent.rawValue, workspaces: workspaces, kitPath: kitPath)
             } catch {
                 let msg = error.localizedDescription
                 await MainActor.run { [weak self] in

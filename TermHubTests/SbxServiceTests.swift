@@ -186,6 +186,37 @@ struct SbxServiceTests {
         #expect(call.arguments == ["create", "--name", "test-sb", "claude", "/tmp/p1", "/tmp/p2"])
     }
 
+    @Test("createSandbox sends kit argument when provided")
+    func createSandboxKitArgs() throws {
+        mock.enqueueSuccess()
+        try SbxService.createSandbox(
+            name: "test-sb",
+            agent: "claude",
+            workspaces: ["/tmp/project"],
+            kitPath: "/Users/me/kits/my-kit"
+        )
+
+        let call = mock.lastCall!
+        #expect(call.arguments == [
+            "create",
+            "--name",
+            "test-sb",
+            "--kit",
+            "/Users/me/kits/my-kit",
+            "claude",
+            "/tmp/project",
+        ])
+    }
+
+    @Test("createSandbox ignores empty kit path")
+    func createSandboxEmptyKitPathArgs() throws {
+        mock.enqueueSuccess()
+        try SbxService.createSandbox(name: "test-sb", agent: "claude", workspaces: ["/tmp/project"], kitPath: "")
+
+        let call = mock.lastCall!
+        #expect(call.arguments == ["create", "--name", "test-sb", "claude", "/tmp/project"])
+    }
+
     @Test("createSandbox throws on failure")
     func createSandboxFailure() {
         mock.enqueueFailure("name already in use")

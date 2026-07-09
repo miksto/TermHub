@@ -8,6 +8,7 @@ struct SandboxManagerOverlay: View {
     @State private var newSandboxName = ""
     @State private var newSandboxWorkspaces: [String] = []
     @State private var newSandboxAgent: SandboxAgent = .claude
+    @State private var newSandboxKitPath: String?
     @State private var newEnvVarName = ""
     @State private var panelSize = CGSize(width: 720, height: 480)
     @State private var dragStartSize = CGSize.zero
@@ -482,6 +483,46 @@ struct SandboxManagerOverlay: View {
                         }
                         .buttonStyle(.plain)
                     }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Kit Directory")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        if let kitPath = newSandboxKitPath {
+                            HStack(spacing: 6) {
+                                Image(systemName: "folder.badge.gearshape")
+                                    .foregroundStyle(.secondary)
+                                    .font(.caption)
+                                Text(shortenPath(kitPath))
+                                    .font(.callout)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Button {
+                                    newSandboxKitPath = nil
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundStyle(.red.opacity(0.7))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        } else {
+                            Text("No kit directory selected.")
+                                .font(.callout)
+                                .foregroundStyle(.tertiary)
+                        }
+
+                        Button {
+                            chooseKitDirectory()
+                        } label: {
+                            Label("Choose Kit Directory", systemImage: "plus.circle")
+                                .font(.callout)
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 8)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .padding(20)
             }
@@ -553,7 +594,7 @@ struct SandboxManagerOverlay: View {
     private func submitCreateForm() {
         let name = newSandboxName.trimmingCharacters(in: .whitespaces)
         guard SbxService.isValidSandboxName(name), !newSandboxWorkspaces.isEmpty else { return }
-        appState.createSandbox(name: name, agent: newSandboxAgent, workspaces: newSandboxWorkspaces)
+        appState.createSandbox(name: name, agent: newSandboxAgent, workspaces: newSandboxWorkspaces, kitPath: newSandboxKitPath)
         isCreatingNew = false
         selectedSandboxName = name
         resetCreateFields()
@@ -563,6 +604,7 @@ struct SandboxManagerOverlay: View {
         newSandboxName = ""
         newSandboxWorkspaces = []
         newSandboxAgent = .claude
+        newSandboxKitPath = nil
     }
 
     private func addFolder() {
@@ -578,6 +620,17 @@ struct SandboxManagerOverlay: View {
                     newSandboxWorkspaces.append(path)
                 }
             }
+        }
+    }
+
+    private func chooseKitDirectory() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Choose"
+        if panel.runModal() == .OK, let url = panel.urls.first {
+            newSandboxKitPath = url.path(percentEncoded: false)
         }
     }
 
