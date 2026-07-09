@@ -689,6 +689,8 @@ struct AppStateExtendedTests {
         let state = makeCleanAppState()
         state.addFolder(path: "/tmp")
         state.addFolder(path: "/private/tmp")
+        state.folders[0].isGitRepo = true
+        state.folders[1].isGitRepo = true
 
         let affected = state.affectedTrackedGitPaths(for: [
             "/tmp/.git/index.lock",

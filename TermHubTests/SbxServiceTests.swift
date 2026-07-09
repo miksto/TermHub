@@ -39,7 +39,7 @@ struct SbxServiceTests {
     func execCommandBasic() {
         let cmd = SbxService.execCommand(sandboxName: "test-sb", cwd: "/home/user/project")
         #expect(cmd.contains("-e 'TERM=xterm-256color'"))
-        #expect(cmd.contains("-it test-sb"))
+        #expect(cmd.contains("-it --workdir '/home/user/project' test-sb"))
         #expect(cmd.contains("--workdir '/home/user/project'"))
         #expect(cmd.contains("bash -i"))
     }
@@ -129,7 +129,7 @@ struct SbxServiceTests {
     func execCommandEmptyEnvVars() {
         let cmd = SbxService.execCommand(sandboxName: "test-sb", cwd: "/tmp", environmentVariables: [:])
         #expect(cmd.contains("-e 'TERM=xterm-256color'"))
-        #expect(cmd.contains("-it test-sb"))
+        #expect(cmd.contains("-it --workdir '/tmp' test-sb"))
     }
 
     // MARK: - listSandboxes
