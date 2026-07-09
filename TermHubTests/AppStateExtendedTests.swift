@@ -4,6 +4,11 @@ import Testing
 
 @Suite("AppState Extended Tests")
 struct AppStateExtendedTests {
+    private let mock = MockCommandRunner()
+
+    init() {
+        GitService.commandRunner = mock
+    }
 
     @MainActor
     private func makeCleanAppState() -> AppState {
@@ -700,6 +705,27 @@ struct AppStateExtendedTests {
         ])
 
         #expect(Set(affected) == Set(["/tmp", "/private/tmp"]))
+    }
+
+    @Test("applyDetectedGitRepos hydrates branch status for newly detected folders")
+    @MainActor
+    func applyDetectedGitReposHydratesBranchStatus() async throws {
+        mock.reset()
+        mock.enqueueSuccess("")
+        mock.enqueueSuccess("")
+        mock.enqueueSuccess("0\t0")
+        mock.enqueueSuccess("main")
+
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.folders[0].isGitRepo = false
+        state.gitStatuses.removeAll()
+
+        state.applyDetectedGitRepos(atPaths: ["/tmp"])
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        #expect(state.folders[0].isGitRepo == true)
+        #expect(state.gitStatuses["/tmp"]?.currentBranch == "main")
     }
 }
 

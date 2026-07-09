@@ -1572,6 +1572,24 @@ final class AppState {
         return paths
     }
 
+    func applyDetectedGitRepos(atPaths detectedPaths: [String]) {
+        guard !detectedPaths.isEmpty else { return }
+
+        let detectedSet = Set(detectedPaths)
+        var changedPaths: [String] = []
+        for index in folders.indices {
+            let path = folders[index].path
+            guard detectedSet.contains(path), folders[index].isGitRepo == false else { continue }
+            folders[index].isGitRepo = true
+            changedPaths.append(path)
+        }
+
+        guard !changedPaths.isEmpty else { return }
+        saveState()
+        refreshGitStatuses(for: changedPaths)
+        updateGitFileWatcher()
+    }
+
     /// Detects git repo status for folders that don't have it persisted yet.
     /// Runs detection off the main thread to avoid blocking the UI at startup.
     private func detectGitRepos() {
@@ -1580,25 +1598,15 @@ final class AppState {
 
         let paths = foldersNeedingDetection.map { (index: $0.offset, path: $0.element.path) }
         Task.detached {
-            var results: [(index: Int, path: String)] = []
+            var detectedPaths: [String] = []
             for item in paths {
                 let isGit = GitService.isGitRepo(path: item.path)
                 if isGit {
-                    results.append((index: item.index, path: item.path))
+                    detectedPaths.append(item.path)
                 }
             }
-            let detected = results
             await MainActor.run { [weak self] in
-                guard let self else { return }
-                var changed = false
-                for result in detected {
-                    guard result.index < self.folders.count,
-                          self.folders[result.index].path == result.path
-                    else { continue }
-                    self.folders[result.index].isGitRepo = true
-                    changed = true
-                }
-                if changed { self.saveState() }
+                self?.applyDetectedGitRepos(atPaths: detectedPaths)
             }
         }
     }
