@@ -682,6 +682,23 @@ struct AppStateExtendedTests {
         state.selectNextSession()
         #expect(state.selectedSessionID == thirdSession)
     }
+
+    @Test("affectedTrackedGitPaths returns only repos touched by watcher events")
+    @MainActor
+    func affectedTrackedGitPathsFiltersToTouchedRepos() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.addFolder(path: "/private/tmp")
+
+        let affected = state.affectedTrackedGitPaths(for: [
+            "/tmp/.git/index.lock",
+            "/tmp/src/main.swift",
+            "/private/tmp/.git/refs/heads/main",
+            "/other/location/file.txt"
+        ])
+
+        #expect(Set(affected) == Set(["/tmp", "/private/tmp"]))
+    }
 }
 
 private final class AppStateExtendedInMemoryPersistence: StatePersistence, @unchecked Sendable {

@@ -5,14 +5,16 @@ import Foundation
 final class GitFileWatcher: @unchecked Sendable {
     private var stream: FSEventStreamRef?
     private let queue = DispatchQueue(label: "com.termhub.git-file-watcher")
-    private var onChange: (@Sendable () -> Void)?
+    private var onChange: (@Sendable ([String]) -> Void)?
     private var watchedPaths: [String] = []
 
     /// Debounce interval to coalesce rapid filesystem events.
     private static let debounceInterval: TimeInterval = 0.5
     private var debounceWorkItem: DispatchWorkItem?
 
-    func start(paths: [String], onChange: @escaping @Sendable () -> Void) {
+    private var pendingChangedPaths: Set<String> = []
+
+    func start(paths: [String], onChange: @escaping @Sendable ([String]) -> Void) {
         queue.async { [self] in
             let sorted = paths.sorted()
             guard !sorted.isEmpty else { return }
@@ -25,14 +27,17 @@ final class GitFileWatcher: @unchecked Sendable {
             self.stop()
             self.onChange = onChange
             self.watchedPaths = sorted
+            self.pendingChangedPaths.removeAll()
 
             var context = FSEventStreamContext()
             context.info = Unmanaged.passUnretained(self).toOpaque()
 
-            let callback: FSEventStreamCallback = { _, info, _, _, _, _ in
+            let callback: FSEventStreamCallback = { _, info, numEvents, eventPaths, _, _ in
                 guard let info else { return }
                 let watcher = Unmanaged<GitFileWatcher>.fromOpaque(info).takeUnretainedValue()
-                watcher.handleEvent()
+                let array = unsafeBitCast(eventPaths, to: NSArray.self)
+                let paths = array.compactMap { $0 as? String }
+                watcher.handleEvent(paths: Array(paths.prefix(Int(numEvents))))
             }
 
             guard let stream = FSEventStreamCreate(
@@ -55,6 +60,7 @@ final class GitFileWatcher: @unchecked Sendable {
         // Must already be on `queue` or called during deinit.
         debounceWorkItem?.cancel()
         debounceWorkItem = nil
+        pendingChangedPaths.removeAll()
         if let stream {
             FSEventStreamStop(stream)
             FSEventStreamInvalidate(stream)
@@ -76,10 +82,16 @@ final class GitFileWatcher: @unchecked Sendable {
 
     // MARK: - Private
 
-    private func handleEvent() {
+    private func handleEvent(paths: [String]) {
+        for path in paths {
+            pendingChangedPaths.insert(path)
+        }
         debounceWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            self?.onChange?()
+            guard let self else { return }
+            let changedPaths = Array(self.pendingChangedPaths)
+            self.pendingChangedPaths.removeAll()
+            self.onChange?(changedPaths)
         }
         debounceWorkItem = work
         queue.asyncAfter(deadline: .now() + Self.debounceInterval, execute: work)

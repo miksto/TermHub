@@ -1480,18 +1480,23 @@ final class AppState {
     /// Call this whenever folders or worktree sessions are added/removed.
     func updateGitFileWatcher() {
         let paths = trackedGitPaths()
-        gitFileWatcher.start(paths: paths) { [weak self] in
+        gitFileWatcher.start(paths: paths) { [weak self] changedPaths in
             Task { @MainActor [weak self] in
-                self?.refreshGitStatuses()
-                if self?.currentDetailTab == .gitDiff {
-                    self?.loadDiffForCurrentSession()
+                guard let self else { return }
+                let affectedPaths = self.affectedTrackedGitPaths(for: changedPaths)
+                guard !affectedPaths.isEmpty else { return }
+                self.refreshGitStatuses(for: affectedPaths)
+                if self.currentDetailTab == .gitDiff,
+                   let currentPath = self.selectedSessionGitPath,
+                   affectedPaths.contains(currentPath) {
+                    self.loadDiffForCurrentSession()
                 }
             }
         }
     }
 
-    private func refreshGitStatuses() {
-        let paths = trackedGitPaths()
+    private func refreshGitStatuses(for paths: [String]? = nil) {
+        let paths = paths ?? trackedGitPaths()
         guard !paths.isEmpty else { return }
 
         Task.detached {
@@ -1524,6 +1529,27 @@ final class AppState {
                 _ = changed
             }
         }
+    }
+
+    private var selectedSessionGitPath: String? {
+        guard let session = selectedSession else { return nil }
+        return session.worktreePath
+            ?? folders.first(where: { $0.id == session.folderID })?.path
+    }
+
+    func affectedTrackedGitPaths(for changedPaths: [String]) -> [String] {
+        let trackedPaths = trackedGitPaths()
+        guard !trackedPaths.isEmpty, !changedPaths.isEmpty else { return [] }
+
+        var affected: [String] = []
+        for trackedPath in trackedPaths {
+            if changedPaths.contains(where: { changedPath in
+                changedPath == trackedPath || changedPath.hasPrefix(trackedPath + "/")
+            }) {
+                affected.append(trackedPath)
+            }
+        }
+        return affected
     }
 
     private func trackedGitPaths() -> [String] {
