@@ -176,6 +176,7 @@ enum SbxService {
                 return candidate
             }
         }
+        CommandLogger.log(executablePath: "/usr/bin/which", arguments: ["sbx"])
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
         process.arguments = ["sbx"]

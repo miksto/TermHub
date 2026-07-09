@@ -27,6 +27,7 @@ enum ShellEnvironment {
             }
         }
         // Try finding via PATH
+        CommandLogger.log(executablePath: "/usr/bin/which", arguments: ["tmux"])
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
         process.arguments = ["tmux"]

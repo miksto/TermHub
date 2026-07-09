@@ -1934,6 +1934,7 @@ final class AssistantService: @unchecked Sendable {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = build.args
+        CommandLogger.log(executablePath: "/usr/bin/env", arguments: build.args)
 
         let notices = build.notices
 
@@ -2003,6 +2004,7 @@ final class AssistantService: @unchecked Sendable {
         if let override = commandExistsOverride {
             return override(command)
         }
+        CommandLogger.log(executablePath: "/usr/bin/which", arguments: [command])
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
         process.arguments = [command]
