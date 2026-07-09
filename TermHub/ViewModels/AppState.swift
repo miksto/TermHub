@@ -585,17 +585,20 @@ final class AppState {
     /// All sessions ordered by folder for keyboard navigation (matches sidebar visual order).
     var allSessionIDsOrdered: [UUID] {
         var result: [UUID] = []
+        let sessionByID = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
+        let folderByID = Dictionary(uniqueKeysWithValues: folders.map { ($0.id, $0) })
+        let groupByID = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
 
         func appendSessions(for folder: ManagedFolder) {
             guard folder.isExpanded else { return }
-            let validIDs = folder.sessionIDs.filter { id in sessions.contains { $0.id == id } }
+            let validIDs = folder.sessionIDs.filter { sessionByID[$0] != nil }
             let plain = validIDs.filter { id in
-                sessions.first(where: { $0.id == id })?.worktreePath == nil
+                sessionByID[id]?.worktreePath == nil
             }
             var seenWorktrees: [String: [UUID]] = [:]
             var worktreeOrder: [String] = []
             for id in validIDs {
-                guard let session = sessions.first(where: { $0.id == id }),
+                guard let session = sessionByID[id],
                       let wt = session.worktreePath else { continue }
                 if seenWorktrees[wt] == nil {
                     worktreeOrder.append(wt)
@@ -609,14 +612,14 @@ final class AppState {
         for item in sidebarOrder {
             switch item {
             case .folder(let folderID):
-                if let folder = folders.first(where: { $0.id == folderID }) {
+                if let folder = folderByID[folderID] {
                     appendSessions(for: folder)
                 }
             case .group(let groupID):
-                guard let group = groups.first(where: { $0.id == groupID }),
+                guard let group = groupByID[groupID],
                       group.isExpanded else { continue }
                 for folderID in group.folderIDs {
-                    if let folder = folders.first(where: { $0.id == folderID }) {
+                    if let folder = folderByID[folderID] {
                         appendSessions(for: folder)
                     }
                 }
@@ -1282,10 +1285,12 @@ final class AppState {
 
     /// Sessions in MRU order with display info for the switcher overlay.
     var sessionSwitcherItems: [(id: UUID, title: String, folderName: String?)] {
-        let validIDs = sessionMRUOrder.filter { id in sessions.contains { $0.id == id } }
+        let sessionByID = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
+        let folderByID = Dictionary(uniqueKeysWithValues: folders.map { ($0.id, $0) })
+        let validIDs = sessionMRUOrder.filter { sessionByID[$0] != nil }
         return validIDs.compactMap { id in
-            guard let session = sessions.first(where: { $0.id == id }) else { return nil }
-            let folder = folders.first { $0.id == session.folderID }
+            guard let session = sessionByID[id] else { return nil }
+            let folder = folderByID[session.folderID]
             return (id: id, title: displayState(for: id)?.title ?? session.title, folderName: folder?.name)
         }
     }
@@ -1373,9 +1378,11 @@ final class AppState {
         }
         let knownNames = Set(sessionsSnapshot.map(\.name))
         Task.detached {
+            let existingSessions = Set(TmuxService.listSessions())
+
             // Restore missing sessions
             for session in sessionsSnapshot {
-                if !TmuxService.sessionExists(name: session.name) {
+                if !existingSessions.contains(session.name) {
                     do {
                         try TmuxService.createSession(name: session.name, cwd: session.cwd, shellCommand: session.shellCommand)
                     } catch {
@@ -1385,8 +1392,7 @@ final class AppState {
             }
 
             // Kill orphaned sessions on the termhub socket
-            let allTmuxSessions = TmuxService.listSessions()
-            let orphans = allTmuxSessions.filter { !knownNames.contains($0) }
+            let orphans = existingSessions.filter { !knownNames.contains($0) }
             if !orphans.isEmpty {
                 print("[TermHub] Cleaning up \(orphans.count) orphaned tmux session(s)")
                 for name in orphans {
@@ -1473,15 +1479,7 @@ final class AppState {
     /// Updates the set of `.git` directories being watched for filesystem changes.
     /// Call this whenever folders or worktree sessions are added/removed.
     func updateGitFileWatcher() {
-        var paths: [String] = []
-        for folder in folders where folder.isGitRepo && folder.pathExists {
-            paths.append(folder.path)
-        }
-        for session in sessions {
-            if let worktreePath = session.worktreePath {
-                paths.append(worktreePath)
-            }
-        }
+        let paths = trackedGitPaths()
         gitFileWatcher.start(paths: paths) { [weak self] in
             Task { @MainActor [weak self] in
                 self?.refreshGitStatuses()
@@ -1493,18 +1491,9 @@ final class AppState {
     }
 
     private func refreshGitStatuses() {
-        var pathsToCheck: [String] = []
-        for folder in folders where folder.isGitRepo && folder.pathExists {
-            pathsToCheck.append(folder.path)
-        }
-        for session in sessions {
-            if let worktreePath = session.worktreePath {
-                pathsToCheck.append(worktreePath)
-            }
-        }
-        guard !pathsToCheck.isEmpty else { return }
+        let paths = trackedGitPaths()
+        guard !paths.isEmpty else { return }
 
-        let paths = pathsToCheck
         Task.detached {
             // Run git status calls in parallel instead of sequentially.
             var statuses: [String: GitStatus] = [:]
@@ -1535,6 +1524,26 @@ final class AppState {
                 _ = changed
             }
         }
+    }
+
+    private func trackedGitPaths() -> [String] {
+        var seen: Set<String> = []
+        var paths: [String] = []
+
+        for folder in folders where folder.isGitRepo && folder.pathExists {
+            if seen.insert(folder.path).inserted {
+                paths.append(folder.path)
+            }
+        }
+
+        for session in sessions {
+            if let worktreePath = session.worktreePath,
+               seen.insert(worktreePath).inserted {
+                paths.append(worktreePath)
+            }
+        }
+
+        return paths
     }
 
     /// Detects git repo status for folders that don't have it persisted yet.
