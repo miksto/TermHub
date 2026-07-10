@@ -292,6 +292,7 @@ final class AppState {
     var currentDiff: GitDiff?
     var isDiffLoading = false
     @ObservationIgnored private let gitFileWatcher = GitFileWatcher()
+    @ObservationIgnored private var gitWatchPathsByTrackedPath: [String: [String]] = [:]
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
     private var loadFailed = false
@@ -1479,8 +1480,10 @@ final class AppState {
     /// Updates the set of `.git` directories being watched for filesystem changes.
     /// Call this whenever folders or worktree sessions are added/removed.
     func updateGitFileWatcher() {
-        let paths = trackedGitPaths()
-        gitFileWatcher.start(paths: paths) { [weak self] changedPaths in
+        let watchPathsByTrackedPath = refreshGitWatchPathCache()
+        let watchedPaths = Array(Set(watchPathsByTrackedPath.values.flatMap { $0 })).sorted()
+
+        gitFileWatcher.start(paths: watchedPaths) { [weak self] changedPaths in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 let affectedPaths = self.affectedTrackedGitPaths(for: changedPaths)
@@ -1541,10 +1544,14 @@ final class AppState {
         let trackedPaths = trackedGitPaths()
         guard !trackedPaths.isEmpty, !changedPaths.isEmpty else { return [] }
 
+        let watchedPathsByTrackedPath = currentGitWatchPathsByTrackedPath(for: trackedPaths)
         var affected: [String] = []
         for trackedPath in trackedPaths {
-            if changedPaths.contains(where: { changedPath in
-                changedPath == trackedPath || changedPath.hasPrefix(trackedPath + "/")
+            let watchedPaths = watchedPathsByTrackedPath[trackedPath] ?? [trackedPath]
+            if watchedPaths.contains(where: { watchedPath in
+                changedPaths.contains(where: { changedPath in
+                    changedPath == watchedPath || changedPath.hasPrefix(watchedPath + "/")
+                })
             }) {
                 affected.append(trackedPath)
             }
@@ -1570,6 +1577,24 @@ final class AppState {
         }
 
         return paths
+    }
+
+    private func currentGitWatchPathsByTrackedPath(for trackedPaths: [String]) -> [String: [String]] {
+        let trackedPathSet = Set(trackedPaths)
+        if !gitWatchPathsByTrackedPath.isEmpty, Set(gitWatchPathsByTrackedPath.keys) == trackedPathSet {
+            return gitWatchPathsByTrackedPath
+        }
+        return refreshGitWatchPathCache(for: trackedPaths)
+    }
+
+    @discardableResult
+    private func refreshGitWatchPathCache(for trackedPaths: [String]? = nil) -> [String: [String]] {
+        let trackedPaths = trackedPaths ?? trackedGitPaths()
+        let mapping = Dictionary(uniqueKeysWithValues: trackedPaths.map { path in
+            (path, GitService.gitMetadataWatchPaths(path: path))
+        })
+        gitWatchPathsByTrackedPath = mapping
+        return mapping
     }
 
     func applyDetectedGitRepos(atPaths detectedPaths: [String]) {

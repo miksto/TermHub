@@ -102,6 +102,28 @@ enum GitService {
         }
     }
 
+    /// Returns the filesystem locations whose changes can affect git state for the given working tree.
+    /// This includes the working tree itself plus git's administrative directories, which for linked
+    /// worktrees live outside the worktree root.
+    static func gitMetadataWatchPaths(path: String) -> [String] {
+        var seen: Set<String> = []
+        var paths: [String] = []
+
+        func appendPath(_ candidate: String?) {
+            guard let candidate, !candidate.isEmpty else { return }
+            let standardized = (candidate as NSString).standardizingPath
+            if seen.insert(standardized).inserted {
+                paths.append(standardized)
+            }
+        }
+
+        appendPath(path)
+        appendPath(absoluteGitDir(path: path))
+        appendPath(gitCommonDir(path: path))
+
+        return paths
+    }
+
     static func listBranches(repoPath: String) throws -> [String] {
         let output = try run(["-C", repoPath, "branch", "--format=%(refname:short)"])
         guard !output.isEmpty else { return [] }
@@ -512,6 +534,27 @@ enum GitService {
         let (ahead, behind) = aheadBehind(path: path)
         let branch = currentBranch(repoPath: path)
         return GitStatus(linesAdded: added, linesDeleted: deleted, ahead: ahead, behind: behind, currentBranch: branch)
+    }
+
+    private static func absoluteGitDir(path: String) -> String? {
+        guard let output = try? run(["-C", path, "rev-parse", "--absolute-git-dir"]),
+              !output.isEmpty else {
+            return nil
+        }
+        return output
+    }
+
+    private static func gitCommonDir(path: String) -> String? {
+        guard let output = try? run(["-C", path, "rev-parse", "--git-common-dir"]),
+              !output.isEmpty else {
+            return nil
+        }
+
+        if (output as NSString).isAbsolutePath {
+            return output
+        }
+
+        return ((path as NSString).appendingPathComponent(output) as NSString).standardizingPath
     }
 
     /// Returns a list of untracked file paths (relative to the repo root), excluding ignored files.

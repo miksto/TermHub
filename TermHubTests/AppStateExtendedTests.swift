@@ -697,6 +697,11 @@ struct AppStateExtendedTests {
         state.folders[0].isGitRepo = true
         state.folders[1].isGitRepo = true
 
+        mock.enqueueSuccess("/tmp/.git")
+        mock.enqueueSuccess(".git")
+        mock.enqueueSuccess("/private/tmp/.git")
+        mock.enqueueSuccess(".git")
+
         let affected = state.affectedTrackedGitPaths(for: [
             "/tmp/.git/index.lock",
             "/tmp/src/main.swift",
@@ -707,14 +712,61 @@ struct AppStateExtendedTests {
         #expect(Set(affected) == Set(["/tmp", "/private/tmp"]))
     }
 
+    @Test("affectedTrackedGitPaths maps worktree git admin events back to the worktree path")
+    @MainActor
+    func affectedTrackedGitPathsIncludesWorktreeForGitAdminChanges() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.folders[0].isGitRepo = true
+        let folderID = state.folders[0].id
+        let worktreeSession = TerminalSession(
+            folderID: folderID,
+            title: "feature",
+            workingDirectory: "/tmp/repo-termhub/feature",
+            worktreePath: "/tmp/repo-termhub/feature",
+            branchName: "feature",
+            folderName: state.folders[0].name
+        )
+        state.sessions.append(worktreeSession)
+        state.folders[0].sessionIDs.append(worktreeSession.id)
+
+        mock.enqueueSuccess("/tmp/.git")
+        mock.enqueueSuccess(".git")
+        mock.enqueueSuccess("/tmp/.git/worktrees/feature")
+        mock.enqueueSuccess("/tmp/.git")
+
+        let affected = state.affectedTrackedGitPaths(for: [
+            "/tmp/.git/worktrees/feature/index"
+        ])
+
+        #expect(affected.contains("/tmp/repo-termhub/feature"))
+    }
+
     @Test("applyDetectedGitRepos hydrates branch status for newly detected folders")
     @MainActor
     func applyDetectedGitReposHydratesBranchStatus() async throws {
         mock.reset()
-        mock.enqueueSuccess("")
-        mock.enqueueSuccess("")
-        mock.enqueueSuccess("0\t0")
-        mock.enqueueSuccess("main")
+        mock.handler = { _, arguments, _ in
+            if arguments.contains("--absolute-git-dir") {
+                return CommandResult(output: "/tmp/.git", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("--git-common-dir") {
+                return CommandResult(output: ".git", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("diff") {
+                return CommandResult(output: "", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("ls-files") {
+                return CommandResult(output: "", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("rev-list") {
+                return CommandResult(output: "0\t0", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("symbolic-ref") {
+                return CommandResult(output: "main", errorOutput: "", exitCode: 0)
+            }
+            return CommandResult(output: "", errorOutput: "", exitCode: 0)
+        }
 
         let state = makeCleanAppState()
         state.addFolder(path: "/tmp")

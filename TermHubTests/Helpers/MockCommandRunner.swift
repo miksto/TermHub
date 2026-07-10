@@ -10,6 +10,7 @@ final class MockCommandRunner: CommandRunner, @unchecked Sendable {
     private(set) var calls: [Call] = []
     private var results: [CommandResult] = []
     private var callIndex = 0
+    var handler: (@Sendable (_ executablePath: String, _ arguments: [String], _ environment: [String: String]?) -> CommandResult)?
 
     /// Queue a result to be returned on the next `run` call.
     func enqueue(output: String = "", errorOutput: String = "", exitCode: Int32 = 0) {
@@ -28,6 +29,9 @@ final class MockCommandRunner: CommandRunner, @unchecked Sendable {
 
     func run(executablePath: String, arguments: [String], environment: [String: String]?) -> CommandResult {
         calls.append(Call(executablePath: executablePath, arguments: arguments))
+        if let handler {
+            return handler(executablePath, arguments, environment)
+        }
         guard callIndex < results.count else {
             return CommandResult(output: "", errorOutput: "no mock result configured", exitCode: 1)
         }
@@ -40,6 +44,7 @@ final class MockCommandRunner: CommandRunner, @unchecked Sendable {
         calls = []
         results = []
         callIndex = 0
+        handler = nil
     }
 
     var lastCall: Call? { calls.last }
