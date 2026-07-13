@@ -14,7 +14,7 @@ struct KeyboardShortcutsSheet: View {
         ("Close Session", "⌘W"),
         ("Switch Session (MRU)", "⌃Tab"),
         ("Switch Session (MRU, reverse)", "⌃⇧Tab"),
-        ("Jump to Last Input Session", "⌘⇧⌫"),
+        ("Previous Input Session", "⌘⇧⌫"),
         ("Previous Session", "⌥⌘↑"),
         ("Next Session", "⌥⌘↓"),
         ("Previous Detail Tab", "⌥⌘←"),

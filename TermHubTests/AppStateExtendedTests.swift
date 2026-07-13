@@ -181,6 +181,93 @@ struct AppStateExtendedTests {
         #expect(state.selectedSessionID == secondSessionID)
     }
 
+    @Test("selectMostRecentInputSession walks backward through input history")
+    @MainActor
+    func selectMostRecentInputWalksBackward() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let firstSessionID = state.sessions[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let secondSessionID = state.sessions[1].id
+        state.addSession(folderID: folderID, title: "Shell 3", cwd: "/tmp")
+        let thirdSessionID = state.sessions[2].id
+        state.addSession(folderID: folderID, title: "Shell 4", cwd: "/tmp")
+        let fourthSessionID = state.sessions[3].id
+
+        state.recordSessionKeyboardInput(sessionID: firstSessionID)
+        state.recordSessionKeyboardInput(sessionID: secondSessionID)
+        state.recordSessionKeyboardInput(sessionID: thirdSessionID)
+        state.recordSessionKeyboardInput(sessionID: fourthSessionID)
+
+        state.selectMostRecentInputSession()
+        #expect(state.selectedSessionID == thirdSessionID)
+        state.selectMostRecentInputSession()
+        #expect(state.selectedSessionID == secondSessionID)
+        state.selectMostRecentInputSession()
+        #expect(state.selectedSessionID == firstSessionID)
+    }
+
+    @Test("selectMostRecentInputSession moves older from a middle history entry")
+    @MainActor
+    func selectMostRecentInputMovesOlderFromMiddle() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let firstSessionID = state.sessions[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let secondSessionID = state.sessions[1].id
+        state.addSession(folderID: folderID, title: "Shell 3", cwd: "/tmp")
+        let thirdSessionID = state.sessions[2].id
+
+        state.recordSessionKeyboardInput(sessionID: firstSessionID)
+        state.recordSessionKeyboardInput(sessionID: secondSessionID)
+        state.recordSessionKeyboardInput(sessionID: thirdSessionID)
+        state.selectedSessionID = secondSessionID
+
+        state.selectMostRecentInputSession()
+
+        #expect(state.selectedSessionID == firstSessionID)
+    }
+
+    @Test("selectMostRecentInputSession stays at oldest input history entry")
+    @MainActor
+    func selectMostRecentInputStaysAtOldest() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let firstSessionID = state.sessions[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let secondSessionID = state.sessions[1].id
+
+        state.recordSessionKeyboardInput(sessionID: firstSessionID)
+        state.recordSessionKeyboardInput(sessionID: secondSessionID)
+
+        state.selectMostRecentInputSession()
+        #expect(state.selectedSessionID == firstSessionID)
+        state.selectMostRecentInputSession()
+        #expect(state.selectedSessionID == firstSessionID)
+    }
+
+    @Test("selectMostRecentInputSession starts at newest history when current is absent")
+    @MainActor
+    func selectMostRecentInputStartsAtNewestWhenCurrentAbsent() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let firstSessionID = state.sessions[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let secondSessionID = state.sessions[1].id
+
+        state.recordSessionKeyboardInput(sessionID: firstSessionID)
+        state.recordSessionKeyboardInput(sessionID: secondSessionID)
+        state.selectedSessionID = UUID()
+
+        state.selectMostRecentInputSession()
+
+        #expect(state.selectedSessionID == secondSessionID)
+    }
+
     @Test("selectMostRecentInputSession no-ops without another interacted session")
     @MainActor
     func selectMostRecentInputNoOtherSession() {

@@ -783,6 +783,9 @@ final class AppState {
         saveState()
 
         updateGitFileWatcher()
+        if folder.isGitRepo {
+            refreshGitStatuses(for: [folder.path])
+        }
 
         if selectedSessionID == nil {
             selectedSessionID = session.id
@@ -853,8 +856,9 @@ final class AppState {
         selectedSessionID = session.id
         sessionListVersion += 1
         saveState()
-        if worktreePath != nil {
+        if let worktreePath {
             updateGitFileWatcher()
+            refreshGitStatuses(for: [worktreePath])
         }
     }
 
@@ -1278,10 +1282,24 @@ final class AppState {
 
     func selectMostRecentInputSession() {
         let validIDs = sessionInputMRUOrder.filter { id in
-            id != selectedSessionID && sessions.contains { $0.id == id }
+            sessions.contains { $0.id == id }
         }
-        guard let id = validIDs.first else { return }
-        selectedSessionID = id
+        guard !validIDs.isEmpty else { return }
+
+        let nextIndex: Int
+        if let selectedSessionID,
+           let currentIndex = validIDs.firstIndex(of: selectedSessionID) {
+            // Move one step toward older input history. Stay at the oldest entry
+            // instead of wrapping back to the newest session.
+            nextIndex = currentIndex + 1
+        } else {
+            // If the selected session has not received keyboard input, begin at
+            // the most recently interacted session.
+            nextIndex = 0
+        }
+
+        guard validIDs.indices.contains(nextIndex) else { return }
+        selectedSessionID = validIDs[nextIndex]
     }
 
     /// Sessions in MRU order with display info for the switcher overlay.
@@ -1487,11 +1505,14 @@ final class AppState {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 let affectedPaths = self.affectedTrackedGitPaths(for: changedPaths)
-                guard !affectedPaths.isEmpty else { return }
-                self.refreshGitStatuses(for: affectedPaths)
+                // FSEvents can report a path with a different spelling (for example
+                // through a symlink), so use a full refresh if the path mapping did
+                // not identify a tracked repository. The watcher already limits
+                // this to changes below one of the tracked paths.
+                self.refreshGitStatuses(for: affectedPaths.isEmpty ? self.trackedGitPaths() : affectedPaths)
                 if self.currentDetailTab == .gitDiff,
                    let currentPath = self.selectedSessionGitPath,
-                   affectedPaths.contains(currentPath) {
+                   (affectedPaths.isEmpty || affectedPaths.contains(currentPath)) {
                     self.loadDiffForCurrentSession()
                 }
             }
