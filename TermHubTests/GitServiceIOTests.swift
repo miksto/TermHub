@@ -220,6 +220,24 @@ struct GitServiceIOTests {
         #expect(call.arguments.last == "main")
     }
 
+    // MARK: - createBranch
+
+    @Test("createBranch uses git checkout -b")
+    func createBranchCommand() throws {
+        mock.enqueueSuccess()
+        try GitService.createBranch(repoPath: "/tmp/repo", branch: "feature/login")
+
+        #expect(mock.lastCall?.arguments == ["-C", "/tmp/repo", "checkout", "-b", "feature/login"])
+    }
+
+    @Test("createBranch includes start point")
+    func createBranchStartPoint() throws {
+        mock.enqueueSuccess()
+        try GitService.createBranch(repoPath: "/tmp/repo", branch: "feature/login", startPoint: "main")
+
+        #expect(mock.lastCall?.arguments == ["-C", "/tmp/repo", "checkout", "-b", "feature/login", "main"])
+    }
+
     // MARK: - removeWorktree
 
     @Test("removeWorktree runs correct command")

@@ -588,6 +588,48 @@ struct IPCServerTests {
         #expect(response.error?.contains("not a git repo") == true)
     }
 
+    // MARK: - createBranch
+
+    @Test("createBranch fails when folderPath is missing")
+    @MainActor
+    func createBranchMissingFolderPath() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createBranch",
+            params: ["branch": .string("feature")]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("folderPath") == true)
+    }
+
+    @Test("createBranch fails when branch is missing")
+    @MainActor
+    func createBranchMissingBranch() async {
+        let (server, state) = makeServerAndState()
+        _ = state
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createBranch",
+            params: ["folderPath": .string("/tmp")]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("branch") == true)
+    }
+
+    @Test("createBranch fails for non-git folder")
+    @MainActor
+    func createBranchNonGitFolder() async {
+        let (server, state) = makeServerAndState()
+        state.addFolder(path: "/tmp")
+
+        let response = await server.handleRequest(data: encode(IPCRequest(
+            action: "createBranch",
+            params: ["folderPath": .string("/tmp"), "branch": .string("feature")]
+        )))
+        #expect(!response.ok)
+        #expect(response.error?.contains("not a git repo") == true)
+    }
+
     // MARK: - addSession with optional params
 
     @Test("addSession with worktree and sandbox params")

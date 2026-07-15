@@ -61,7 +61,7 @@ struct MCPToolsTests {
         let expectedNames = [
             "list_sessions", "add_session", "remove_session", "select_session", "rename_session",
             "list_folders", "add_folder", "remove_folder",
-            "create_worktree", "send_keys",
+            "create_worktree", "create_branch", "send_keys",
             "list_sandboxes", "create_sandbox", "stop_sandbox", "remove_sandbox",
         ]
 

@@ -170,6 +170,9 @@ final class IPCServer {
         case "createWorktree":
             return await createWorktree(appState, params: params)
 
+        case "createBranch":
+            return await createBranch(appState, params: params)
+
         case "listSandboxes":
             let sandboxes = appState.sandboxes.map { sandbox in
                 IPCValue.object([
@@ -462,6 +465,35 @@ final class IPCServer {
             ]))
         } catch {
             return .failure("Failed to create worktree: \(error.localizedDescription)")
+        }
+    }
+
+    private func createBranch(_ state: AppState, params: [String: IPCValue]) async -> IPCResponse {
+        guard let folderPath = params["folderPath"]?.stringValue else {
+            return .failure("Missing 'folderPath' parameter")
+        }
+
+        guard let branch = params["branch"]?.stringValue,
+              !branch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return .failure("Missing 'branch' parameter")
+        }
+
+        guard let folder = state.folders.first(where: { $0.path == folderPath }) else {
+            return .failure("Folder not found: \(folderPath)")
+        }
+
+        guard folder.isGitRepo else {
+            return .failure("Folder is not a git repo: \(folderPath)")
+        }
+
+        let startPoint = params["startPoint"]?.stringValue
+        do {
+            try await Task.detached {
+                try GitService.createBranch(repoPath: folderPath, branch: branch, startPoint: startPoint)
+            }.value
+            return .success(.object(["branch": .string(branch)]))
+        } catch {
+            return .failure("Failed to create branch: \(error.localizedDescription)")
         }
     }
 

@@ -130,6 +130,15 @@ enum GitService {
         return output.components(separatedBy: "\n").filter { !$0.isEmpty }
     }
 
+    /// Creates and checks out a local branch in the repository's current worktree.
+    static func createBranch(repoPath: String, branch: String, startPoint: String? = nil) throws {
+        var args = ["-C", repoPath, "checkout", "-b", branch]
+        if let startPoint {
+            args.append(startPoint)
+        }
+        try run(args)
+    }
+
     static func listWorktreeBranchesWithDatesAndCurrent(repoPath: String) throws -> [BranchInfo] {
         let output = try run([
             "-C", repoPath,

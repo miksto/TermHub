@@ -144,6 +144,21 @@ enum MCPTools {
             ],
             required: ["folderPath", "branch"]
         ),
+        toolDef(
+            name: "create_branch",
+            description: """
+                Create and check out a local git branch in the managed repository. This does not create \
+                a worktree or terminal session. The folder must already be managed by TermHub and be a \
+                git repository (use list_folders or get_workspace_overview to verify). Optionally provide \
+                startPoint to create the branch from a specific commit, tag, or branch; it defaults to HEAD.
+                """,
+            properties: [
+                "folderPath": propString("Absolute path of a managed folder that is a git repo. Get this from list_folders or get_workspace_overview."),
+                "branch": propString("Name of the new local branch to create."),
+                "startPoint": propString("Git ref (commit SHA, tag, or branch name) to start the new checked-out branch from. Defaults to HEAD if omitted."),
+            ],
+            required: ["folderPath", "branch"]
+        ),
 
         // Tmux Operations (direct)
         toolDef(
@@ -233,6 +248,7 @@ enum MCPTools {
              "add_folder",
              "remove_folder",
              "create_worktree",
+             "create_branch",
              "list_sandboxes",
              "create_sandbox",
              "stop_sandbox",
