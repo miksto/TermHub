@@ -15,6 +15,7 @@ struct NewBranchSheet: View {
     @State private var errorMessage: String?
     @State private var isCreating = false
     @State private var isLoading = true
+    @State private var hasAppliedInitialSandbox = false
 
     private var isValid: Bool {
         !branchName.trimmingCharacters(in: .whitespaces).isEmpty
@@ -22,9 +23,20 @@ struct NewBranchSheet: View {
 
     private var selectedSandboxAgent: SandboxAgent? {
         guard let name = selectedSandbox,
-              let sandbox = appState.sandboxes.first(where: { $0.name == name })
+              let sandbox = applicableSandboxes.first(where: { $0.name == name })
         else { return nil }
         return SandboxAgent(rawValue: sandbox.agent)
+    }
+
+    private var sandboxTargetPath: String? {
+        let branch = branchName.trimmingCharacters(in: .whitespaces)
+        guard !branch.isEmpty else { return nil }
+        return GitService.worktreePath(repoPath: folder.path, branch: branch)
+    }
+
+    private var applicableSandboxes: [SandboxInfo] {
+        guard let sandboxTargetPath else { return [] }
+        return appState.sandboxes(applicableTo: sandboxTargetPath)
     }
 
     var body: some View {
@@ -62,13 +74,13 @@ struct NewBranchSheet: View {
                 }
             }
 
-            if !appState.sandboxes.isEmpty {
+            if !applicableSandboxes.isEmpty {
                 HStack {
                     Label("Sandbox:", systemImage: "shippingbox")
                         .font(.subheadline)
                     Picker("", selection: $selectedSandbox) {
                         Text("No Sandbox").tag(String?.none)
-                        ForEach(appState.sandboxes, id: \.name) { sandbox in
+                        ForEach(applicableSandboxes, id: \.name) { sandbox in
                             Text(sandbox.name).tag(Optional(sandbox.name))
                         }
                     }
@@ -107,9 +119,13 @@ struct NewBranchSheet: View {
         .frame(minWidth: 350)
         .task {
             loadBranches()
-            if let initialSandbox, appState.sandboxes.contains(where: { $0.name == initialSandbox }) {
-                selectedSandbox = initialSandbox
-            }
+            normalizeSelectedSandbox()
+        }
+        .onChange(of: sandboxTargetPath) {
+            normalizeSelectedSandbox()
+        }
+        .onChange(of: applicableSandboxes.map(\.name)) {
+            normalizeSelectedSandbox()
         }
     }
 
@@ -188,6 +204,18 @@ struct NewBranchSheet: View {
                     isCreating = false
                 }
             }
+        }
+    }
+
+    private func normalizeSelectedSandbox() {
+        let availableNames = Set(applicableSandboxes.map(\.name))
+        if let selectedSandbox, !availableNames.contains(selectedSandbox) {
+            self.selectedSandbox = nil
+        }
+        guard !hasAppliedInitialSandbox, !availableNames.isEmpty else { return }
+        hasAppliedInitialSandbox = true
+        if let initialSandbox, availableNames.contains(initialSandbox) {
+            selectedSandbox = initialSandbox
         }
     }
 }

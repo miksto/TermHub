@@ -58,7 +58,7 @@ struct TermHubApp: App {
                     newShellInCurrentFolder(pickSandbox: true)
                 }
                 .keyboardShortcut("t", modifiers: [.command, .option])
-                .disabled(appState.selectedSession == nil || appState.sandboxes.isEmpty)
+                .disabled(appState.selectedSession == nil || applicableSandboxesForSelectedSession().isEmpty)
             }
 
             CommandGroup(replacing: .saveItem) {
@@ -234,10 +234,11 @@ struct TermHubApp: App {
         }
 
         let sandboxName: String?
-        if pickSandbox && !appState.sandboxes.isEmpty {
-            if appState.sandboxes.count == 1 {
-                sandboxName = appState.sandboxes[0].name
-            } else {
+        let applicableSandboxes = appState.sandboxes(applicableTo: cwd)
+        if pickSandbox {
+            if applicableSandboxes.count == 1 {
+                sandboxName = applicableSandboxes[0].name
+            } else if applicableSandboxes.count > 1 {
                 appState.pendingSandboxPickerContext = AppState.SandboxPickerContext(
                     folderID: folder.id,
                     folderName: folder.name,
@@ -245,6 +246,8 @@ struct TermHubApp: App {
                     worktreePath: session.worktreePath,
                     branchName: session.branchName
                 )
+                return
+            } else {
                 return
             }
         } else {
@@ -267,5 +270,12 @@ struct TermHubApp: App {
             branchName: session.branchName,
             sandboxName: sandboxName
         )
+    }
+
+    private func applicableSandboxesForSelectedSession() -> [SandboxInfo] {
+        guard let session = appState.selectedSession,
+              let folder = appState.folders.first(where: { $0.id == session.folderID })
+        else { return [] }
+        return appState.sandboxes(applicableTo: session.worktreePath ?? folder.path)
     }
 }

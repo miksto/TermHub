@@ -986,6 +986,11 @@ final class AppState {
         sandboxes.first { $0.name == name }
     }
 
+    /// Sandboxes that mount the directory where a new session will start.
+    func sandboxes(applicableTo directory: String) -> [SandboxInfo] {
+        sandboxes.filter { $0.applies(to: directory) }
+    }
+
     func refreshSandboxes() {
         guard !sandboxRefreshInProgress else { return }
         sandboxRefreshInProgress = true

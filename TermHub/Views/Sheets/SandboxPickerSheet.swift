@@ -15,6 +15,10 @@ struct ShellSandboxPickerSheet: View {
     @State private var selectedIndex = 0
     @FocusState private var isFocused: Bool
 
+    private var applicableSandboxes: [SandboxInfo] {
+        appState.sandboxes(applicableTo: cwd)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Text("Select Sandbox")
@@ -40,7 +44,7 @@ struct ShellSandboxPickerSheet: View {
                     confirmSelection()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(appState.sandboxes.isEmpty)
+                .disabled(applicableSandboxes.isEmpty)
             }
             .padding()
         }
@@ -48,9 +52,12 @@ struct ShellSandboxPickerSheet: View {
         .onAppear {
             isFocused = true
             if let initialSandboxName,
-               let index = appState.sandboxes.firstIndex(where: { $0.name == initialSandboxName }) {
+               let index = applicableSandboxes.firstIndex(where: { $0.name == initialSandboxName }) {
                 selectedIndex = index
             }
+        }
+        .onChange(of: applicableSandboxes.map(\.name)) { _, names in
+            selectedIndex = min(selectedIndex, max(0, names.count - 1))
         }
         .focusable()
         .focused($isFocused)
@@ -60,7 +67,7 @@ struct ShellSandboxPickerSheet: View {
             return .handled
         }
         .onKeyPress(.downArrow) {
-            if selectedIndex < appState.sandboxes.count - 1 { selectedIndex += 1 }
+            if selectedIndex < applicableSandboxes.count - 1 { selectedIndex += 1 }
             return .handled
         }
         .onKeyPress(.return) {
@@ -70,7 +77,7 @@ struct ShellSandboxPickerSheet: View {
     }
 
     private var sandboxListView: some View {
-        let sandboxes = appState.sandboxes
+        let sandboxes = applicableSandboxes
         return Group {
             if sandboxes.isEmpty {
                 Text("No sandboxes available")
@@ -146,7 +153,7 @@ struct ShellSandboxPickerSheet: View {
     }
 
     private func confirmSelection() {
-        let sandboxes = appState.sandboxes
+        let sandboxes = applicableSandboxes
         guard selectedIndex < sandboxes.count else { return }
         let sandbox = sandboxes[selectedIndex]
 

@@ -12,8 +12,12 @@ struct ShellSplitButton: View {
     var optionKeyDown: Bool = false
     var pathExists: Bool = true
 
+    private var applicableSandboxes: [SandboxInfo] {
+        appState.sandboxes(applicableTo: cwd)
+    }
+
     var body: some View {
-        if appState.sandboxes.isEmpty {
+        if applicableSandboxes.isEmpty {
             Button { createSession(sandboxName: nil) } label: {
                 Label("Shell", systemImage: "terminal")
                     .font(.caption)
@@ -43,8 +47,8 @@ struct ShellSplitButton: View {
 
             if optionKeyDown {
                 Button {
-                    if appState.sandboxes.count == 1 {
-                        createSession(sandboxName: appState.sandboxes[0].name)
+                    if applicableSandboxes.count == 1 {
+                        createSession(sandboxName: applicableSandboxes[0].name)
                     } else {
                         appState.pendingSandboxPickerContext = AppState.SandboxPickerContext(
                             folderID: folderID,
@@ -70,7 +74,7 @@ struct ShellSplitButton: View {
                         Label("Shell", systemImage: "terminal")
                     }
                     Divider()
-                    ForEach(appState.sandboxes, id: \.name) { sandbox in
+                    ForEach(applicableSandboxes, id: \.name) { sandbox in
                         Button { createSession(sandboxName: sandbox.name) } label: {
                             Label(sandbox.name, systemImage: "shippingbox")
                         }

@@ -328,6 +328,29 @@ struct SbxServiceTests {
         #expect(other.isStopped == false)
     }
 
+    @Test("SandboxInfo applies to mapped workspace and descendants only")
+    func sandboxInfoWorkspaceApplicability() {
+        let sandbox = SandboxInfo(
+            name: "workspace",
+            agent: "claude",
+            status: "running",
+            workspaces: ["/projects/app/", "/shared"]
+        )
+
+        #expect(sandbox.applies(to: "/projects/app"))
+        #expect(sandbox.applies(to: "/projects/app/worktree/feature"))
+        #expect(sandbox.applies(to: "/shared/tools"))
+        #expect(!sandbox.applies(to: "/projects/app-termhub/feature"))
+        #expect(!sandbox.applies(to: "/projects/application"))
+    }
+
+    @Test("SandboxInfo root workspace applies to every absolute target")
+    func sandboxInfoRootWorkspaceApplicability() {
+        let sandbox = SandboxInfo(name: "root", agent: "shell", status: "running", workspaces: ["/"])
+
+        #expect(sandbox.applies(to: "/projects/app"))
+    }
+
     @Test("SandboxInfo decodes from JSON with missing optional fields")
     func sandboxInfoDecodesPartial() throws {
         let json = """

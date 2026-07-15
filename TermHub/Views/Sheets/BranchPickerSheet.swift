@@ -18,6 +18,8 @@ struct BranchPickerSheet: View {
     @State private var isCreating = false
     @State private var showAttachConfirmation = false
     @State private var existingWorktreePath: String?
+    @State private var resolvedWorktreePaths: [String: String] = [:]
+    @State private var hasAppliedInitialSandbox = false
     @FocusState private var isSearchFocused: Bool
 
     private var filteredBranches: [BranchInfo] {
@@ -45,9 +47,20 @@ struct BranchPickerSheet: View {
 
     private var selectedSandboxAgent: SandboxAgent? {
         guard let name = selectedSandbox,
-              let sandbox = appState.sandboxes.first(where: { $0.name == name })
+              let sandbox = applicableSandboxes.first(where: { $0.name == name })
         else { return nil }
         return SandboxAgent(rawValue: sandbox.agent)
+    }
+
+    private var sandboxTargetPath: String? {
+        guard let branch = selectedBranch else { return nil }
+        return resolvedWorktreePaths[branch.name]
+            ?? GitService.worktreePath(repoPath: folder.path, branch: branch.name)
+    }
+
+    private var applicableSandboxes: [SandboxInfo] {
+        guard let sandboxTargetPath else { return [] }
+        return appState.sandboxes(applicableTo: sandboxTargetPath)
     }
 
     var body: some View {
@@ -96,13 +109,13 @@ struct BranchPickerSheet: View {
 
             Divider()
 
-            if !appState.sandboxes.isEmpty {
+            if !applicableSandboxes.isEmpty {
                 HStack {
                     Label("Sandbox:", systemImage: "shippingbox")
                         .font(.subheadline)
                     Picker("", selection: $selectedSandbox) {
                         Text("No Sandbox").tag(String?.none)
-                        ForEach(appState.sandboxes, id: \.name) { sandbox in
+                        ForEach(applicableSandboxes, id: \.name) { sandbox in
                             Text(sandbox.name).tag(Optional(sandbox.name))
                         }
                     }
@@ -142,12 +155,16 @@ struct BranchPickerSheet: View {
         .frame(minWidth: 400, minHeight: 400)
         .onAppear {
             isSearchFocused = true
-            if let initialSandbox, appState.sandboxes.contains(where: { $0.name == initialSandbox }) {
-                selectedSandbox = initialSandbox
-            }
+            normalizeSelectedSandbox()
         }
         .onChange(of: searchText) {
             selectedIndex = 0
+        }
+        .onChange(of: sandboxTargetPath) {
+            normalizeSelectedSandbox()
+        }
+        .onChange(of: applicableSandboxes.map(\.name)) {
+            normalizeSelectedSandbox()
         }
         .onKeyPress(.upArrow) {
             if selectedIndex > 0 { selectedIndex -= 1 }
@@ -175,6 +192,16 @@ struct BranchPickerSheet: View {
         }
         .task {
             loadBranches()
+        }
+        .task(id: selectedBranch?.name) {
+            guard let branch = selectedBranch else { return }
+            let branchName = branch.name
+            let folderPath = folder.path
+            let existingPath = await Task.detached {
+                try? GitService.findExistingWorktree(repoPath: folderPath, branch: branchName)
+            }.value
+            guard !Task.isCancelled, let existingPath else { return }
+            resolvedWorktreePaths[branchName] = existingPath
         }
     }
 
@@ -332,6 +359,11 @@ struct BranchPickerSheet: View {
             do {
                 if let path = try GitService.findExistingWorktree(repoPath: folderPath, branch: branchName) {
                     await MainActor.run {
+                        resolvedWorktreePaths[branchName] = path
+                        if let selectedSandbox,
+                           !appState.sandboxes(applicableTo: path).contains(where: { $0.name == selectedSandbox }) {
+                            self.selectedSandbox = nil
+                        }
                         existingWorktreePath = path
                         showAttachConfirmation = true
                         isCreating = false
@@ -401,5 +433,17 @@ struct BranchPickerSheet: View {
         }
 
         dismiss()
+    }
+
+    private func normalizeSelectedSandbox() {
+        let availableNames = Set(applicableSandboxes.map(\.name))
+        if let selectedSandbox, !availableNames.contains(selectedSandbox) {
+            self.selectedSandbox = nil
+        }
+        guard !hasAppliedInitialSandbox, !availableNames.isEmpty else { return }
+        hasAppliedInitialSandbox = true
+        if let initialSandbox, availableNames.contains(initialSandbox) {
+            selectedSandbox = initialSandbox
+        }
     }
 }

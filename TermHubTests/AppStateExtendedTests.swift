@@ -588,6 +588,21 @@ struct AppStateExtendedTests {
         #expect(state.sandboxInfo(named: "sb3") == nil)
     }
 
+    @Test("applicable sandboxes include only mapped session destinations")
+    @MainActor
+    func applicableSandboxesFiltersByWorkingDirectory() {
+        let state = makeCleanAppState()
+        state.sandboxes = [
+            SandboxInfo(name: "project", agent: "claude", status: "running", workspaces: ["/projects/app"]),
+            SandboxInfo(name: "shared", agent: "shell", status: "running", workspaces: ["/projects", "/tmp"]),
+            SandboxInfo(name: "other", agent: "codex", status: "running", workspaces: ["/other"]),
+        ]
+
+        #expect(state.sandboxes(applicableTo: "/projects/app/worktree").map(\.name) == ["project", "shared"])
+        #expect(state.sandboxes(applicableTo: "/projects/app-termhub/feature").map(\.name) == ["shared"])
+        #expect(state.sandboxes(applicableTo: "/nowhere").isEmpty)
+    }
+
     // MARK: - selectNextSessionNeedingAttention
 
     @Test("selectNextSessionNeedingAttention does nothing when no attention needed")
