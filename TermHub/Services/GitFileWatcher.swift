@@ -17,7 +17,11 @@ final class GitFileWatcher: @unchecked Sendable {
     func start(paths: [String], onChange: @escaping @Sendable ([String]) -> Void) {
         queue.async { [self] in
             let sorted = paths.sorted()
-            guard !sorted.isEmpty else { return }
+            guard !sorted.isEmpty else {
+                self.stop()
+                self.onChange = nil
+                return
+            }
 
             // Skip if already watching the same paths.
             if sorted == self.watchedPaths, self.stream != nil {
@@ -48,11 +52,19 @@ final class GitFileWatcher: @unchecked Sendable {
                 FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
                 0.3,
                 UInt32(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagNoDefer)
-            ) else { return }
+            ) else {
+                print("[TermHub] Failed to create Git filesystem watcher for: \(sorted.joined(separator: ", "))")
+                return
+            }
 
             self.stream = stream
             FSEventStreamSetDispatchQueue(stream, self.queue)
-            FSEventStreamStart(stream)
+            if !FSEventStreamStart(stream) {
+                print("[TermHub] Failed to start Git filesystem watcher for: \(sorted.joined(separator: ", "))")
+                FSEventStreamInvalidate(stream)
+                FSEventStreamRelease(stream)
+                self.stream = nil
+            }
         }
     }
 

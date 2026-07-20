@@ -864,7 +864,7 @@ struct AppStateExtendedTests {
             if arguments.contains("rev-list") {
                 return CommandResult(output: "0\t0", errorOutput: "", exitCode: 0)
             }
-            if arguments.contains("symbolic-ref") {
+            if arguments.contains("symbolic-ref") || arguments.contains("--show-current") {
                 return CommandResult(output: "main", errorOutput: "", exitCode: 0)
             }
             return CommandResult(output: "", errorOutput: "", exitCode: 0)
@@ -880,6 +880,106 @@ struct AppStateExtendedTests {
 
         #expect(state.folders[0].isGitRepo == true)
         #expect(state.gitStatuses["/tmp"]?.currentBranch == "main")
+    }
+
+    @Test("adding a Git folder detects it and hydrates its status")
+    @MainActor
+    func addFolderDetectsGitRepo() async throws {
+        mock.reset()
+        mock.handler = { _, arguments, _ in
+            if arguments.contains("rev-parse"), arguments.contains("--git-dir") {
+                return CommandResult(output: ".git", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("diff") {
+                return CommandResult(output: "", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("ls-files") {
+                return CommandResult(output: "", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("rev-list") {
+                return CommandResult(output: "0\t0", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("symbolic-ref") || arguments.contains("--show-current") {
+                return CommandResult(output: "main", errorOutput: "", exitCode: 0)
+            }
+            return CommandResult(output: "", errorOutput: "", exitCode: 0)
+        }
+
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        #expect(state.folders[0].isGitRepo == true)
+        #expect(state.gitStatuses["/tmp"]?.currentBranch == "main")
+    }
+
+    @Test("targeted Git refresh preserves statuses for other tracked folders")
+    @MainActor
+    func targetedGitRefreshPreservesOtherStatuses() async throws {
+        mock.reset()
+        mock.handler = { _, arguments, _ in
+            let path = arguments.count > 1 ? arguments[1] : ""
+            if arguments.contains("rev-parse"), arguments.contains("--git-dir") {
+                return CommandResult(output: ".git", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("rev-parse"), arguments.contains("--verify") {
+                return CommandResult(output: "abc123", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("diff") {
+                let output = path == "/tmp" ? "8\t3\tApp.swift" : ""
+                return CommandResult(output: output, errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("ls-files") {
+                return CommandResult(output: "", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("rev-list") {
+                return CommandResult(output: "0\t0", errorOutput: "", exitCode: 0)
+            }
+            if arguments.contains("--show-current") {
+                return CommandResult(output: path == "/tmp" ? "main" : "develop", errorOutput: "", exitCode: 0)
+            }
+            return CommandResult(output: "", errorOutput: "", exitCode: 0)
+        }
+
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.addFolder(path: "/var")
+        state.folders[0].isGitRepo = true
+        state.folders[1].isGitRepo = true
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        let otherStatus = GitStatus(linesAdded: 5, linesDeleted: 2, ahead: 0, behind: 0, currentBranch: "develop")
+        state.gitStatuses["/var"] = otherStatus
+        state.refreshGitStatuses(for: ["/tmp"])
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        #expect(state.gitStatuses["/tmp"]?.currentBranch == "main")
+        #expect(state.gitStatuses["/tmp"]?.linesAdded == 8)
+        #expect(state.gitStatuses["/tmp"]?.linesDeleted == 3)
+        #expect(state.gitStatuses["/var"] == otherStatus)
+    }
+
+    @Test("failed Git refresh keeps the last known status")
+    @MainActor
+    func failedGitRefreshKeepsLastStatus() async throws {
+        mock.reset()
+        mock.handler = { _, arguments, _ in
+            if arguments.contains("rev-parse"), arguments.contains("--git-dir") {
+                return CommandResult(output: "", errorOutput: "fatal: worktree unavailable", exitCode: 1)
+            }
+            return CommandResult(output: "", errorOutput: "", exitCode: 0)
+        }
+
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.folders[0].isGitRepo = true
+        let previous = GitStatus(linesAdded: 6, linesDeleted: 1, ahead: 0, behind: 0, currentBranch: "main")
+        state.gitStatuses["/tmp"] = previous
+
+        state.refreshGitStatuses(for: ["/tmp"])
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        #expect(state.gitStatuses["/tmp"] == previous)
     }
 }
 

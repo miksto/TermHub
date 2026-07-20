@@ -111,6 +111,52 @@ struct GitServiceIOTests {
         #expect(GitService.currentBranch(repoPath: "/tmp/repo") == nil)
     }
 
+    // MARK: - status
+
+    @Test("status returns branch and diff statistics")
+    func statusReturnsSnapshot() throws {
+        mock.enqueueSuccess(".git")
+        mock.enqueueSuccess("abc123")
+        mock.enqueueSuccess("12\t4\tSources/App.swift")
+        mock.enqueueSuccess("")
+        mock.enqueueSuccess("2\t1")
+        mock.enqueueSuccess("feature/status-refresh")
+
+        let status = try GitService.status(path: "/tmp/repo")
+
+        #expect(status.linesAdded == 12)
+        #expect(status.linesDeleted == 4)
+        #expect(status.ahead == 2)
+        #expect(status.behind == 1)
+        #expect(status.currentBranch == "feature/status-refresh")
+    }
+
+    @Test("status supports a repository without an initial commit")
+    func statusSupportsUnbornHead() throws {
+        mock.enqueueSuccess(".git")
+        mock.enqueueFailure("")
+        mock.enqueueSuccess("7\t0\tREADME.md")
+        mock.enqueueSuccess("")
+        mock.enqueueFailure("fatal: no upstream configured")
+        mock.enqueueSuccess("main")
+
+        let status = try GitService.status(path: "/tmp/repo")
+
+        #expect(status.linesAdded == 7)
+        #expect(status.linesDeleted == 0)
+        #expect(status.currentBranch == "main")
+        #expect(mock.calls[2].arguments.contains("--cached"))
+    }
+
+    @Test("status throws instead of returning an empty snapshot when git fails")
+    func statusThrowsOnGitFailure() {
+        mock.enqueueFailure("fatal: cannot change to '/tmp/missing'")
+
+        #expect(throws: GitServiceError.self) {
+            try GitService.status(path: "/tmp/missing")
+        }
+    }
+
     // MARK: - listBranchesWithDates
 
     @Test("listBranchesWithDates parses branch and date")

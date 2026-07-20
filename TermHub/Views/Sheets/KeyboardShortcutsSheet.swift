@@ -10,6 +10,7 @@ struct KeyboardShortcutsSheet: View {
         ("New Sandboxed Shell", "⌥⌘T"),
         ("Add Folder", "⌘O"),
         ("New Worktree", "⌘N"),
+        ("New Branch", "⌘⇧B"),
         ("Switch Branch / Worktree", "⌘B"),
         ("Close Session", "⌘W"),
         ("Switch Session (MRU)", "⌃Tab"),

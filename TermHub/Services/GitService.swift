@@ -491,23 +491,42 @@ enum GitService {
 
     /// Returns (linesAdded, linesDeleted) for uncommitted changes (staged + unstaged), including untracked files.
     static func diffStats(path: String) -> (added: Int, deleted: Int) {
+        (try? checkedDiffStats(path: path)) ?? (0, 0)
+    }
+
+    /// Status refreshes use the throwing variant so a transient git failure does not get
+    /// mistaken for a clean working tree and overwrite the last known-good status.
+    private static func checkedDiffStats(path: String) throws -> (added: Int, deleted: Int) {
         var added = 0
         var deleted = 0
+        // Repositories without an initial commit do not have HEAD. Their tracked
+        // changes are all staged, so compare the index instead.
+        let hasHead: Bool
         do {
-            let output = try run(["-C", path, "diff", "--numstat", "HEAD"])
-            for line in output.components(separatedBy: "\n") where !line.isEmpty {
-                let parts = line.split(separator: "\t")
-                guard parts.count >= 2 else { continue }
-                // Binary files show "-" instead of numbers
-                added += Int(parts[0]) ?? 0
-                deleted += Int(parts[1]) ?? 0
-            }
+            _ = try run(["-C", path, "rev-parse", "--verify", "--quiet", "HEAD"])
+            hasHead = true
+        } catch GitServiceError.commandFailed(let message) where message.isEmpty {
+            // `--quiet` intentionally produces no diagnostic for an unborn HEAD.
+            hasHead = false
         } catch {
-            // no tracked changes
+            throw error
+        }
+        let diffArguments = hasHead
+            ? ["-C", path, "diff", "--numstat", "HEAD"]
+            : ["-C", path, "diff", "--cached", "--numstat"]
+        let output = try run(diffArguments)
+        for line in output.components(separatedBy: "\n") where !line.isEmpty {
+            let parts = line.split(separator: "\t")
+            guard parts.count >= 2 else { continue }
+            // Binary files show "-" instead of numbers
+            added += Int(parts[0]) ?? 0
+            deleted += Int(parts[1]) ?? 0
         }
 
         // Count lines in untracked files as additions.
-        for file in untrackedFiles(path: path) {
+        let untrackedOutput = try run(["-C", path, "ls-files", "--others", "--exclude-standard"])
+        let untrackedFiles = untrackedOutput.components(separatedBy: "\n").filter { !$0.isEmpty }
+        for file in untrackedFiles {
             let fullPath = (path as NSString).appendingPathComponent(file)
             guard let data = FileManager.default.contents(atPath: fullPath),
                   !data.prefix(min(data.count, 8192)).contains(0x00),
@@ -538,10 +557,16 @@ enum GitService {
         }
     }
 
-    static func status(path: String) -> GitStatus {
-        let (added, deleted) = diffStats(path: path)
+    static func status(path: String) throws -> GitStatus {
+        // Validate the working tree first. In particular, do not turn a removed or
+        // temporarily inaccessible worktree into an all-zero status.
+        _ = try run(["-C", path, "rev-parse", "--git-dir"])
+        let (added, deleted) = try checkedDiffStats(path: path)
         let (ahead, behind) = aheadBehind(path: path)
-        let branch = currentBranch(repoPath: path)
+        // Unlike symbolic-ref, `branch --show-current` succeeds with empty output
+        // for a valid detached HEAD, while still surfacing real command failures.
+        let branchOutput = try run(["-C", path, "branch", "--show-current"])
+        let branch = branchOutput.isEmpty ? nil : branchOutput
         return GitStatus(linesAdded: added, linesDeleted: deleted, ahead: ahead, behind: behind, currentBranch: branch)
     }
 

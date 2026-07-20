@@ -114,6 +114,16 @@ struct TermHubApp: App {
                 .keyboardShortcut("n", modifiers: .command)
                 .disabled(appState.selectedSession == nil)
 
+                Button("New Branch…") {
+                    if let session = appState.selectedSession,
+                       let folder = appState.folders.first(where: { $0.id == session.folderID }),
+                       folder.isGitRepo {
+                        appState.pendingCheckoutBranchFolder = folder
+                    }
+                }
+                .keyboardShortcut("b", modifiers: [.command, .shift])
+                .disabled(appState.selectedSession == nil || appState.folderForSelectedSession?.isGitRepo != true)
+
                 Button("Toggle Git Diff") {
                     appState.toggleDetailTab()
                 }

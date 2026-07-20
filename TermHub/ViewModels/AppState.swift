@@ -233,6 +233,7 @@ final class AppState {
     var tmuxAvailable: Bool = false
     var pendingWorktreeFolder: ManagedFolder?
     var pendingNewBranchFolder: ManagedFolder?
+    var pendingCheckoutBranchFolder: ManagedFolder?
     var errorMessage: String?
     var pendingRemoveFolderID: UUID?
     var showKeyboardShortcuts = false
@@ -293,6 +294,8 @@ final class AppState {
     var isDiffLoading = false
     @ObservationIgnored private let gitFileWatcher = GitFileWatcher()
     @ObservationIgnored private var gitWatchPathsByTrackedPath: [String: [String]] = [:]
+    @ObservationIgnored private var gitStatusRefreshSequence: UInt64 = 0
+    @ObservationIgnored private var latestGitStatusRefreshByPath: [String: UInt64] = [:]
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
     private var loadFailed = false
@@ -783,9 +786,9 @@ final class AppState {
         saveState()
 
         updateGitFileWatcher()
-        if folder.isGitRepo {
-            refreshGitStatuses(for: [folder.path])
-        }
+        // A newly added folder is not persisted as a Git repo yet. Detect it
+        // asynchronously so its status and watcher paths are initialized.
+        detectGitRepos()
 
         if selectedSessionID == nil {
             selectedSessionID = session.id
@@ -1505,6 +1508,7 @@ final class AppState {
     func updateGitFileWatcher() {
         let watchPathsByTrackedPath = refreshGitWatchPathCache()
         let watchedPaths = Array(Set(watchPathsByTrackedPath.values.flatMap { $0 })).sorted()
+        pruneUntrackedGitStatuses()
 
         gitFileWatcher.start(paths: watchedPaths) { [weak self] changedPaths in
             Task { @MainActor [weak self] in
@@ -1524,39 +1528,64 @@ final class AppState {
         }
     }
 
-    private func refreshGitStatuses(for paths: [String]? = nil) {
-        let paths = paths ?? trackedGitPaths()
+    func refreshGitStatuses(for paths: [String]? = nil) {
+        let trackedPathSet = Set(trackedGitPaths())
+        let paths = Array(Set(paths ?? Array(trackedPathSet)))
+            .filter { trackedPathSet.contains($0) }
+            .sorted()
         guard !paths.isEmpty else { return }
+
+        gitStatusRefreshSequence &+= 1
+        let sequence = gitStatusRefreshSequence
+        for path in paths {
+            latestGitStatusRefreshByPath[path] = sequence
+        }
 
         Task.detached {
             // Run git status calls in parallel instead of sequentially.
-            var statuses: [String: GitStatus] = [:]
-            await withTaskGroup(of: (String, GitStatus).self) { group in
+            var results: [(String, Result<GitStatus, Error>)] = []
+            await withTaskGroup(of: (String, Result<GitStatus, Error>).self) { group in
                 for path in paths {
-                    group.addTask { (path, GitService.status(path: path)) }
-                }
-                for await (path, status) in group {
-                    statuses[path] = status
-                }
-            }
-            let result = statuses
-            await MainActor.run { @MainActor [weak self] in
-                guard let self else { return }
-                // Only update entries that changed to avoid unnecessary observation triggers.
-                var changed = false
-                for (path, status) in result {
-                    if self.gitStatuses[path] != status {
-                        self.gitStatuses[path] = status
-                        changed = true
+                    group.addTask {
+                        do {
+                            return (path, .success(try GitService.status(path: path)))
+                        } catch {
+                            return (path, .failure(error))
+                        }
                     }
                 }
-                // Remove stale entries for paths no longer tracked.
-                for key in self.gitStatuses.keys where result[key] == nil {
-                    self.gitStatuses.removeValue(forKey: key)
-                    changed = true
+                for await result in group {
+                    results.append(result)
                 }
-                _ = changed
             }
+            await MainActor.run { @MainActor [weak self] in
+                guard let self else { return }
+                let currentlyTracked = Set(self.trackedGitPaths())
+                for (path, result) in results {
+                    // Ignore a result if a newer refresh was started for this path,
+                    // or if the folder/worktree was removed while git was running.
+                    guard self.latestGitStatusRefreshByPath[path] == sequence,
+                          currentlyTracked.contains(path) else { continue }
+                    switch result {
+                    case .success(let status):
+                        if self.gitStatuses[path] != status {
+                            self.gitStatuses[path] = status
+                        }
+                    case .failure(let error):
+                        print("[TermHub] Git status refresh failed for '\(path)': \(error.localizedDescription); keeping previous status")
+                    }
+                }
+                // A targeted refresh is only a partial snapshot. Remove entries
+                // based on the actual tracked paths, never based on this result set.
+                self.pruneUntrackedGitStatuses(trackedPaths: currentlyTracked)
+            }
+        }
+    }
+
+    private func pruneUntrackedGitStatuses(trackedPaths: Set<String>? = nil) {
+        let trackedPaths = trackedPaths ?? Set(trackedGitPaths())
+        for key in Array(gitStatuses.keys) where !trackedPaths.contains(key) {
+            gitStatuses.removeValue(forKey: key)
         }
     }
 

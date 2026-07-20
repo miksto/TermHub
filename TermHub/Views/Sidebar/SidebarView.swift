@@ -107,5 +107,15 @@ struct SidebarView: View {
                 NewBranchSheet(folder: folder, initialSandbox: appState.pendingNewBranchSandbox)
             }
         }
+        .sheet(
+            isPresented: Binding(
+                get: { appState.pendingCheckoutBranchFolder != nil },
+                set: { if !$0 { appState.pendingCheckoutBranchFolder = nil } }
+            )
+        ) {
+            if let folder = appState.pendingCheckoutBranchFolder {
+                NewCheckedOutBranchSheet(folder: folder)
+            }
+        }
     }
 }

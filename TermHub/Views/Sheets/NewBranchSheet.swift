@@ -219,3 +219,115 @@ struct NewBranchSheet: View {
         }
     }
 }
+
+/// Creates and checks out a branch in the folder's existing working tree.
+struct NewCheckedOutBranchSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let folder: ManagedFolder
+
+    @State private var branchName = ""
+    @State private var baseBranch = ""
+    @State private var availableBranches: [String] = []
+    @State private var errorMessage: String?
+    @State private var isCreating = false
+    @State private var isLoading = true
+
+    private var isValid: Bool {
+        !branchName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("New Branch")
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Branch name:")
+                    .font(.subheadline)
+                TextField("feature/my-branch", text: $branchName)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        if isValid && !isCreating && !isLoading {
+                            createBranch()
+                        }
+                    }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Based on:")
+                    .font(.subheadline)
+                Picker("", selection: $baseBranch) {
+                    if isLoading {
+                        Text("Loading…").tag("")
+                    }
+                    ForEach(availableBranches, id: \.self) { branch in
+                        Text(branch).tag(branch)
+                    }
+                }
+                .labelsHidden()
+                .disabled(isLoading)
+            }
+
+            Text("The new branch will be checked out in this folder.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+            }
+
+            HStack {
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+
+                Spacer()
+
+                Button("Create and Check Out") { createBranch() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!isValid || isCreating || isLoading)
+            }
+        }
+        .padding()
+        .frame(minWidth: 350)
+        .task { loadBranches() }
+    }
+
+    private func loadBranches() {
+        let folderPath = folder.path
+        Task.detached {
+            let branches = (try? GitService.listBranches(repoPath: folderPath)) ?? []
+            let preferred = GitService.defaultBranch(repoPath: folderPath)
+            await MainActor.run {
+                availableBranches = branches
+                baseBranch = preferred ?? branches.first ?? ""
+                isLoading = false
+            }
+        }
+    }
+
+    private func createBranch() {
+        let branch = branchName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !branch.isEmpty else { return }
+
+        isCreating = true
+        errorMessage = nil
+        let folderPath = folder.path
+        let startPoint = baseBranch.isEmpty ? nil : baseBranch
+
+        Task.detached {
+            do {
+                try GitService.createBranch(repoPath: folderPath, branch: branch, startPoint: startPoint)
+                await MainActor.run { dismiss() }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    isCreating = false
+                }
+            }
+        }
+    }
+}
