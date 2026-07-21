@@ -98,45 +98,40 @@ struct SettingsOverlay: View {
                     // Bottom row: Assistant full width
                     sectionCard("Assistant") {
                         VStack(alignment: .leading, spacing: 12) {
-                            formRow("Provider", caption: "Choose which CLI powers the assistant chat.") {
-                                Picker("Provider", selection: $appState.assistantProvider) {
-                                    ForEach(AssistantProvider.allCases, id: \.self) { provider in
-                                        Text(provider.displayName).tag(provider)
-                                    }
-                                }
-                                .pickerStyle(.segmented)
-                            }
+                            Text("The assistant opens an interactive Codex CLI terminal. MCP servers and skills come directly from your Codex configuration.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                            formRow("Model", caption: "Model passed to --model.") {
-                                Picker("Model", selection: $appState.assistantModel) {
-                                    ForEach(AppState.assistantModelOptions(for: appState.assistantProvider), id: \.self) { model in
-                                        Text(AppState.assistantModelDisplayName(for: appState.assistantProvider, model: model)).tag(model)
+                            formRow("Model", caption: "Passed to interactive Codex as --model.") {
+                                Picker("Model", selection: codexModel) {
+                                    ForEach(AppState.assistantModelOptions(for: .codex), id: \.self) { model in
+                                        Text(AppState.assistantModelDisplayName(for: .codex, model: model)).tag(model)
                                     }
                                 }
                                 .pickerStyle(.menu)
                             }
 
-                            formRow("CLI Path") {
+                            formRow("Codex CLI Path") {
                                 HStack(spacing: 8) {
                                     TextField(
-                                        "/path/to/\(appState.assistantProvider.commandName)",
-                                        text: $appState.assistantCLIPath
+                                        "/path/to/codex",
+                                        text: codexCLIPath
                                     )
                                     .textFieldStyle(.roundedBorder)
                                     .font(.callout.monospaced())
 
                                     Button("Detect") {
-                                        appState.detectAssistantCLIPath()
+                                        detectCodexCLIPath()
                                     }
                                     .buttonStyle(.bordered)
                                 }
                             } captionContent: {
                                 HStack(spacing: 6) {
                                     Circle()
-                                        .fill(appState.assistantCLIPathIsAvailable ? .green : .orange)
+                                        .fill(codexCLIPathIsAvailable ? .green : .orange)
                                         .frame(width: 7, height: 7)
                                     Text(
-                                        appState.assistantCLIPathIsAvailable
+                                        codexCLIPathIsAvailable
                                             ? "Detected and executable. Use Detect to restore the automatic path."
                                             : "Path not found or not executable."
                                     )
@@ -145,37 +140,7 @@ struct SettingsOverlay: View {
                                 }
                             }
 
-                            formRow(
-                                "Reasoning Effort",
-                                caption: appState.assistantModelSupportsEffort
-                                    ? "Reasoning effort is passed to the selected assistant model."
-                                    : "This model does not support reasoning effort; no effort argument will be sent."
-                            ) {
-                                Picker("Reasoning Effort", selection: $appState.assistantEffort) {
-                                    Text("Default").tag("")
-                                ForEach(
-                                    AppState.assistantEffortOptions(
-                                        for: appState.assistantProvider,
-                                        model: appState.assistantModel
-                                    ).filter { !$0.isEmpty },
-                                    id: \.self
-                                ) { effort in
-                                        Text(effort.capitalized).tag(effort)
-                                    }
-                                }
-                                .pickerStyle(.menu)
-                                .disabled(!appState.assistantModelSupportsEffort)
-                            }
-
-                            formRow("Allowed Tools", caption: appState.assistantAllowedToolsHelpText) {
-                                TextField(appState.assistantAllowedToolsPlaceholder, text: $appState.assistantAllowedTools)
-                                    .textFieldStyle(.roundedBorder)
-                                    .font(.callout.monospaced())
-                            }
-
-                            if appState.assistantProvider == .codex {
-                                codexCapabilities
-                            }
+                            codexCapabilities
                         }
                     }
                 }
@@ -191,6 +156,34 @@ struct SettingsOverlay: View {
     }
 
     // MARK: - Helpers
+
+    private var codexModel: Binding<String> {
+        Binding(
+            get: {
+                appState.assistantModelByProvider[AssistantProvider.codex.rawValue]
+                    ?? AppState.defaultAssistantModel(for: .codex)
+            },
+            set: { appState.assistantModelByProvider[AssistantProvider.codex.rawValue] = $0 }
+        )
+    }
+
+    private var codexCLIPath: Binding<String> {
+        Binding(
+            get: { appState.assistantCLIPaths[AssistantProvider.codex.rawValue] ?? "" },
+            set: { appState.assistantCLIPaths[AssistantProvider.codex.rawValue] = $0 }
+        )
+    }
+
+    private var codexCLIPathIsAvailable: Bool {
+        let path = codexCLIPath.wrappedValue
+        return !path.isEmpty && AssistantService.isCLIAvailable(for: .codex, executablePath: path)
+    }
+
+    private func detectCodexCLIPath() {
+        if let path = AssistantService.detectCLIPath(for: .codex) {
+            codexCLIPath.wrappedValue = path
+        }
+    }
 
     private func sectionCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {

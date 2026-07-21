@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import SwiftTerm
 
 struct ContentView: View {
     @Environment(AppState.self) private var appState
@@ -68,8 +69,20 @@ struct ContentView: View {
                     SandboxManagerPanel.dismiss()
                 }
             }
+            .onChange(of: appState.showAssistant) { _, show in
+                if show {
+                    if let window = NSApp.mainWindow {
+                        AssistantPanel.show(in: window, appState: appState)
+                    }
+                } else {
+                    AssistantPanel.dismiss()
+                }
+            }
             .onAppear { installSessionSwitcherMonitors() }
-            .onDisappear { removeSessionSwitcherMonitors() }
+            .onDisappear {
+                AssistantPanel.dismiss()
+                removeSessionSwitcherMonitors()
+            }
     }
 
     private var mainContent: some View {
@@ -84,7 +97,7 @@ struct ContentView: View {
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.85))
+                    .background(SwiftUI.Color.orange.opacity(0.85))
                 }
 
                 NavigationSplitView {
@@ -106,11 +119,6 @@ struct ContentView: View {
                     .transition(.opacity)
             }
 
-            if appState.showAssistant {
-                AssistantOverlay()
-                    .transition(.opacity)
-            }
-
             if appState.isSessionSwitcherActive {
                 SessionSwitcherOverlay()
                     .transition(.opacity)
@@ -118,7 +126,6 @@ struct ContentView: View {
 
         }
         .animation(.easeOut(duration: 0.15), value: appState.showCommandPalette)
-        .animation(.easeOut(duration: 0.15), value: appState.showAssistant)
         .animation(.easeOut(duration: 0.1), value: appState.isSessionSwitcherActive)
     }
 
@@ -242,7 +249,7 @@ struct SandboxToolbarButton: View {
     var body: some View {
         let hasRunning = appState.sandboxes.contains { $0.isRunning }
         let hasSandboxSessions = appState.sessions.contains { $0.isSandboxSession }
-        let color: Color = hasRunning ? .green : hasSandboxSessions ? .orange : .secondary
+        let color: SwiftUI.Color = hasRunning ? .green : hasSandboxSessions ? .orange : .secondary
 
         Button {
             appState.showSandboxManager.toggle()
@@ -261,7 +268,7 @@ struct SessionToolbarTitleView: View {
         if let title = Self.toolbarTitle(in: appState) {
             HStack(spacing: 8) {
                 Rectangle()
-                    .fill(Color(nsColor: .separatorColor))
+                    .fill(SwiftUI.Color(nsColor: .separatorColor))
                     .frame(width: 1, height: 18)
 
                 Text(title)
@@ -294,201 +301,135 @@ struct SessionToolbarTitleView: View {
     }
 }
 
-struct AssistantOverlay: View {
-    @Environment(AppState.self) private var appState
-    @State private var input = ""
-    @FocusState private var isInputFocused: Bool
+/// An interactive Codex CLI terminal in its own AppKit panel. Codex's normal
+/// terminal UI handles conversation state, approvals, and MCP interaction.
+@MainActor
+final class AssistantPanel: NSPanel {
+    private static var current: AssistantPanel?
 
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.35)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    appState.showAssistant = false
-                }
+    private let appState: AppState
+    private let terminal: LocalProcessTerminalView
+    private var started = false
+    private var resizeObserver: NSObjectProtocol?
+    private var moveObserver: NSObjectProtocol?
 
-            VStack(spacing: 0) {
-                header
-                Divider()
-                transcript
-                Divider()
-                composer
-            }
-            .frame(width: 760, height: 520)
-            .background(.ultraThickMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
-            .onAppear {
-                isInputFocused = true
-                input = appState.assistantInputText
-            }
-            .onKeyPress(.escape) {
-                appState.showAssistant = false
-                return .handled
-            }
-        }
+    private init(contentRect: NSRect, appState: AppState) {
+        self.appState = appState
+        terminal = LocalProcessTerminalView(frame: .init(x: 0, y: 0, width: 900, height: 620))
+        super.init(
+            contentRect: contentRect,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+
+        isOpaque = false
+        backgroundColor = .clear
+        hasShadow = false
+        level = .floating
+        isReleasedWhenClosed = false
+
+        let overlay = NSView(frame: contentRect)
+        overlay.wantsLayer = true
+        overlay.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.35).cgColor
+        overlay.autoresizingMask = [.width, .height]
+
+        terminal.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        terminal.nativeBackgroundColor = NSColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0)
+        terminal.nativeForegroundColor = NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
+        terminal.optionAsMetaKey = appState.optionAsMetaKey
+        terminal.translatesAutoresizingMaskIntoConstraints = false
+        overlay.addSubview(terminal)
+        let preferredWidth = terminal.widthAnchor.constraint(equalToConstant: 900)
+        let preferredHeight = terminal.heightAnchor.constraint(equalToConstant: 620)
+        preferredWidth.priority = .defaultHigh
+        preferredHeight.priority = .defaultHigh
+        NSLayoutConstraint.activate([
+            terminal.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            terminal.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
+            preferredWidth,
+            preferredHeight,
+            terminal.widthAnchor.constraint(lessThanOrEqualTo: overlay.widthAnchor, constant: -40),
+            terminal.heightAnchor.constraint(lessThanOrEqualTo: overlay.heightAnchor, constant: -40),
+        ])
+        contentView = overlay
     }
 
-    private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("TermHub Assistant")
-                    .font(.headline)
-                if let status = appState.assistantStatusMessage, !status.isEmpty {
-                    Text(status)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(appState.assistantIsBusy ? appState.assistantRespondingText : appState.assistantConnectedText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            Button("Restart") {
-                appState.restartAssistantSession()
-            }
-            .disabled(appState.assistantIsBusy)
-
-            Button("Clear") {
-                appState.clearAssistantChat()
-            }
-
-            Button("Close") {
-                appState.showAssistant = false
-            }
+    static func show(in parentWindow: NSWindow, appState: AppState) {
+        if let panel = current {
+            panel.makeKeyAndOrderFront(nil)
+            panel.makeFirstResponder(panel.terminal)
+            return
         }
-        .padding(12)
+
+        let panel = AssistantPanel(contentRect: parentWindow.frame, appState: appState)
+        let syncFrame: @MainActor () -> Void = { [weak panel, weak parentWindow] in
+            guard let panel, let parentWindow else { return }
+            panel.setFrame(parentWindow.frame, display: true)
+        }
+        panel.resizeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResizeNotification,
+            object: parentWindow,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { syncFrame() }
+        }
+        panel.moveObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didMoveNotification,
+            object: parentWindow,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { syncFrame() }
+        }
+        parentWindow.addChildWindow(panel, ordered: .above)
+        panel.makeKeyAndOrderFront(nil)
+        current = panel
+        panel.makeFirstResponder(panel.terminal)
+        panel.startCodex()
     }
 
-    private var transcript: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    if appState.assistantMessages.isEmpty && !appState.assistantIsBusy {
-                        Text(appState.assistantEmptyStateText)
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 18)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    } else {
-                        ForEach(appState.assistantMessages) { message in
-                            assistantMessageRow(message)
-                                .id(message.id)
-                        }
-                    }
-
-                    if appState.assistantIsBusy {
-                        TypingIndicator()
-                            .id("typing-indicator")
-                    }
-                }
-                .padding(12)
-            }
-            .onChange(of: appState.assistantMessages.count) { _, _ in
-                if let id = appState.assistantMessages.last?.id {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        proxy.scrollTo(id, anchor: .bottom)
-                    }
-                }
-            }
-            .onChange(of: appState.assistantIsBusy) { _, busy in
-                if busy {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        proxy.scrollTo("typing-indicator", anchor: .bottom)
-                    }
-                }
-            }
-        }
+    static func dismiss() {
+        guard let panel = current else { return }
+        // Keep the terminal and Codex process alive while hidden so reopening
+        // the assistant resumes the same interactive conversation.
+        panel.orderOut(nil)
     }
 
-    private func assistantMessageRow(_ message: AssistantMessage) -> some View {
-        let isUser = message.role == .user
-        let foreground: Color
-        let background: Color
-        switch message.role {
-        case .user:
-            foreground = .white
-            background = Color.accentColor.opacity(0.85)
-        case .assistant:
-            foreground = .primary
-            background = Color.gray.opacity(0.15)
-        case .system:
-            foreground = .secondary
-            background = Color.gray.opacity(0.12)
-        case .error:
-            foreground = .red
-            background = Color.red.opacity(0.12)
-        }
-
-        return HStack {
-            if isUser { Spacer(minLength: 40) }
-            Text(message.content)
-                .textSelection(.enabled)
-                .foregroundStyle(foreground)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .background(background)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .frame(maxWidth: 620, alignment: isUser ? .trailing : .leading)
-            if !isUser { Spacer(minLength: 40) }
-        }
+    override func close() {
+        appState.showAssistant = false
     }
 
-    private var composer: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            TextField(appState.assistantPromptPlaceholder, text: $input, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .focused($isInputFocused)
-                .lineLimit(1...5)
-                .onSubmit {
-                    submitPrompt()
-                }
-                .onChange(of: input) { _, newValue in
-                    appState.assistantInputText = newValue
-                }
-
-            Button("Send") {
-                submitPrompt()
-            }
-            .keyboardShortcut(.return, modifiers: [.command])
-            .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown, event.keyCode == 53 {
+            appState.showAssistant = false
+            return
         }
-        .padding(12)
+        super.sendEvent(event)
     }
 
-    private func submitPrompt() {
-        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        appState.sendAssistantPrompt(trimmed)
-        input = ""
-    }
-}
+    override var canBecomeKey: Bool { true }
 
-private struct TypingIndicator: View {
-    @State private var startDate: Date?
+    private func startCodex() {
+        guard !started else { return }
+        let codexPath = appState.assistantCLIPaths[AssistantProvider.codex.rawValue]
+            ?? AssistantService.detectCLIPath(for: .codex)
+            ?? "codex"
+        let session = appState.selectedSession
+        let workingDirectory = session?.worktreePath ?? session?.workingDirectory
 
-    var body: some View {
-        TimelineView(.animation) { context in
-            let elapsed = startDate.map { context.date.timeIntervalSince($0) } ?? 0
-            HStack(spacing: 5) {
-                ForEach(0..<3, id: \.self) { index in
-                    let t = (elapsed - Double(index) * 0.2).truncatingRemainder(dividingBy: 1.2) / 1.2
-                    let wave = max(0, sin(t * .pi))
-                    Circle()
-                        .fill(Color.secondary)
-                        .frame(width: 6, height: 6)
-                        .scaleEffect(0.5 + 0.5 * wave)
-                        .opacity(0.4 + 0.6 * wave)
-                }
-            }
+        var arguments: [String] = []
+        let model = appState.assistantModelByProvider[AssistantProvider.codex.rawValue] ?? ""
+        if !model.isEmpty {
+            arguments += ["--model", model]
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.gray.opacity(0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .frame(maxWidth: 620, alignment: .leading)
-        .onAppear { startDate = .now }
+
+        terminal.startProcess(
+            executable: codexPath,
+            args: arguments,
+            environment: ShellEnvironment.shellEnvironment.map { "\($0.key)=\($0.value)" },
+            execName: "codex",
+            currentDirectory: workingDirectory
+        )
+        started = true
     }
 }
