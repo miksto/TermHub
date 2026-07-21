@@ -94,6 +94,18 @@ class TermHubTerminalView: LocalProcessTerminalView {
         onBell?()
     }
 
+    // Printable text must be sent exactly as AppKit produced it. In particular,
+    // non-US layouts can produce characters such as å, ä, ö, and apostrophe
+    // through the NSTextInputClient path; re-deriving them from the physical
+    // key event can turn them into the wrong ASCII character.
+    override func insertText(_ string: Any, replacementRange: NSRange) {
+        if let text = string as? String {
+            send(txt: text)
+        } else {
+            super.insertText(string, replacementRange: replacementRange)
+        }
+    }
+
     // Accumulate data from the process and feed it to the terminal in batches.
     //
     // Visible terminals: throttled to ~60fps, uses self.feed() which parses

@@ -134,6 +134,39 @@ struct SettingsOverlay: View {
 
                             GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
 
+                            // CLI Path
+                            GridRow {
+                                formLabel("CLI Path")
+                                TextField(
+                                    "/path/to/\(appState.assistantProvider.commandName)",
+                                    text: $appState.assistantCLIPath
+                                )
+                                .textFieldStyle(.roundedBorder)
+                                .font(.callout.monospaced())
+                                .frame(maxWidth: .infinity)
+                                Button("Detect") {
+                                    appState.detectAssistantCLIPath()
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                            GridRow {
+                                Color.clear.frame(width: 0, height: 0)
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(appState.assistantCLIPathIsAvailable ? .green : .orange)
+                                        .frame(width: 7, height: 7)
+                                    Text(
+                                        appState.assistantCLIPathIsAvailable
+                                            ? "Detected and executable. Use Detect to restore the automatic path."
+                                            : "Path not found or not executable."
+                                    )
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
+
                             // Reasoning Effort
                             GridRow {
                                 formLabel("Reasoning Effort")

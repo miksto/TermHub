@@ -52,6 +52,15 @@ enum ShellEnvironment {
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = userPath
         env["TERM"] = "xterm-256color"
+        // Apps launched from Finder/Dock may not inherit the user's shell
+        // locale. Keep text handling UTF-8 for zsh, tmux, and readline while
+        // respecting any locale explicitly supplied by the parent process.
+        if env["LANG"]?.isEmpty != false {
+            env["LANG"] = "en_US.UTF-8"
+        }
+        if env["LC_CTYPE"]?.isEmpty != false, env["LC_ALL"]?.isEmpty != false {
+            env["LC_CTYPE"] = "UTF-8"
+        }
         return env
     }
 }

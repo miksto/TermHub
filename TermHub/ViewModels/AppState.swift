@@ -18,6 +18,8 @@ enum AssistantProvider: String, CaseIterable, Codable, Sendable {
             return "OpenAI Codex"
         }
     }
+
+    var commandName: String { rawValue }
 }
 
 @Observable
@@ -27,6 +29,7 @@ final class AppState {
     private static let legacyAssistantAllowedToolsUserDefaultsKey = "assistantAllowedTools"
     private static let assistantModelByProviderUserDefaultsKey = "assistantModelByProvider"
     private static let assistantEffortByProviderUserDefaultsKey = "assistantEffortByProvider"
+    private static let assistantCLIPathsUserDefaultsKey = "assistantCLIPaths"
     private static let revealSelectedSessionInSidebarOnCtrlTabUserDefaultsKey = "revealSelectedSessionInSidebarOnCtrlTab"
 
     private static func defaultAssistantAllowedTools(for provider: AssistantProvider) -> String {
@@ -381,6 +384,37 @@ final class AppState {
         }
     }
 
+    /// Paths are stored per provider so switching providers does not lose a custom override.
+    var assistantCLIPaths: [String: String] {
+        didSet {
+            UserDefaults.standard.set(assistantCLIPaths, forKey: Self.assistantCLIPathsUserDefaultsKey)
+        }
+    }
+
+    var assistantCLIPath: String {
+        get { assistantCLIPaths[assistantProvider.rawValue] ?? "" }
+        set {
+            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            let expanded = (trimmed as NSString).expandingTildeInPath
+            if expanded.isEmpty {
+                assistantCLIPaths.removeValue(forKey: assistantProvider.rawValue)
+            } else {
+                assistantCLIPaths[assistantProvider.rawValue] = expanded
+            }
+        }
+    }
+
+    var assistantCLIPathIsAvailable: Bool {
+        guard !assistantCLIPath.isEmpty else { return false }
+        return AssistantService.isCLIAvailable(for: assistantProvider, executablePath: assistantCLIPath)
+    }
+
+    func detectAssistantCLIPath() {
+        if let detectedPath = AssistantService.detectCLIPath(for: assistantProvider) {
+            assistantCLIPath = detectedPath
+        }
+    }
+
     var assistantEffort: String {
         get {
             let value = assistantEffortByProvider[assistantProvider.rawValue]
@@ -475,6 +509,13 @@ final class AppState {
         assistantEffortByProvider = Self.normalizedAssistantEffortByProvider(
             UserDefaults.standard.dictionary(forKey: Self.assistantEffortByProviderUserDefaultsKey) as? [String: String] ?? [:]
         )
+        var storedCLIPaths = UserDefaults.standard.dictionary(forKey: Self.assistantCLIPathsUserDefaultsKey) as? [String: String] ?? [:]
+        for provider in AssistantProvider.allCases where storedCLIPaths[provider.rawValue] == nil {
+            if let detectedPath = AssistantService.detectCLIPath(for: provider) {
+                storedCLIPaths[provider.rawValue] = detectedPath
+            }
+        }
+        assistantCLIPaths = storedCLIPaths
         mcpServerEnabled = UserDefaults.standard.object(forKey: "mcpServerEnabled") as? Bool ?? true
         terminalManager.optionAsMetaKey = optionAsMetaKey
         terminalManager.sendTTYSizeToSandboxTerminals = sendTTYSizeToSandboxTerminals
@@ -708,11 +749,10 @@ final class AppState {
         activeAssistantMessageID = nil
         scheduleSave()
 
-        guard AssistantService.isCLIAvailable(for: assistantProvider) else {
+        guard AssistantService.isCLIAvailable(for: assistantProvider, executablePath: assistantCLIPath) else {
             assistantIsBusy = false
             assistantStatusMessage = "Failed to send prompt."
             let message = AssistantService.AssistantServiceError.cliNotFound(assistantProvider).localizedDescription
-                ?? "\(assistantProvider.displayName) CLI is not available."
             assistantMessages.append(AssistantMessage(role: .error, content: message))
             saveState()
             return
@@ -731,7 +771,8 @@ final class AppState {
                 allowedTools: assistantAllowedTools,
                 model: assistantModel,
                 effort: assistantModelSupportsEffort ? assistantEffort : "",
-                workingDirectory: assistantWorkingDirectory
+                workingDirectory: assistantWorkingDirectory,
+                executablePath: assistantCLIPath
             )
             for notice in notices {
                 appendAssistantNoticeOnce(notice)
@@ -786,9 +827,15 @@ final class AppState {
         saveState()
 
         updateGitFileWatcher()
-        // A newly added folder is not persisted as a Git repo yet. Detect it
-        // asynchronously so its status and watcher paths are initialized.
-        detectGitRepos()
+        if folder.isGitRepo {
+            // ManagedFolder detects existing Git repositories during initialization;
+            // hydrate the status now that the folder is tracked by AppState.
+            refreshGitStatuses(for: [path])
+        } else {
+            // Detect repositories that were not identified during initialization
+            // asynchronously so the UI remains responsive.
+            detectGitRepos()
+        }
 
         if selectedSessionID == nil {
             selectedSessionID = session.id
@@ -1966,14 +2013,45 @@ final class AssistantService: @unchecked Sendable {
     }
 
     static func isCLIAvailable(for provider: AssistantProvider) -> Bool {
+        guard let path = detectCLIPath(for: provider) else { return false }
+        return isCLIAvailable(for: provider, executablePath: path)
+    }
+
+    static func isCLIAvailable(for provider: AssistantProvider, executablePath: String) -> Bool {
+        let path = executablePath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !path.isEmpty, FileManager.default.isExecutableFile(atPath: path) else { return false }
+        return true
+    }
+
+    static func detectCLIPath(for provider: AssistantProvider) -> String? {
+        if let override = commandExistsOverride {
+            return override(provider.commandName) ? provider.commandName : nil
+        }
+        let fileManager = FileManager.default
+        let candidates: [String]
         switch provider {
         case .claude:
-            return commandExists("claude")
+            candidates = [
+                "\(fileManager.homeDirectoryForCurrentUser.path)/.local/bin/claude",
+                "/opt/homebrew/bin/claude",
+                "/usr/local/bin/claude",
+            ]
         case .copilot:
-            return commandExists("copilot")
+            candidates = [
+                "/opt/homebrew/bin/copilot",
+                "/usr/local/bin/copilot",
+            ]
         case .codex:
-            return commandExists("codex")
+            candidates = [
+                "/opt/homebrew/bin/codex",
+                "/usr/local/bin/codex",
+            ]
         }
+
+        for candidate in candidates where fileManager.isExecutableFile(atPath: candidate) {
+            return candidate
+        }
+        return commandPath(for: provider.commandName)
     }
 
     static func isMCPBinaryAvailable() -> Bool {
@@ -2009,7 +2087,8 @@ final class AssistantService: @unchecked Sendable {
         allowedTools: String = "",
         model: String = "",
         effort: String = "",
-        workingDirectory: String?
+        workingDirectory: String?,
+        executablePath: String? = nil
     ) throws -> [String] {
         // If a previous process is still running, terminate it first.
         if process?.isRunning == true {
@@ -2018,19 +2097,10 @@ final class AssistantService: @unchecked Sendable {
         }
         cleanupPipes()
 
-        switch provider {
-        case .claude:
-            guard Self.commandExists("claude") else {
-                throw AssistantServiceError.cliNotFound(.claude)
-            }
-        case .copilot:
-            guard Self.commandExists("copilot") else {
-                throw AssistantServiceError.cliNotFound(.copilot)
-            }
-        case .codex:
-            guard Self.commandExists("codex") else {
-                throw AssistantServiceError.cliNotFound(.codex)
-            }
+        guard let executablePath = executablePath ?? Self.detectCLIPath(for: provider),
+              Self.isCLIAvailable(for: provider, executablePath: executablePath)
+        else {
+            throw AssistantServiceError.cliNotFound(provider)
         }
 
         let isFirstMessage = provider == .codex || sessionIDsByProvider[provider.rawValue] == nil
@@ -2056,8 +2126,8 @@ final class AssistantService: @unchecked Sendable {
         )
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = build.args
-        CommandLogger.log(executablePath: "/usr/bin/env", arguments: build.args)
+        process.arguments = [executablePath] + build.args.dropFirst()
+        CommandLogger.log(executablePath: "/usr/bin/env", arguments: [executablePath] + build.args.dropFirst())
 
         let notices = build.notices
 
@@ -2123,22 +2193,25 @@ final class AssistantService: @unchecked Sendable {
         stderrPipe = nil
     }
 
-    private static func commandExists(_ command: String) -> Bool {
+    private static func commandPath(for command: String) -> String? {
         if let override = commandExistsOverride {
-            return override(command)
+            return override(command) ? command : nil
         }
         CommandLogger.log(executablePath: "/usr/bin/which", arguments: [command])
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
         process.arguments = [command]
-        process.standardOutput = Pipe()
+        let pipe = Pipe()
+        process.standardOutput = pipe
         process.standardError = Pipe()
         do {
             try process.run()
             process.waitUntilExit()
-            return process.terminationStatus == 0
+            guard process.terminationStatus == 0 else { return nil }
+            let output = pipe.fileHandleForReading.readDataToEndOfFile()
+            return String(data: output, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {
-            return false
+            return nil
         }
     }
 

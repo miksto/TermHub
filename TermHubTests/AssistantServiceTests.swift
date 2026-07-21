@@ -231,4 +231,10 @@ struct AssistantServiceTests {
         }
     }
 
+    @Test("explicit executable path is accepted independently of the GUI PATH")
+    func explicitExecutablePathIsAvailable() {
+        #expect(AssistantService.isCLIAvailable(for: .codex, executablePath: "/bin/sh"))
+        #expect(!AssistantService.isCLIAvailable(for: .codex, executablePath: "/definitely/missing/codex"))
+    }
+
 }
