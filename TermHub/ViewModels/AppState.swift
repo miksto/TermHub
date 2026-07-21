@@ -705,6 +705,8 @@ final class AppState {
     }
 
     func clearAssistantChat() {
+        assistantIdleWorkItem?.cancel()
+        assistantIdleWorkItem = nil
         assistantService.stop()
         assistantService.resetAllSessionIDs()
         surfacedAssistantNotices.removeAll()
@@ -717,6 +719,8 @@ final class AppState {
     }
 
     func restartAssistantSession() {
+        assistantIdleWorkItem?.cancel()
+        assistantIdleWorkItem = nil
         assistantService.stop()
         assistantService.resetSessionID(for: assistantProvider)
         surfacedAssistantNotices.removeAll()
@@ -1832,10 +1836,15 @@ final class AppState {
         } else {
             assistantErrorBuffer += "\n\(trimmed)"
         }
-        if let lastLine = trimmed.split(separator: "\n").last {
-            assistantStatusMessage = String(lastLine)
-        } else {
-            assistantStatusMessage = trimmed
+        // Codex emits MCP worker diagnostics on stderr while a request can still
+        // complete successfully. Keep those diagnostics for failure reporting,
+        // but do not briefly replace the active response status with them.
+        if assistantProvider != .codex {
+            if let lastLine = trimmed.split(separator: "\n").last {
+                assistantStatusMessage = String(lastLine)
+            } else {
+                assistantStatusMessage = trimmed
+            }
         }
         scheduleSave()
     }
@@ -2181,8 +2190,9 @@ final class AssistantService: @unchecked Sendable {
         }
 
         process.terminationHandler = { [weak self] proc in
-            self?.cleanupPipes()
-            self?.onExit?(proc.terminationStatus)
+            guard let self, self.process === proc else { return }
+            self.cleanupPipes()
+            self.onExit?(proc.terminationStatus)
         }
 
         do {
@@ -2200,11 +2210,12 @@ final class AssistantService: @unchecked Sendable {
     }
 
     func stop() {
+        let process = self.process
+        self.process = nil
         cleanupPipes()
         if process?.isRunning == true {
             process?.terminate()
         }
-        process = nil
     }
 
     private func cleanupPipes() {

@@ -172,6 +172,10 @@ struct SettingsOverlay: View {
                                     .textFieldStyle(.roundedBorder)
                                     .font(.callout.monospaced())
                             }
+
+                            if appState.assistantProvider == .codex {
+                                codexCapabilities
+                            }
                         }
                     }
                 }
@@ -214,6 +218,83 @@ struct SettingsOverlay: View {
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var codexCapabilities: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+                .padding(.vertical, 2)
+
+            Text("Available to Claude")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            capabilityRow(
+                title: "MCPs",
+                icon: "server.rack",
+                value: codexMCPNames.isEmpty
+                    ? "None configured"
+                    : codexMCPNames.joined(separator: ", ")
+            )
+
+            capabilityRow(
+                title: "Skills",
+                icon: "wand.and.stars",
+                value: codexSkillNames.isEmpty
+                    ? "None detected in ~/.codex/skills"
+                    : codexSkillNames.joined(separator: ", ")
+            )
+        }
+        .padding(.top, 2)
+    }
+
+    private func capabilityRow(title: String, icon: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+            Text(title)
+                .font(.callout)
+                .frame(width: 70, alignment: .leading)
+            Text(value)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var codexMCPNames: [String] {
+        let configURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex/config.toml")
+        guard let config = try? String(contentsOf: configURL, encoding: .utf8) else { return [] }
+
+        return config
+            .components(separatedBy: .newlines)
+            .compactMap { line -> String? in
+                let prefix = "[mcp_servers."
+                guard line.hasPrefix(prefix), line.hasSuffix("]") else { return nil }
+                return String(line.dropFirst(prefix.count).dropLast())
+            }
+            .filter { !$0.contains(".") }
+            .sorted()
+    }
+
+    private var codexSkillNames: [String] {
+        let skillsDirectory = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex/skills", isDirectory: true)
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: skillsDirectory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return [] }
+
+        return entries
+            .filter { url in
+                (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+                    && FileManager.default.fileExists(atPath: url.appendingPathComponent("SKILL.md").path)
+            }
+            .map(\.lastPathComponent)
+            .sorted()
     }
 
     private func formRow<Control: View, Caption: View>(
