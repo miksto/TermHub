@@ -211,7 +211,8 @@ struct AssistantServiceTests {
         #expect(result.args.contains("--model"))
         #expect(result.args.contains("gpt-5.6-terra"))
         #expect(result.args.contains("model_reasoning_effort=\"max\""))
-        #expect(result.notices.contains { $0.contains("MCP server is not injected into Codex yet") })
+        #expect(result.args.contains("mcp_servers.termhub.default_tools_approval_mode=\"auto\""))
+        #expect(result.notices.contains { $0.contains("Codex loads MCP servers from ~/.codex/config.toml") })
         #expect(result.notices.contains { $0.contains("Ignored Codex Allowed Tools setting") })
         #expect(!result.notices.contains { $0.contains("Ignored Codex reasoning effort setting") })
     }

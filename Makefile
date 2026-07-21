@@ -30,5 +30,6 @@ install-mcp: build-mcp ## Build and install the MCP server to ~/.local/bin
 		| grep ' BUILT_PRODUCTS_DIR' \
 		| awk '{print $$NF}'); \
 	test -f "$$build_dir/termhub-mcp"; \
-	cp "$$build_dir/termhub-mcp" ~/.local/bin/termhub-mcp
+	cp "$$build_dir/termhub-mcp" ~/.local/bin/termhub-mcp; \
+	codesign --force --sign - --timestamp=none ~/.local/bin/termhub-mcp
 	@echo "Installed termhub-mcp to ~/.local/bin/termhub-mcp"

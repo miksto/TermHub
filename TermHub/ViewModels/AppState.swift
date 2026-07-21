@@ -2387,7 +2387,10 @@ final class AssistantService: @unchecked Sendable {
                 args += ["--config", "model_reasoning_effort=\"\(resolvedEffort)\""]
             }
             if mcpEnabled {
-                notices.append("TermHub MCP server is not injected into Codex yet. Configure MCP servers in Codex separately if needed.")
+                // The assistant UI launches codex exec without an interactive stdin,
+                // so MCP calls cannot wait for a terminal approval prompt.
+                args += ["--config", "mcp_servers.termhub.default_tools_approval_mode=\"auto\""]
+                notices.append("Codex loads MCP servers from ~/.codex/config.toml. TermHub does not inject MCP configuration per request.")
             }
             if !safeToolsList.isEmpty || !ignoredToolsList.isEmpty {
                 notices.append("Ignored Codex Allowed Tools setting. `codex exec` does not expose a matching allowlist flag.")

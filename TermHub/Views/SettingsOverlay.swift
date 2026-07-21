@@ -225,7 +225,7 @@ struct SettingsOverlay: View {
             Divider()
                 .padding(.vertical, 2)
 
-            Text("Available to Claude")
+            Text("Available to Codex")
                 .font(.callout.weight(.semibold))
                 .foregroundStyle(.secondary)
 

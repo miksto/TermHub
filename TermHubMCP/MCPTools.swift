@@ -16,7 +16,8 @@ enum MCPTools {
                 like send_keys, select_session, or create_worktree.
                 """,
             properties: [:],
-            required: []
+            required: [],
+            readOnly: true
         ),
 
         // Session Management (IPC)
@@ -32,7 +33,8 @@ enum MCPTools {
             properties: [
                 "folderId": propString("Optional UUID of a folder to filter sessions by. Omit to list all sessions."),
             ],
-            required: []
+            required: [],
+            readOnly: true
         ),
         toolDef(
             name: "add_session",
@@ -97,7 +99,8 @@ enum MCPTools {
                 information. Folder IDs are needed for create_worktree and add_session.
                 """,
             properties: [:],
-            required: []
+            required: [],
+            readOnly: true
         ),
         toolDef(
             name: "add_folder",
@@ -184,7 +187,8 @@ enum MCPTools {
                 Use get_workspace_overview instead if you also need folder and session information.
                 """,
             properties: [:],
-            required: []
+            required: [],
+            readOnly: true
         ),
         toolDef(
             name: "create_sandbox",
@@ -375,9 +379,10 @@ enum MCPTools {
         name: String,
         description: String,
         properties: [String: JSONValue],
-        required: [String]
+        required: [String],
+        readOnly: Bool = false
     ) -> JSONValue {
-        .object([
+        var definition: [String: JSONValue] = [
             "name": .string(name),
             "description": .string(description),
             "inputSchema": .object([
@@ -385,7 +390,14 @@ enum MCPTools {
                 "properties": .object(properties),
                 "required": .array(required.map { .string($0) }),
             ]),
-        ])
+        ]
+        if readOnly {
+            definition["annotations"] = .object([
+                "readOnlyHint": .bool(true),
+                "destructiveHint": .bool(false),
+            ])
+        }
+        return .object(definition)
     }
 
     private static func propString(_ description: String) -> JSONValue {

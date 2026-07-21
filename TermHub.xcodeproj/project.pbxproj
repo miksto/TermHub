@@ -622,7 +622,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "INSTALL_DIR=\"/Users/miksto/Library/Application Support/TermHub\"\nmkdir -p \"$INSTALL_DIR\"\ncp -f \"${BUILT_PRODUCTS_DIR}/termhub-mcp\" \"$INSTALL_DIR/termhub-mcp\"\n";
+			shellScript = "INSTALL_DIR=\"/Users/miksto/Library/Application Support/TermHub\"\nmkdir -p \"$INSTALL_DIR\"\ncp -f \"${BUILT_PRODUCTS_DIR}/termhub-mcp\" \"$INSTALL_DIR/termhub-mcp\"\ncodesign --force --sign - --timestamp=none \"$INSTALL_DIR/termhub-mcp\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
