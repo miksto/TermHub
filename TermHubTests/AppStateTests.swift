@@ -406,7 +406,7 @@ struct AppStateTests {
         #expect(state.assistantModel == "claude-haiku-4.5")
 
         state.assistantProvider = .codex
-        #expect(state.assistantModel == "")
+        #expect(state.assistantModel == "gpt-5.6-luna")
     }
 
     @Test("assistant Copilot model options include full supported list")
@@ -438,7 +438,7 @@ struct AppStateTests {
         #expect(state.assistantModel == "gpt-5.2")
 
         state.assistantProvider = .codex
-        #expect(state.assistantModel == "")
+        #expect(state.assistantModel == "gpt-5.6-luna")
     }
 
     @Test("assistant effort defaults per provider")
@@ -454,7 +454,7 @@ struct AppStateTests {
         #expect(state.assistantEffort == "")
 
         state.assistantProvider = .codex
-        #expect(state.assistantEffort == "")
+        #expect(state.assistantEffort == "medium")
     }
 
     @Test("assistant effort is stored per provider")
@@ -475,7 +475,7 @@ struct AppStateTests {
         #expect(state.assistantEffort == "medium")
 
         state.assistantProvider = .codex
-        #expect(state.assistantEffort == "")
+        #expect(state.assistantEffort == "medium")
     }
 
     @Test("assistant model persists to UserDefaults")
@@ -503,7 +503,7 @@ struct AppStateTests {
 
         state.assistantProvider = .codex
         state.assistantModel = "gpt-5"
-        #expect(state.assistantModel == "")
+        #expect(state.assistantModel == "gpt-5.6-luna")
     }
 
     @Test("assistant effort persists to UserDefaults")
@@ -531,7 +531,7 @@ struct AppStateTests {
 
         state.assistantProvider = .codex
         state.assistantEffort = "high"
-        #expect(state.assistantEffort == "")
+        #expect(state.assistantEffort == "high")
     }
 
     @Test("assistant model support for effort depends on provider and model")
@@ -554,13 +554,16 @@ struct AppStateTests {
         #expect(state.assistantModelSupportsEffort == false)
 
         state.assistantProvider = .codex
-        #expect(state.assistantModelSupportsEffort == false)
+        #expect(state.assistantModelSupportsEffort == true)
+        #expect(AppState.assistantEffortOptions(for: .codex, model: "gpt-5.6-terra") == ["", "low", "medium", "high", "xhigh", "max", "ultra"])
+        state.assistantModel = "gpt-5.6-luna"
+        #expect(AppState.assistantEffortOptions(for: .codex, model: state.assistantModel) == ["", "low", "medium", "high", "xhigh", "max"])
     }
 
-    @Test("assistant Codex model options are default-only")
+    @Test("assistant Codex model options include supported 5.6 models")
     @MainActor
     func assistantCodexModelOptions() {
         let options = AppState.assistantModelOptions(for: .codex)
-        #expect(options == [""])
+        #expect(options == ["gpt-5.6-terra", "gpt-5.6-luna"])
     }
 }

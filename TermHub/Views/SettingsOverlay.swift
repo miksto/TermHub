@@ -97,60 +97,40 @@ struct SettingsOverlay: View {
 
                     // Bottom row: Assistant full width
                     sectionCard("Assistant") {
-                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 0) {
-                            // Provider
-                            GridRow {
-                                formLabel("Provider")
+                        VStack(alignment: .leading, spacing: 12) {
+                            formRow("Provider", caption: "Choose which CLI powers the assistant chat.") {
                                 Picker("Provider", selection: $appState.assistantProvider) {
                                     ForEach(AssistantProvider.allCases, id: \.self) { provider in
                                         Text(provider.displayName).tag(provider)
                                     }
                                 }
                                 .pickerStyle(.segmented)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            GridRow {
-                                Color.clear.frame(width: 0, height: 0)
-                                formCaption("Choose which CLI powers the assistant chat.")
                             }
 
-                            GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
-
-                            // Model
-                            GridRow {
-                                formLabel("Model")
+                            formRow("Model", caption: "Model passed to --model.") {
                                 Picker("Model", selection: $appState.assistantModel) {
                                     ForEach(AppState.assistantModelOptions(for: appState.assistantProvider), id: \.self) { model in
                                         Text(AppState.assistantModelDisplayName(for: appState.assistantProvider, model: model)).tag(model)
                                     }
                                 }
                                 .pickerStyle(.menu)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            GridRow {
-                                Color.clear.frame(width: 0, height: 0)
-                                formCaption("Model passed to --model.")
                             }
 
-                            GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
+                            formRow("CLI Path") {
+                                HStack(spacing: 8) {
+                                    TextField(
+                                        "/path/to/\(appState.assistantProvider.commandName)",
+                                        text: $appState.assistantCLIPath
+                                    )
+                                    .textFieldStyle(.roundedBorder)
+                                    .font(.callout.monospaced())
 
-                            // CLI Path
-                            GridRow {
-                                formLabel("CLI Path")
-                                TextField(
-                                    "/path/to/\(appState.assistantProvider.commandName)",
-                                    text: $appState.assistantCLIPath
-                                )
-                                .textFieldStyle(.roundedBorder)
-                                .font(.callout.monospaced())
-                                .frame(maxWidth: .infinity)
-                                Button("Detect") {
-                                    appState.detectAssistantCLIPath()
+                                    Button("Detect") {
+                                        appState.detectAssistantCLIPath()
+                                    }
+                                    .buttonStyle(.bordered)
                                 }
-                                .buttonStyle(.bordered)
-                            }
-                            GridRow {
-                                Color.clear.frame(width: 0, height: 0)
+                            } captionContent: {
                                 HStack(spacing: 6) {
                                     Circle()
                                         .fill(appState.assistantCLIPathIsAvailable ? .green : .orange)
@@ -165,43 +145,32 @@ struct SettingsOverlay: View {
                                 }
                             }
 
-                            GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
-
-                            // Reasoning Effort
-                            GridRow {
-                                formLabel("Reasoning Effort")
+                            formRow(
+                                "Reasoning Effort",
+                                caption: appState.assistantModelSupportsEffort
+                                    ? "Reasoning effort is passed to the selected assistant model."
+                                    : "This model does not support reasoning effort; no effort argument will be sent."
+                            ) {
                                 Picker("Reasoning Effort", selection: $appState.assistantEffort) {
                                     Text("Default").tag("")
-                                    ForEach(AppState.assistantEffortOptions(for: appState.assistantProvider).filter { !$0.isEmpty }, id: \.self) { effort in
+                                ForEach(
+                                    AppState.assistantEffortOptions(
+                                        for: appState.assistantProvider,
+                                        model: appState.assistantModel
+                                    ).filter { !$0.isEmpty },
+                                    id: \.self
+                                ) { effort in
                                         Text(effort.capitalized).tag(effort)
                                     }
                                 }
                                 .pickerStyle(.menu)
-                                .frame(maxWidth: .infinity, alignment: .leading)
                                 .disabled(!appState.assistantModelSupportsEffort)
                             }
-                            GridRow {
-                                Color.clear.frame(width: 0, height: 0)
-                                formCaption(
-                                    appState.assistantModelSupportsEffort
-                                        ? "Reasoning effort is passed to the selected assistant model."
-                                        : "This model does not support reasoning effort; no effort argument will be sent."
-                                )
-                            }
 
-                            GridRow { Color.clear.frame(height: 8).gridCellColumns(2) }
-
-                            // Allowed Tools
-                            GridRow {
-                                formLabel("Allowed Tools")
+                            formRow("Allowed Tools", caption: appState.assistantAllowedToolsHelpText) {
                                 TextField(appState.assistantAllowedToolsPlaceholder, text: $appState.assistantAllowedTools)
                                     .textFieldStyle(.roundedBorder)
                                     .font(.callout.monospaced())
-                                    .frame(maxWidth: .infinity)
-                            }
-                            GridRow {
-                                Color.clear.frame(width: 0, height: 0)
-                                formCaption(appState.assistantAllowedToolsHelpText)
                             }
                         }
                     }
@@ -247,6 +216,45 @@ struct SettingsOverlay: View {
         }
     }
 
+    private func formRow<Control: View, Caption: View>(
+        _ label: String,
+        @ViewBuilder control: () -> Control,
+        @ViewBuilder captionContent: () -> Caption
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                formLabel(label)
+                control()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            HStack(alignment: .top, spacing: 12) {
+                Color.clear.frame(width: 110)
+                captionContent()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func formRow<Control: View>(
+        _ label: String,
+        caption: String,
+        @ViewBuilder control: () -> Control
+    ) -> some View {
+        formRow(label, control: control) {
+            formCaption(caption)
+        }
+    }
+
+    private func formRow<Control: View>(
+        _ label: String,
+        @ViewBuilder control: () -> Control
+    ) -> some View {
+        formRow(label, control: control) {
+            EmptyView()
+        }
+    }
+
     private func formCaption(_ text: String) -> some View {
         Text(text)
             .font(.caption)
@@ -260,7 +268,6 @@ struct SettingsOverlay: View {
             .font(.callout)
             .foregroundStyle(.primary)
             .frame(width: 110, alignment: .trailing)
-            .gridColumnAlignment(.trailing)
     }
 
     private func dismiss() {

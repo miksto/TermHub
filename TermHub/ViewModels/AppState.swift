@@ -47,7 +47,7 @@ final class AppState {
         switch provider {
         case .claude: return "default"
         case .copilot: return "claude-haiku-4.5"
-        case .codex: return ""
+        case .codex: return "gpt-5.6-luna"
         }
     }
 
@@ -64,7 +64,11 @@ final class AppState {
         case .copilot:
             return model
         case .codex:
-            return model.isEmpty ? "Default (recommended)" : model
+            switch model {
+            case "gpt-5.6-terra": return "GPT-5.6 Terra"
+            case "gpt-5.6-luna": return "GPT-5.6 Luna"
+            default: return model
+            }
         }
     }
 
@@ -92,7 +96,7 @@ final class AppState {
                 "gpt-4.1",
             ]
         case .codex:
-            return [""]
+            return ["gpt-5.6-terra", "gpt-5.6-luna"]
         }
     }
 
@@ -100,16 +104,25 @@ final class AppState {
         switch provider {
         case .claude: return "low"
         case .copilot: return ""
-        case .codex: return ""
-        }
+        case .codex: return "medium"
     }
+}
 
-    static func assistantEffortOptions(for provider: AssistantProvider) -> [String] {
+    static func assistantEffortOptions(for provider: AssistantProvider, model: String? = nil) -> [String] {
         switch provider {
         case .claude, .copilot:
             return ["", "low", "medium", "high", "xhigh"]
         case .codex:
-            return [""]
+            switch model {
+            case "gpt-5.6-terra":
+                return ["", "low", "medium", "high", "xhigh", "max", "ultra"]
+            case "gpt-5.6-luna":
+                return ["", "low", "medium", "high", "xhigh", "max"]
+            default:
+                // The provider-level list is also used when normalizing persisted
+                // values before the selected model is available.
+                return ["", "low", "medium", "high", "xhigh", "max", "ultra"]
+            }
         }
     }
 
@@ -130,7 +143,7 @@ final class AppState {
             ]
             return supportingModels.contains(model)
         case .codex:
-            return false
+            return assistantModelOptions(for: .codex).contains(model)
         }
     }
 
@@ -142,9 +155,13 @@ final class AppState {
         return trimmed
     }
 
-    private static func normalizedAssistantEffort(_ value: String, for provider: AssistantProvider) -> String {
+    private static func normalizedAssistantEffort(
+        _ value: String,
+        for provider: AssistantProvider,
+        model: String? = nil
+    ) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard assistantEffortOptions(for: provider).contains(trimmed) else {
+        guard assistantEffortOptions(for: provider, model: model).contains(trimmed) else {
             return defaultAssistantEffort(for: provider)
         }
         return trimmed
@@ -419,10 +436,14 @@ final class AppState {
         get {
             let value = assistantEffortByProvider[assistantProvider.rawValue]
                 ?? Self.defaultAssistantEffort(for: assistantProvider)
-            return Self.normalizedAssistantEffort(value, for: assistantProvider)
+            return Self.normalizedAssistantEffort(value, for: assistantProvider, model: assistantModel)
         }
         set {
-            assistantEffortByProvider[assistantProvider.rawValue] = Self.normalizedAssistantEffort(newValue, for: assistantProvider)
+            assistantEffortByProvider[assistantProvider.rawValue] = Self.normalizedAssistantEffort(
+                newValue,
+                for: assistantProvider,
+                model: assistantModel
+            )
         }
     }
 
@@ -2352,7 +2373,7 @@ final class AssistantService: @unchecked Sendable {
                 "--color", "never"
             ]
             if !resolvedEffort.isEmpty {
-                notices.append("Ignored Codex reasoning effort setting. `codex exec` does not expose a matching flag.")
+                args += ["--config", "model_reasoning_effort=\"\(resolvedEffort)\""]
             }
             if mcpEnabled {
                 notices.append("TermHub MCP server is not injected into Codex yet. Configure MCP servers in Codex separately if needed.")
