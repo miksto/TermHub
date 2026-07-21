@@ -974,15 +974,19 @@ final class AppState {
             updateGitFileWatcher()
         }
 
-        // Background cleanup (blocking I/O — best-effort)
+        // Background cleanup (blocking I/O — best-effort).  Keep worktree
+        // removal independent from tmux teardown: a stalled tmux command must
+        // not leave the worktree behind after its last TermHub session closes.
         Task.detached {
             do { try TmuxService.killSession(name: tmuxName) }
             catch { print("[TermHub] Failed to kill tmux session '\(tmuxName)': \(error)") }
+        }
 
-            if let worktreePath, !isExternal, !otherSessionUsesWorktree, let repoPath {
-                do { try GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath) }
-                catch { print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)") }
-            }
+        guard let worktreePath, !isExternal, !otherSessionUsesWorktree, let repoPath else { return }
+
+        Task.detached {
+            do { try GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath) }
+            catch { print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)") }
         }
     }
 
