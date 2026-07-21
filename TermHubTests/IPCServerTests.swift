@@ -542,15 +542,15 @@ struct IPCServerTests {
         _ = state
         let response = await server.handleRequest(data: encode(IPCRequest(
             action: "createWorktree",
-            params: ["branch": .string("feature")]
+            params: ["baseRef": .string("feature"), "newBranch": .string("new-feature")]
         )))
         #expect(!response.ok)
         #expect(response.error?.contains("folderPath") == true)
     }
 
-    @Test("createWorktree fails when branch is missing")
+    @Test("createWorktree fails when newBranch is missing")
     @MainActor
-    func createWorktreeMissingBranch() async {
+    func createWorktreeMissingNewBranch() async {
         let (server, state) = makeServerAndState()
         _ = state
         let response = await server.handleRequest(data: encode(IPCRequest(
@@ -558,7 +558,7 @@ struct IPCServerTests {
             params: ["folderPath": .string("/tmp")]
         )))
         #expect(!response.ok)
-        #expect(response.error?.contains("branch") == true)
+        #expect(response.error?.contains("newBranch") == true)
     }
 
     @Test("createWorktree fails for unknown folder")
@@ -568,7 +568,7 @@ struct IPCServerTests {
         _ = state
         let response = await server.handleRequest(data: encode(IPCRequest(
             action: "createWorktree",
-            params: ["folderPath": .string("/nonexistent"), "branch": .string("feature")]
+            params: ["folderPath": .string("/nonexistent"), "baseRef": .string("feature"), "newBranch": .string("new-feature")]
         )))
         #expect(!response.ok)
         #expect(response.error?.contains("Folder not found") == true)
@@ -582,7 +582,7 @@ struct IPCServerTests {
 
         let response = await server.handleRequest(data: encode(IPCRequest(
             action: "createWorktree",
-            params: ["folderPath": .string("/tmp"), "branch": .string("feature")]
+            params: ["folderPath": .string("/tmp"), "baseRef": .string("feature"), "newBranch": .string("new-feature")]
         )))
         #expect(!response.ok)
         #expect(response.error?.contains("not a git repo") == true)

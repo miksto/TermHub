@@ -306,6 +306,11 @@ struct SessionToolbarTitleView: View {
 @MainActor
 final class AssistantPanel: NSPanel {
     private static var current: AssistantPanel?
+    private static let codexInstructions = """
+        You are the interactive assistant embedded in TermHub, a macOS app for managing terminal sessions, tmux-backed persistent shells, git worktrees, and Docker sandboxes.
+
+        Help the user with their current workspace and coding tasks. When a request concerns TermHub folders, sessions, worktrees, or sandboxes, use the configured TermHub MCP tools when useful. Be concise, explain impactful actions, and preserve the user's intent.
+        """
 
     private let appState: AppState
     private let terminal: LocalProcessTerminalView
@@ -334,23 +339,43 @@ final class AssistantPanel: NSPanel {
         overlay.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.35).cgColor
         overlay.autoresizingMask = [.width, .height]
 
+        let terminalCard = NSVisualEffectView()
+        terminalCard.material = .hudWindow
+        terminalCard.blendingMode = .withinWindow
+        terminalCard.state = .active
+        terminalCard.wantsLayer = true
+        terminalCard.layer?.cornerRadius = 12
+        terminalCard.layer?.masksToBounds = true
+        terminalCard.layer?.borderWidth = 1
+        terminalCard.layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.8).cgColor
+        terminalCard.layer?.shadowColor = NSColor.black.cgColor
+        terminalCard.layer?.shadowOpacity = 0.45
+        terminalCard.layer?.shadowRadius = 20
+        terminalCard.layer?.shadowOffset = .init(width: 0, height: -8)
+        terminalCard.translatesAutoresizingMaskIntoConstraints = false
+        overlay.addSubview(terminalCard)
+
         terminal.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         terminal.nativeBackgroundColor = NSColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0)
         terminal.nativeForegroundColor = NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
         terminal.optionAsMetaKey = appState.optionAsMetaKey
         terminal.translatesAutoresizingMaskIntoConstraints = false
-        overlay.addSubview(terminal)
-        let preferredWidth = terminal.widthAnchor.constraint(equalToConstant: 900)
-        let preferredHeight = terminal.heightAnchor.constraint(equalToConstant: 620)
+        terminalCard.addSubview(terminal)
+        let preferredWidth = terminalCard.widthAnchor.constraint(equalToConstant: 900)
+        let preferredHeight = terminalCard.heightAnchor.constraint(equalToConstant: 620)
         preferredWidth.priority = .defaultHigh
         preferredHeight.priority = .defaultHigh
         NSLayoutConstraint.activate([
-            terminal.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
-            terminal.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
+            terminalCard.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            terminalCard.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
             preferredWidth,
             preferredHeight,
-            terminal.widthAnchor.constraint(lessThanOrEqualTo: overlay.widthAnchor, constant: -40),
-            terminal.heightAnchor.constraint(lessThanOrEqualTo: overlay.heightAnchor, constant: -40),
+            terminalCard.widthAnchor.constraint(lessThanOrEqualTo: overlay.widthAnchor, constant: -40),
+            terminalCard.heightAnchor.constraint(lessThanOrEqualTo: overlay.heightAnchor, constant: -40),
+            terminal.leadingAnchor.constraint(equalTo: terminalCard.leadingAnchor, constant: 1),
+            terminal.trailingAnchor.constraint(equalTo: terminalCard.trailingAnchor, constant: -1),
+            terminal.topAnchor.constraint(equalTo: terminalCard.topAnchor, constant: 1),
+            terminal.bottomAnchor.constraint(equalTo: terminalCard.bottomAnchor, constant: -1),
         ])
         contentView = overlay
     }
@@ -414,14 +439,21 @@ final class AssistantPanel: NSPanel {
         let codexPath = appState.assistantCLIPaths[AssistantProvider.codex.rawValue]
             ?? AssistantService.detectCLIPath(for: .codex)
             ?? "codex"
-        let session = appState.selectedSession
-        let workingDirectory = session?.worktreePath ?? session?.workingDirectory
+        // The assistant spans all TermHub folders via MCP, so give it an empty,
+        // dedicated CWD rather than implicitly exposing a selected project or
+        // the user's entire home directory.
+        let workingDirectory = Self.assistantWorkingDirectory()
 
         var arguments: [String] = []
         let model = appState.assistantModelByProvider[AssistantProvider.codex.rawValue] ?? ""
         if !model.isEmpty {
             arguments += ["--model", model]
         }
+        let escapedInstructions = Self.codexInstructions
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n")
+        arguments += ["--config", "developer_instructions=\"\(escapedInstructions)\""]
 
         terminal.startProcess(
             executable: codexPath,
@@ -431,5 +463,24 @@ final class AssistantPanel: NSPanel {
             currentDirectory: workingDirectory
         )
         started = true
+    }
+
+    private static func assistantWorkingDirectory() -> String? {
+        let applicationSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first
+        let directory = (applicationSupport ?? FileManager.default.temporaryDirectory)
+            .appendingPathComponent("TermHub", isDirectory: true)
+            .appendingPathComponent("CodexAssistant", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(
+                at: directory,
+                withIntermediateDirectories: true
+            )
+            return directory.path
+        } catch {
+            return nil
+        }
     }
 }

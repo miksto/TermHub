@@ -135,17 +135,15 @@ enum MCPTools {
                 The folder must already be managed by TermHub and be a git repository (use list_folders \
                 or get_workspace_overview to verify isGitRepo). Returns the new sessionId, worktreePath, \
                 and tmuxSessionName. Use send_keys with the returned sessionId to run commands in the \
-                new session. Specify newBranch to create \
-                a fresh branch, or branch to check out an existing one.
+                new session. newBranch is created from baseRef, which defaults to develop when omitted.
                 """,
             properties: [
                 "folderPath": propString("Absolute path of a managed folder that is a git repo. Get this from list_folders or get_workspace_overview."),
-                "branch": propString("Branch name to check out. Use git_branches to see available branches. Also used as the worktree directory name."),
-                "newBranch": propString("If set, create a new branch with this name instead of checking out an existing one. The branch parameter is still required as the base context."),
-                "startPoint": propString("Git ref (commit SHA, tag, or branch name) to start the new branch from. Only used with newBranch. Defaults to HEAD if omitted."),
+                "baseRef": propString("Git ref (usually develop) to base newBranch on. Defaults to develop when omitted. Use git_branches to see available branches."),
+                "newBranch": propString("Name of the new branch to create and check out in the new worktree."),
                 "sandboxName": propString("Name of an existing Docker sandbox to run the session in."),
             ],
-            required: ["folderPath", "branch"]
+            required: ["folderPath", "newBranch"]
         ),
         toolDef(
             name: "create_branch",

@@ -404,8 +404,11 @@ final class IPCServer {
             return .failure("Missing 'folderPath' parameter")
         }
 
-        guard let branch = params["branch"]?.stringValue else {
-            return .failure("Missing 'branch' parameter")
+        let baseRef = params["baseRef"]?.stringValue ?? "develop"
+
+        guard let newBranch = params["newBranch"]?.stringValue,
+              !newBranch.isEmpty else {
+            return .failure("Missing 'newBranch' parameter")
         }
 
         guard let folder = state.folders.first(where: { $0.path == folderPath }) else {
@@ -416,8 +419,6 @@ final class IPCServer {
             return .failure("Folder is not a git repo: \(folderPath)")
         }
 
-        let newBranch = params["newBranch"]?.stringValue
-        let startPoint = params["startPoint"]?.stringValue
         let sandboxName = params["sandboxName"]?.stringValue
         let repoPath = folderPath
         let copySettings = state.copyClaudeSettingsToWorktrees
@@ -425,22 +426,18 @@ final class IPCServer {
         do {
             let worktreePath: String = try await Task.detached {
                 let path: String
-                if let newBranch {
-                    path = try GitService.addWorktreeNewBranch(
-                        repoPath: repoPath,
-                        newBranch: newBranch,
-                        startPoint: startPoint
-                    )
-                } else {
-                    path = try GitService.addWorktree(repoPath: repoPath, branch: branch)
-                }
+                path = try GitService.addWorktreeNewBranch(
+                    repoPath: repoPath,
+                    newBranch: newBranch,
+                    startPoint: baseRef
+                )
                 if copySettings {
                     GitService.copyClaudeLocalSettings(from: repoPath, to: path)
                 }
                 return path
             }.value
 
-            let branchName = newBranch ?? branch
+            let branchName = newBranch
             let title = branchName
             let cwd = worktreePath
 
@@ -450,7 +447,7 @@ final class IPCServer {
                 cwd: cwd,
                 worktreePath: worktreePath,
                 branchName: branchName,
-                ownsBranch: newBranch != nil,
+                ownsBranch: true,
                 sandboxName: sandboxName
             )
 
