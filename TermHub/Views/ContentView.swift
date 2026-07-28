@@ -305,22 +305,46 @@ struct SessionToolbarTitleView: View {
 /// terminal UI handles conversation state, approvals, and MCP interaction.
 @MainActor
 final class AssistantPanel: NSPanel {
-    private static var current: AssistantPanel?
+    private static var cachedByFolderID: [UUID: AssistantPanel] = [:]
+    private static weak var visiblePanel: AssistantPanel?
     private static let codexInstructions = """
         You are the interactive assistant embedded in TermHub, a macOS app for managing terminal sessions, tmux-backed persistent shells, git worktrees, and Docker sandboxes.
 
-        Help the user with their current workspace and coding tasks. When a request concerns TermHub folders, sessions, worktrees, or sandboxes, use the configured TermHub MCP tools when useful. Before creating a worktree or selecting a base ref, use the TermHub MCP's git_branches tool to obtain the repository's actual branch names. When a request concerns Linear issues, projects, planning, or issue status, use the configured Linear MCP tools when relevant. Be concise, explain impactful actions, and preserve the user's intent.
+        Your process working directory is the parent TermHub folder selected when this assistant was created. Treat that folder as the primary workspace for local coding tasks. TermHub MCP tools remain available for managing all TermHub folders, sessions, worktrees, and sandboxes.
+
+        Help the user with their current workspace and coding tasks. Before creating a worktree or selecting a base ref, use the TermHub MCP's git_branches tool to obtain the repository's actual branch names. When a request concerns Linear issues, projects, planning, or issue status, use the configured Linear MCP tools when relevant. Be concise, explain impactful actions, and preserve the user's intent.
         """
 
     private let appState: AppState
+    private let folderID: UUID
+    private let folderPath: String
+    private let codexPath: String
+    private let codexArguments: [String]
+    private let codexEnvironment: [String]
     private let terminal: LocalProcessTerminalView
-    private var started = false
+    private let folderNameLabel: NSTextField
+    private var processDelegate: AssistantProcessDelegate?
+    private var processIsRunning = false
+    private var isCleaningUp = false
     private var resizeObserver: NSObjectProtocol?
     private var moveObserver: NSObjectProtocol?
 
-    private init(contentRect: NSRect, appState: AppState) {
+    private init(
+        contentRect: NSRect,
+        appState: AppState,
+        folder: ManagedFolder,
+        codexPath: String,
+        codexArguments: [String],
+        codexEnvironment: [String]
+    ) {
         self.appState = appState
+        folderID = folder.id
+        folderPath = folder.path
+        self.codexPath = codexPath
+        self.codexArguments = codexArguments
+        self.codexEnvironment = codexEnvironment
         terminal = LocalProcessTerminalView(frame: .init(x: 0, y: 0, width: 900, height: 620))
+        folderNameLabel = NSTextField(labelWithString: folder.name)
         super.init(
             contentRect: contentRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -360,6 +384,16 @@ final class AssistantPanel: NSPanel {
         terminal.nativeForegroundColor = NSColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
         terminal.optionAsMetaKey = appState.optionAsMetaKey
         terminal.translatesAutoresizingMaskIntoConstraints = false
+
+        let header = NSView()
+        header.translatesAutoresizingMaskIntoConstraints = false
+        folderNameLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        folderNameLabel.textColor = .secondaryLabelColor
+        folderNameLabel.lineBreakMode = .byTruncatingTail
+        folderNameLabel.translatesAutoresizingMaskIntoConstraints = false
+        header.addSubview(folderNameLabel)
+
+        terminalCard.addSubview(header)
         terminalCard.addSubview(terminal)
         let preferredWidth = terminalCard.widthAnchor.constraint(equalToConstant: 900)
         let preferredHeight = terminalCard.heightAnchor.constraint(equalToConstant: 620)
@@ -372,52 +406,77 @@ final class AssistantPanel: NSPanel {
             preferredHeight,
             terminalCard.widthAnchor.constraint(lessThanOrEqualTo: overlay.widthAnchor, constant: -40),
             terminalCard.heightAnchor.constraint(lessThanOrEqualTo: overlay.heightAnchor, constant: -40),
+            header.leadingAnchor.constraint(equalTo: terminalCard.leadingAnchor, constant: 1),
+            header.trailingAnchor.constraint(equalTo: terminalCard.trailingAnchor, constant: -1),
+            header.topAnchor.constraint(equalTo: terminalCard.topAnchor, constant: 1),
+            header.heightAnchor.constraint(equalToConstant: 30),
+            folderNameLabel.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 11),
+            folderNameLabel.trailingAnchor.constraint(lessThanOrEqualTo: header.trailingAnchor, constant: -11),
+            folderNameLabel.centerYAnchor.constraint(equalTo: header.centerYAnchor),
             terminal.leadingAnchor.constraint(equalTo: terminalCard.leadingAnchor, constant: 1),
             terminal.trailingAnchor.constraint(equalTo: terminalCard.trailingAnchor, constant: -1),
-            terminal.topAnchor.constraint(equalTo: terminalCard.topAnchor, constant: 1),
+            terminal.topAnchor.constraint(equalTo: header.bottomAnchor),
             terminal.bottomAnchor.constraint(equalTo: terminalCard.bottomAnchor, constant: -1),
         ])
         contentView = overlay
+
+        let processDelegate = AssistantProcessDelegate(panel: self)
+        self.processDelegate = processDelegate
+        terminal.processDelegate = processDelegate
+        refreshFolderName(folder.name)
     }
 
     static func show(in parentWindow: NSWindow, appState: AppState) {
-        if let panel = current {
-            panel.makeKeyAndOrderFront(nil)
-            panel.makeFirstResponder(panel.terminal)
+        guard let folder = appState.selectedFolder else {
+            appState.showAssistant = false
+            return
+        }
+        guard folderPathIsDirectory(folder.path) else {
+            appState.showAssistant = false
             return
         }
 
-        let panel = AssistantPanel(contentRect: parentWindow.frame, appState: appState)
-        let syncFrame: @MainActor () -> Void = { [weak panel, weak parentWindow] in
-            guard let panel, let parentWindow else { return }
-            panel.setFrame(parentWindow.frame, display: true)
+        if let panel = visiblePanel, panel.folderID != folder.id {
+            panel.orderOut(nil)
+            visiblePanel = nil
         }
-        panel.resizeObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didResizeNotification,
-            object: parentWindow,
-            queue: .main
-        ) { _ in
-            MainActor.assumeIsolated { syncFrame() }
+
+        let panel: AssistantPanel
+        if let cached = cachedByFolderID[folder.id] {
+            panel = cached
+        } else {
+            let launchConfiguration = codexLaunchConfiguration(appState: appState)
+            panel = AssistantPanel(
+                contentRect: parentWindow.frame,
+                appState: appState,
+                folder: folder,
+                codexPath: launchConfiguration.path,
+                codexArguments: launchConfiguration.arguments,
+                codexEnvironment: launchConfiguration.environment
+            )
+            cachedByFolderID[folder.id] = panel
+            panel.attach(to: parentWindow)
         }
-        panel.moveObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didMoveNotification,
-            object: parentWindow,
-            queue: .main
-        ) { _ in
-            MainActor.assumeIsolated { syncFrame() }
-        }
-        parentWindow.addChildWindow(panel, ordered: .above)
+
+        panel.refreshFolderName(folder.name)
+        panel.setFrame(parentWindow.frame, display: true)
         panel.makeKeyAndOrderFront(nil)
-        current = panel
         panel.makeFirstResponder(panel.terminal)
-        panel.startCodex()
+        panel.startCodexIfNeeded()
+        visiblePanel = panel
     }
 
     static func dismiss() {
-        guard let panel = current else { return }
+        guard let panel = visiblePanel else { return }
         // Keep the terminal and Codex process alive while hidden so reopening
         // the assistant resumes the same interactive conversation.
         panel.orderOut(nil)
+        visiblePanel = nil
+    }
+
+    static func removeAssistant(for folderID: UUID) {
+        guard let panel = cachedByFolderID.removeValue(forKey: folderID) else { return }
+        panel.cleanup()
     }
 
     override func close() {
@@ -434,15 +493,12 @@ final class AssistantPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
 
-    private func startCodex() {
-        guard !started else { return }
+    private static func codexLaunchConfiguration(
+        appState: AppState
+    ) -> (path: String, arguments: [String], environment: [String]) {
         let codexPath = appState.assistantCLIPaths[AssistantProvider.codex.rawValue]
             ?? AssistantService.detectCLIPath(for: .codex)
             ?? "codex"
-        // The assistant spans all TermHub folders via MCP, so give it an empty,
-        // dedicated CWD rather than implicitly exposing a selected project or
-        // the user's entire home directory.
-        let workingDirectory = Self.assistantWorkingDirectory()
 
         var arguments: [String] = []
         let model = appState.assistantModelByProvider[AssistantProvider.codex.rawValue] ?? ""
@@ -455,32 +511,106 @@ final class AssistantPanel: NSPanel {
             .replacingOccurrences(of: "\n", with: "\\n")
         arguments += ["--config", "developer_instructions=\"\(escapedInstructions)\""]
 
-        terminal.startProcess(
-            executable: codexPath,
-            args: arguments,
-            environment: ShellEnvironment.shellEnvironment.map { "\($0.key)=\($0.value)" },
-            execName: "codex",
-            currentDirectory: workingDirectory
+        return (
+            codexPath,
+            arguments,
+            ShellEnvironment.shellEnvironment.map { "\($0.key)=\($0.value)" }
         )
-        started = true
     }
 
-    private static func assistantWorkingDirectory() -> String? {
-        let applicationSupport = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first
-        let directory = (applicationSupport ?? FileManager.default.temporaryDirectory)
-            .appendingPathComponent("TermHub", isDirectory: true)
-            .appendingPathComponent("CodexAssistant", isDirectory: true)
-        do {
-            try FileManager.default.createDirectory(
-                at: directory,
-                withIntermediateDirectories: true
-            )
-            return directory.path
-        } catch {
-            return nil
+    private static func folderPathIsDirectory(_ path: String) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
+            && isDirectory.boolValue
+    }
+
+    private func attach(to parentWindow: NSWindow) {
+        let syncFrame: @MainActor () -> Void = { [weak self, weak parentWindow] in
+            guard let self, let parentWindow else { return }
+            setFrame(parentWindow.frame, display: true)
+        }
+        resizeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResizeNotification,
+            object: parentWindow,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { syncFrame() }
+        }
+        moveObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didMoveNotification,
+            object: parentWindow,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { syncFrame() }
+        }
+        parentWindow.addChildWindow(self, ordered: .above)
+    }
+
+    private func refreshFolderName(_ folderName: String) {
+        folderNameLabel.stringValue = folderName
+        folderNameLabel.setAccessibilityLabel("Assistant for \(folderName)")
+    }
+
+    private func startCodexIfNeeded() {
+        guard !processIsRunning, !isCleaningUp else { return }
+        terminal.startProcess(
+            executable: codexPath,
+            args: codexArguments,
+            environment: codexEnvironment,
+            execName: "codex",
+            currentDirectory: folderPath
+        )
+        processIsRunning = true
+    }
+
+    fileprivate func processTerminated() {
+        guard !isCleaningUp else { return }
+        processIsRunning = false
+    }
+
+    private func cleanup() {
+        guard !isCleaningUp else { return }
+        isCleaningUp = true
+
+        if Self.visiblePanel === self {
+            orderOut(nil)
+            Self.visiblePanel = nil
+            appState.showAssistant = false
+        }
+        if processIsRunning {
+            terminal.terminate()
+            processIsRunning = false
+        }
+        terminal.processDelegate = nil
+        processDelegate = nil
+        if let resizeObserver {
+            NotificationCenter.default.removeObserver(resizeObserver)
+            self.resizeObserver = nil
+        }
+        if let moveObserver {
+            NotificationCenter.default.removeObserver(moveObserver)
+            self.moveObserver = nil
+        }
+        parent?.removeChildWindow(self)
+        orderOut(nil)
+    }
+}
+
+private final class AssistantProcessDelegate: LocalProcessTerminalViewDelegate {
+    private weak var panel: AssistantPanel?
+
+    @MainActor
+    init(panel: AssistantPanel) {
+        self.panel = panel
+    }
+
+    nonisolated func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
+    nonisolated func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
+    nonisolated func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
+    nonisolated func processTerminated(source: TerminalView, exitCode: Int32?) {
+        let panel = panel
+        Task { @MainActor in
+            panel?.processTerminated()
         }
     }
 }

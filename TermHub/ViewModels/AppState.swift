@@ -609,6 +609,11 @@ final class AppState {
         return sessions.first { $0.id == id }
     }
 
+    var selectedFolder: ManagedFolder? {
+        guard let selectedSession else { return nil }
+        return folders.first { $0.id == selectedSession.folderID }
+    }
+
     func selectSession(id: UUID, revealInSidebar: Bool = false) {
         guard sessions.contains(where: { $0.id == id }) else { return }
         selectedSessionID = id
@@ -696,7 +701,13 @@ final class AppState {
     }
 
     func toggleAssistant() {
-        showAssistant.toggle()
+        if showAssistant {
+            showAssistant = false
+            return
+        }
+
+        guard selectedFolder != nil else { return }
+        showAssistant = true
     }
 
     func appendAssistantSystemMessage(_ content: String) {
@@ -870,6 +881,8 @@ final class AppState {
     func removeFolder(id: UUID) {
         guard let index = folders.firstIndex(where: { $0.id == id }) else { return }
         let folder = folders[index]
+
+        AssistantPanel.removeAssistant(for: id)
 
         // Remove all sessions belonging to this folder (with cleanup)
         for sessionID in folder.sessionIDs {

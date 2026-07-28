@@ -224,6 +224,91 @@ struct AppStateTests {
         #expect(state.selectedSession?.id == sessionID)
     }
 
+    @Test("selectedFolder resolves the parent folder for a normal session")
+    @MainActor
+    func selectedFolderForNormalSession() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+
+        #expect(state.selectedFolder?.id == state.folders[0].id)
+    }
+
+    @Test("selectedFolder resolves the parent folder for a worktree session")
+    @MainActor
+    func selectedFolderForWorktreeSession() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        state.addSession(
+            folderID: folderID,
+            title: "Worktree",
+            cwd: "/tmp/example-worktree",
+            worktreePath: "/tmp/example-worktree"
+        )
+
+        #expect(state.selectedFolder?.id == folderID)
+        #expect(state.selectedFolder?.path == "/tmp")
+    }
+
+    @Test("selectedFolder resolves the parent folder for a sandbox session")
+    @MainActor
+    func selectedFolderForSandboxSession() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        state.addSession(
+            folderID: folderID,
+            title: "Sandbox",
+            cwd: "/workspace",
+            sandboxName: "development"
+        )
+
+        #expect(state.selectedFolder?.id == folderID)
+        #expect(state.selectedFolder?.path == "/tmp")
+    }
+
+    @Test("selectedFolder is nil when no session is selected")
+    @MainActor
+    func selectedFolderNilWithoutSelection() {
+        let state = makeCleanAppState()
+
+        #expect(state.selectedFolder == nil)
+    }
+
+    @Test("toggleAssistant does nothing without a selected folder")
+    @MainActor
+    func toggleAssistantWithoutSelectedFolder() {
+        let state = makeCleanAppState()
+
+        state.toggleAssistant()
+
+        #expect(!state.showAssistant)
+    }
+
+    @Test("toggleAssistant opens with a selected folder")
+    @MainActor
+    func toggleAssistantWithSelectedFolder() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+
+        state.toggleAssistant()
+
+        #expect(state.showAssistant)
+    }
+
+    @Test("toggleAssistant closes with an invalid selection")
+    @MainActor
+    func toggleAssistantClosesWithInvalidSelection() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        state.showAssistant = true
+        state.selectedSessionID = UUID()
+
+        state.toggleAssistant()
+
+        #expect(!state.showAssistant)
+    }
+
     @Test("session toolbar title is nil when no session is selected")
     @MainActor
     func sessionToolbarTitleNilWhenNoSelection() {
