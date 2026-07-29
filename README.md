@@ -158,7 +158,7 @@ This uses the plan file from the current conversation, creates a new worktree an
 
 ## Requirements
 
-- macOS 14.0 (Sonoma) or later
+- macOS 26.0 (Tahoe) or later
 - [Xcode](https://apps.apple.com/app/xcode/id497799835) (full app, not just Command Line Tools — required for the Metal compiler)
 - [tmux](https://github.com/tmux/tmux) (recommended, for session persistence)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (optional, for sandbox support)

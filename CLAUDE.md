@@ -63,7 +63,7 @@ Slash commands: `/build`, `/run` (build & launch), `/test`, `/regenerate-project
 ## Key Conventions
 
 - **Swift 6 strict concurrency** — `SWIFT_STRICT_CONCURRENCY: complete` is enabled. AppState and TerminalSessionManager are `@MainActor`. Services use `nonisolated` static methods.
-- **macOS 14.0+ deployment target** — no iOS/multiplatform considerations.
+- **macOS 26.0+ deployment target** — no iOS/multiplatform considerations.
 - **XcodeGen** — never edit `TermHub.xcodeproj` directly; modify `project.yml` and regenerate. Run `/regenerate-project` after adding/removing Swift files.
 - **Tests use Swift Testing** (`import Testing`, `@Test`, `#expect`) not XCTest.
 

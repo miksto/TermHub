@@ -2,7 +2,7 @@ name: TermHub
 options:
   bundleIdPrefix: com.termhub
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "26.0"
   xcodeVersion: "16.4"
   minimumXcodeGenVersion: "2.40"
 
@@ -46,7 +46,7 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
         CODE_SIGN_ENTITLEMENTS: TermHub/App/TermHub.entitlements
-        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         SWIFT_STRICT_CONCURRENCY: complete
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
@@ -102,7 +102,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.termhub.mcp
         PRODUCT_NAME: termhub-mcp
         SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         SWIFT_STRICT_CONCURRENCY: complete
     postBuildScripts:
       - script: |
@@ -125,7 +125,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.termhub.tests
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         SWIFT_STRICT_CONCURRENCY: complete
     dependencies:
       - target: TermHub
@@ -179,5 +179,5 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.termhub.mcptests
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         SWIFT_STRICT_CONCURRENCY: complete
