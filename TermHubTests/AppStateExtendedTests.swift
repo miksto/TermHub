@@ -814,7 +814,7 @@ struct AppStateExtendedTests {
         #expect(Set(affected) == Set(["/tmp", "/private/tmp"]))
     }
 
-    @Test("affectedTrackedGitPaths maps worktree git admin events back to the worktree path")
+    @Test("affectedTrackedGitPaths excludes a session-only missing worktree path")
     @MainActor
     func affectedTrackedGitPathsIncludesWorktreeForGitAdminChanges() {
         let state = makeCleanAppState()
@@ -841,7 +841,7 @@ struct AppStateExtendedTests {
             "/tmp/.git/worktrees/feature/index"
         ])
 
-        #expect(affected.contains("/tmp/repo-termhub/feature"))
+        #expect(!affected.contains("/tmp/repo-termhub/feature"))
     }
 
     @Test("applyDetectedGitRepos hydrates branch status for newly detected folders")

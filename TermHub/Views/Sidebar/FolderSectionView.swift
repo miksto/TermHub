@@ -9,41 +9,10 @@ struct FolderSectionView: View {
     @Binding var dropTargetSidebarItem: SidebarItem?
     var isInsideGroup: Bool = false
 
-    private struct WorktreeGroup: Identifiable {
-        let worktreePath: String
-        let branchName: String
-        let sessionIDs: [UUID]
-        var id: String { worktreePath }
-    }
-
     private var plainSessionIDs: [UUID] {
         folder.sessionIDs.filter { id in
             appState.sessions.first(where: { $0.id == id })?.worktreePath == nil
         }
-    }
-
-    private var worktreeGroups: [WorktreeGroup] {
-        var seen: [String: Int] = [:]
-        var groups: [WorktreeGroup] = []
-        for sessionID in folder.sessionIDs {
-            guard let session = appState.sessions.first(where: { $0.id == sessionID }),
-                  let wt = session.worktreePath else { continue }
-            if let idx = seen[wt] {
-                groups[idx] = WorktreeGroup(
-                    worktreePath: groups[idx].worktreePath,
-                    branchName: groups[idx].branchName,
-                    sessionIDs: groups[idx].sessionIDs + [sessionID]
-                )
-            } else {
-                seen[wt] = groups.count
-                groups.append(WorktreeGroup(
-                    worktreePath: wt,
-                    branchName: session.branchName ?? "worktree",
-                    sessionIDs: [sessionID]
-                ))
-            }
-        }
-        return groups
     }
 
     private var baseLeading: CGFloat { isInsideGroup ? 14 : 0 }
@@ -114,6 +83,16 @@ struct FolderSectionView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+
+                    if appState.worktreeDiscoveryInProgress.contains(folder.id),
+                       appState.worktrees(for: folder.id).isEmpty {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else if let error = appState.worktreeDiscoveryErrors[folder.id] {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.yellow)
+                            .help(error)
+                    }
                 }
             }
             .padding(.top, 2)
@@ -121,15 +100,31 @@ struct FolderSectionView: View {
             .selectionDisabled()
 
             // Worktree groups
-            ForEach(worktreeGroups) { group in
+            ForEach(appState.worktrees(for: folder.id)) { worktree in
                 WorktreeHeaderView(
-                    folderID: folder.id,
-                    worktreePath: group.worktreePath,
-                    branchName: group.branchName,
+                    worktree: worktree,
                     optionKeyDown: optionKeyDown
                 )
                 .listRowInsets(EdgeInsets(top: 0, leading: baseLeading + 14, bottom: 0, trailing: 0))
                 .selectionDisabled()
+
+                ForEach(appState.sessionsForWorktree(
+                    folderID: folder.id,
+                    path: worktree.path
+                ).map(\.id), id: \.self) { sessionID in
+                    SessionRowView(sessionID: sessionID, onRemove: {
+                        appState.removeSession(id: sessionID)
+                    })
+                    .id(sessionID)
+                    .tag(sessionID)
+                    .listRowInsets(EdgeInsets(top: 0, leading: baseLeading + 28, bottom: 0, trailing: 0))
+                }
+            }
+
+            ForEach(appState.missingWorktreeSessionGroups(for: folder.id)) { group in
+                MissingWorktreeHeaderView(group: group)
+                    .listRowInsets(EdgeInsets(top: 0, leading: baseLeading + 14, bottom: 0, trailing: 0))
+                    .selectionDisabled()
 
                 ForEach(group.sessionIDs, id: \.self) { sessionID in
                     SessionRowView(sessionID: sessionID, onRemove: {

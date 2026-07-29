@@ -231,12 +231,7 @@ private struct ContentViewAlerts: ViewModifier {
                 }
             } message: { folder in
                 let sessionCount = appState.sessions.filter { $0.folderID == folder.id }.count
-                let worktreeCount = appState.sessions.filter { $0.folderID == folder.id && $0.worktreePath != nil }.count
-                if worktreeCount > 0 {
-                    Text("This will close \(sessionCount) tmux session(s) and remove \(worktreeCount) worktree(s) for \"\(folder.name)\".")
-                } else {
-                    Text("This will close \(sessionCount) tmux session(s) for \"\(folder.name)\".")
-                }
+                Text("This will close \(sessionCount) tmux session(s) for \"\(folder.name)\". Git worktrees will not be removed.")
             }
     }
 }

@@ -146,6 +146,9 @@ final class IPCServer {
         case "listSessions":
             return listSessions(appState, params: params)
 
+        case "listWorktrees":
+            return listWorktrees(appState, params: params)
+
         case "addSession":
             return addSession(appState, params: params)
 
@@ -222,6 +225,9 @@ final class IPCServer {
         let sessions = state.sessions.map { session in
             sessionToIPCValue(session, state: state)
         }
+        let worktrees = state.folders.flatMap { state.worktrees(for: $0.id) }.map {
+            worktreeToIPCValue($0, state: state)
+        }
 
         let sandboxes = state.sandboxes.map { sandbox in
             IPCValue.object([
@@ -235,8 +241,45 @@ final class IPCServer {
         return .success(.object([
             "folders": .array(folders),
             "sessions": .array(sessions),
+            "worktrees": .array(worktrees),
             "sandboxes": .array(sandboxes),
         ]))
+    }
+
+    private func listWorktrees(_ state: AppState, params: [String: IPCValue]) -> IPCResponse {
+        let folderID: UUID?
+        if let folderIDString = params["folderId"]?.stringValue {
+            guard let parsed = UUID(uuidString: folderIDString) else {
+                return .failure("Invalid 'folderId' parameter")
+            }
+            folderID = parsed
+        } else {
+            folderID = nil
+        }
+
+        let worktrees = state.folders
+            .filter { folderID == nil || $0.id == folderID }
+            .flatMap { state.worktrees(for: $0.id) }
+            .map { worktreeToIPCValue($0, state: state) }
+        return .success(.array(worktrees))
+    }
+
+    private func worktreeToIPCValue(_ worktree: GitWorktree, state: AppState) -> IPCValue {
+        .object([
+            "folderID": .string(worktree.folderID.uuidString),
+            "path": .string(worktree.path),
+            "branch": worktree.branch.map { .string($0) } ?? .null,
+            "head": .string(worktree.head),
+            "detached": .bool(worktree.isDetached),
+            "locked": .bool(worktree.isLocked),
+            "lockReason": worktree.lockReason.map { .string($0) } ?? .null,
+            "attachedSessionIDs": .array(
+                state.sessionsForWorktree(
+                    folderID: worktree.folderID,
+                    path: worktree.path
+                ).map { .string($0.id.uuidString) }
+            ),
+        ])
     }
 
     private func listSessions(_ state: AppState, params: [String: IPCValue]) -> IPCResponse {
@@ -264,6 +307,7 @@ final class IPCServer {
             "sandboxName": session.sandboxName.map { .string($0) } ?? .null,
             "tmuxSessionName": .string(session.tmuxSessionName),
             "isSelected": .bool(state.selectedSessionID == session.id),
+            "worktreeMissing": .bool(state.isWorktreeMissing(for: session)),
         ])
     }
 

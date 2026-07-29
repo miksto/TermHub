@@ -22,6 +22,20 @@ enum AssistantProvider: String, CaseIterable, Codable, Sendable {
     var commandName: String { rawValue }
 }
 
+struct WorktreeDiscoveryService: Sendable {
+    var listWorktrees: @Sendable (_ repoPath: String, _ folderID: UUID) throws -> [GitWorktree]
+    var liveTmuxSessionNames: @Sendable () -> Set<String>
+
+    static let live = WorktreeDiscoveryService(
+        listWorktrees: { repoPath, folderID in
+            try GitService.listWorktrees(repoPath: repoPath, folderID: folderID)
+        },
+        liveTmuxSessionNames: {
+            Set(TmuxService.listSessions())
+        }
+    )
+}
+
 @Observable
 @MainActor
 final class AppState {
@@ -300,6 +314,10 @@ final class AppState {
         }
     }
     var gitStatuses: [String: GitStatus] = [:]
+    private(set) var worktreesByFolderID: [UUID: [GitWorktree]] = [:]
+    private(set) var worktreeDiscoveryErrors: [UUID: String] = [:]
+    private(set) var worktreeDiscoveryInProgress: Set<UUID> = []
+    private(set) var worktreeRemovalInProgress: Set<String> = []
     var detailTabBySession: [UUID: DetailTab] = [:]
     var showSandboxManager = false
     var sandboxes: [SandboxInfo] = []
@@ -316,11 +334,15 @@ final class AppState {
     @ObservationIgnored private var gitWatchPathsByTrackedPath: [String: [String]] = [:]
     @ObservationIgnored private var gitStatusRefreshSequence: UInt64 = 0
     @ObservationIgnored private var latestGitStatusRefreshByPath: [String: UInt64] = [:]
+    @ObservationIgnored private var worktreeRefreshGenerationByFolderID: [UUID: UInt64] = [:]
+    @ObservationIgnored private var foldersWithSuccessfulWorktreeDiscovery: Set<UUID> = []
+    @ObservationIgnored private var worktreeRefreshDebounce: DispatchWorkItem?
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
     private var loadFailed = false
     @ObservationIgnored private var debouncedSaveWorkItem: DispatchWorkItem?
     @ObservationIgnored private let persistence: StatePersistence
+    @ObservationIgnored private let worktreeDiscoveryService: WorktreeDiscoveryService
     @ObservationIgnored private var ipcServer: IPCServer?
     @ObservationIgnored private let assistantService = AssistantService()
     @ObservationIgnored private var activeAssistantMessageID: UUID?
@@ -509,9 +531,13 @@ final class AppState {
 
     let terminalManager = TerminalSessionManager()
 
-    init(persistence: StatePersistence? = nil) {
+    init(
+        persistence: StatePersistence? = nil,
+        worktreeDiscoveryService: WorktreeDiscoveryService = .live
+    ) {
         let isTestHost = ProcessInfo.processInfo.isRunningTests
         self.persistence = persistence ?? (isTestHost ? NullPersistence() : DiskPersistence())
+        self.worktreeDiscoveryService = worktreeDiscoveryService
         if UserDefaults.standard.bool(forKey: "optionAsMetaKeyIsSet") {
             optionAsMetaKey = UserDefaults.standard.bool(forKey: "optionAsMetaKey")
         } else {
@@ -545,6 +571,7 @@ final class AppState {
         configureAssistantService()
         if !isTestHost {
             detectGitRepos()
+            refreshWorktrees()
             restoreTmuxSessions()
         }
 
@@ -565,6 +592,7 @@ final class AppState {
                 if let id = self?.selectedSessionID {
                     self?.sessionsNeedingAttention.remove(id)
                 }
+                self?.refreshWorktrees()
             }
         }
 
@@ -867,6 +895,7 @@ final class AppState {
             // ManagedFolder detects existing Git repositories during initialization;
             // hydrate the status now that the folder is tracked by AppState.
             refreshGitStatuses(for: [path])
+            refreshWorktrees(folderIDs: [folder.id])
         } else {
             // Detect repositories that were not identified during initialization
             // asynchronously so the UI remains responsive.
@@ -886,10 +915,15 @@ final class AppState {
 
         // Remove all sessions belonging to this folder (with cleanup)
         for sessionID in folder.sessionIDs {
-            removeSession(id: sessionID, parentFolderPath: folder.path, save: false)
+            removeSession(id: sessionID, save: false)
         }
 
         folders.remove(at: index)
+        worktreesByFolderID.removeValue(forKey: id)
+        worktreeDiscoveryErrors.removeValue(forKey: id)
+        worktreeDiscoveryInProgress.remove(id)
+        foldersWithSuccessfulWorktreeDiscovery.remove(id)
+        worktreeRefreshGenerationByFolderID.removeValue(forKey: id)
         sidebarOrder.removeAll { $0 == .folder(id) }
         // Also remove from any group it belongs to
         for i in groups.indices where groups[i].folderIDs.contains(id) {
@@ -947,22 +981,23 @@ final class AppState {
         if let worktreePath {
             updateGitFileWatcher()
             refreshGitStatuses(for: [worktreePath])
+            refreshWorktrees(folderIDs: [folderID])
         }
     }
 
-    func removeSession(id: UUID, parentFolderPath: String? = nil, save: Bool = true) {
+    func removeSession(id: UUID, save: Bool = true) {
         guard let session = sessions.first(where: { $0.id == id }) else { return }
-
-        // Capture cleanup info before mutating state
         let tmuxName = session.tmuxSessionName
-        let worktreePath = session.worktreePath
-        let isExternal = session.isExternalWorktree
-        let otherSessionUsesWorktree = sessions.contains {
-            $0.id != id && $0.worktreePath == worktreePath
-        }
-        let repoPath = parentFolderPath ?? folders.first(where: { $0.id == session.folderID })?.path
+        removeSessionRecord(id: id, save: save)
 
-        // UI state mutations (stay on MainActor)
+        Task.detached {
+            do { try TmuxService.killSession(name: tmuxName) }
+            catch { print("[TermHub] Failed to kill tmux session '\(tmuxName)': \(error)") }
+        }
+    }
+
+    private func removeSessionRecord(id: UUID, save: Bool) {
+        guard let session = sessions.first(where: { $0.id == id }) else { return }
         if selectedSessionID == id {
             selectedSessionID = nextSessionID(after: id, inFolderOf: session)
         }
@@ -973,6 +1008,7 @@ final class AppState {
         sandboxResizeDebounce.removeValue(forKey: id)
         lastBellTime.removeValue(forKey: id)
         displayStates.removeValue(forKey: id)
+        detailTabBySession.removeValue(forKey: id)
         sessionMRUOrder.removeAll { $0 == id }
         sessionInputMRUOrder.removeAll { $0 == id }
         sessions.removeAll { $0.id == id }
@@ -983,23 +1019,8 @@ final class AppState {
 
         sessionListVersion += 1
         if save { saveState() }
-        if worktreePath != nil {
+        if session.worktreePath != nil {
             updateGitFileWatcher()
-        }
-
-        // Background cleanup (blocking I/O — best-effort).  Keep worktree
-        // removal independent from tmux teardown: a stalled tmux command must
-        // not leave the worktree behind after its last TermHub session closes.
-        Task.detached {
-            do { try TmuxService.killSession(name: tmuxName) }
-            catch { print("[TermHub] Failed to kill tmux session '\(tmuxName)': \(error)") }
-        }
-
-        guard let worktreePath, !isExternal, !otherSessionUsesWorktree, let repoPath else { return }
-
-        Task.detached {
-            do { try GitService.removeWorktree(repoPath: repoPath, worktreePath: worktreePath) }
-            catch { print("[TermHub] Failed to remove worktree '\(worktreePath)': \(error)") }
         }
     }
 
@@ -1454,6 +1475,248 @@ final class AppState {
         sessionsNeedingAttention.insert(sessionID)
     }
 
+    // MARK: - Worktree Discovery
+
+    func worktrees(for folderID: UUID) -> [GitWorktree] {
+        worktreesByFolderID[folderID] ?? []
+    }
+
+    func sessionsForWorktree(folderID: UUID, path: String) -> [TerminalSession] {
+        let normalizedPath = GitWorktree.normalizePath(path)
+        let sessionByID = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
+        guard let folder = folders.first(where: { $0.id == folderID }) else { return [] }
+        return folder.sessionIDs.compactMap { sessionByID[$0] }.filter {
+            guard let worktreePath = $0.worktreePath else { return false }
+            return GitWorktree.normalizePath(worktreePath) == normalizedPath
+        }
+    }
+
+    func missingWorktreeSessionGroups(for folderID: UUID) -> [MissingWorktreeSessionGroup] {
+        guard foldersWithSuccessfulWorktreeDiscovery.contains(folderID) else { return [] }
+        let activePaths = Set(worktrees(for: folderID).map(\.normalizedPath))
+        let sessionByID = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
+        guard let folder = folders.first(where: { $0.id == folderID }) else { return [] }
+
+        var groupOrder: [String] = []
+        var grouped: [String: [TerminalSession]] = [:]
+        for sessionID in folder.sessionIDs {
+            guard let session = sessionByID[sessionID],
+                  let path = session.worktreePath else { continue }
+            let normalizedPath = GitWorktree.normalizePath(path)
+            guard !activePaths.contains(normalizedPath) else { continue }
+            if grouped[normalizedPath] == nil {
+                groupOrder.append(normalizedPath)
+            }
+            grouped[normalizedPath, default: []].append(session)
+        }
+
+        return groupOrder.compactMap { normalizedPath in
+            guard let groupedSessions = grouped[normalizedPath],
+                  let first = groupedSessions.first,
+                  let path = first.worktreePath else { return nil }
+            return MissingWorktreeSessionGroup(
+                folderID: folderID,
+                path: path,
+                normalizedPath: normalizedPath,
+                branchName: groupedSessions.compactMap(\.branchName).first,
+                sessionIDs: groupedSessions.map(\.id)
+            )
+        }
+    }
+
+    func isWorktreeMissing(for session: TerminalSession) -> Bool {
+        guard let path = session.worktreePath,
+              foldersWithSuccessfulWorktreeDiscovery.contains(session.folderID)
+        else { return false }
+        return !Set(worktrees(for: session.folderID).map(\.normalizedPath))
+            .contains(GitWorktree.normalizePath(path))
+    }
+
+    func refreshWorktrees(folderIDs: Set<UUID>? = nil) {
+        let requestedFolders = folders.filter {
+            $0.isGitRepo && $0.pathExists && (folderIDs == nil || folderIDs!.contains($0.id))
+        }
+        guard !requestedFolders.isEmpty else { return }
+
+        for folder in requestedFolders {
+            let generation = (worktreeRefreshGenerationByFolderID[folder.id] ?? 0) &+ 1
+            worktreeRefreshGenerationByFolderID[folder.id] = generation
+            worktreeDiscoveryInProgress.insert(folder.id)
+
+            let folderID = folder.id
+            let folderPath = folder.path
+            let normalizedFolderPath = GitWorktree.normalizePath(folderPath)
+            let discoveryService = worktreeDiscoveryService
+            let sessionCandidates = sessions.filter {
+                $0.folderID == folderID && $0.worktreePath != nil
+            }.compactMap { session -> (id: UUID, tmuxName: String, normalizedPath: String)? in
+                guard let path = session.worktreePath else { return nil }
+                return (
+                    id: session.id,
+                    tmuxName: session.tmuxSessionName,
+                    normalizedPath: GitWorktree.normalizePath(path)
+                )
+            }
+
+            Task.detached {
+                let result: Result<([GitWorktree], Set<UUID>), Error>
+                do {
+                    let discovered = try discoveryService.listWorktrees(folderPath, folderID)
+                    let active = Self.activeDiscoveredWorktrees(
+                        discovered,
+                        normalizedFolderPath: normalizedFolderPath
+                    )
+
+                    let activePaths = Set(active.map(\.normalizedPath))
+                    let missingCandidates = sessionCandidates.filter {
+                        !activePaths.contains($0.normalizedPath)
+                    }
+                    let existingTmuxNames = discoveryService.liveTmuxSessionNames()
+                    let liveMissingIDs = Set(missingCandidates.compactMap {
+                        existingTmuxNames.contains($0.tmuxName) ? $0.id : nil
+                    })
+                    result = .success((active, liveMissingIDs))
+                } catch {
+                    result = .failure(error)
+                }
+
+                await MainActor.run { [weak self] in
+                    self?.applyWorktreeDiscoveryResult(
+                        result,
+                        folderID: folderID,
+                        generation: generation
+                    )
+                }
+            }
+        }
+    }
+
+    nonisolated static func activeDiscoveredWorktrees(
+        _ discovered: [GitWorktree],
+        normalizedFolderPath: String
+    ) -> [GitWorktree] {
+        var seen: Set<String> = []
+        return discovered.filter { worktree in
+            var isDirectory: ObjCBool = false
+            guard worktree.normalizedPath != normalizedFolderPath,
+                  !worktree.isBare,
+                  !worktree.isPrunable,
+                  FileManager.default.fileExists(
+                    atPath: worktree.path,
+                    isDirectory: &isDirectory
+                  ),
+                  isDirectory.boolValue,
+                  seen.insert(worktree.normalizedPath).inserted
+            else { return false }
+            return true
+        }.sorted {
+            let nameOrder = $0.displayName.localizedCaseInsensitiveCompare($1.displayName)
+            if nameOrder == .orderedSame {
+                return $0.path.localizedCaseInsensitiveCompare($1.path) == .orderedAscending
+            }
+            return nameOrder == .orderedAscending
+        }
+    }
+
+    func applyWorktreeDiscoveryResult(
+        _ result: Result<([GitWorktree], Set<UUID>), Error>,
+        folderID: UUID,
+        generation: UInt64
+    ) {
+        guard worktreeRefreshGenerationByFolderID[folderID] == generation,
+              folders.contains(where: { $0.id == folderID })
+        else { return }
+
+        worktreeDiscoveryInProgress.remove(folderID)
+        switch result {
+        case .failure(let error):
+            worktreeDiscoveryErrors[folderID] = error.localizedDescription
+        case .success(let payload):
+            let (worktrees, liveMissingSessionIDs) = payload
+            worktreesByFolderID[folderID] = worktrees
+            worktreeDiscoveryErrors.removeValue(forKey: folderID)
+            foldersWithSuccessfulWorktreeDiscovery.insert(folderID)
+
+            let activePaths = Set(worktrees.map(\.normalizedPath))
+            let staleSessionIDs = sessions.compactMap { session -> UUID? in
+                guard session.folderID == folderID,
+                      let path = session.worktreePath,
+                      !activePaths.contains(GitWorktree.normalizePath(path)),
+                      !liveMissingSessionIDs.contains(session.id)
+                else { return nil }
+                return session.id
+            }
+            for sessionID in staleSessionIDs {
+                removeSessionRecord(id: sessionID, save: false)
+            }
+            if !staleSessionIDs.isEmpty {
+                saveState()
+            }
+            updateGitFileWatcher()
+            refreshGitStatuses()
+        }
+    }
+
+    func scheduleWorktreeRefresh(folderIDs: Set<UUID>? = nil) {
+        worktreeRefreshDebounce?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.refreshWorktrees(folderIDs: folderIDs)
+            }
+        }
+        worktreeRefreshDebounce = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: workItem)
+    }
+
+    func removeWorktree(folderID: UUID, path: String) {
+        guard let folder = folders.first(where: { $0.id == folderID }) else { return }
+        let normalizedPath = GitWorktree.normalizePath(path)
+        guard normalizedPath != GitWorktree.normalizePath(folder.path),
+              let worktree = worktrees(for: folderID).first(where: {
+                  $0.normalizedPath == normalizedPath
+              }),
+              !worktree.isLocked,
+              worktreeRemovalInProgress.insert(worktree.id).inserted
+        else { return }
+
+        let sessionSnapshots = sessionsForWorktree(folderID: folderID, path: path)
+            .map { (id: $0.id, tmuxName: $0.tmuxSessionName) }
+        let worktreeID = worktree.id
+
+        Task.detached {
+            do {
+                try GitService.removeWorktree(
+                    repoPath: folder.path,
+                    worktreePath: worktree.path,
+                    force: false
+                )
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.worktreeRemovalInProgress.remove(worktreeID)
+                    self?.errorMessage = "Failed to remove worktree: \(error.localizedDescription)"
+                }
+                return
+            }
+
+            for session in sessionSnapshots {
+                try? TmuxService.killSession(name: session.tmuxName)
+            }
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                for session in sessionSnapshots {
+                    self.removeSessionRecord(id: session.id, save: false)
+                }
+                if !sessionSnapshots.isEmpty {
+                    self.saveState()
+                }
+                self.worktreeRemovalInProgress.remove(worktreeID)
+                self.refreshWorktrees(folderIDs: [folderID])
+                self.updateGitFileWatcher()
+                self.refreshGitStatuses()
+            }
+        }
+    }
+
     /// Returns the next (or previous if last) sibling session ID within the same folder.
     private func nextSessionID(after id: UUID, inFolderOf session: TerminalSession) -> UUID? {
         guard let folder = folders.first(where: { $0.id == session.folderID }) else { return nil }
@@ -1479,8 +1742,11 @@ final class AppState {
     /// and kill orphaned tmux sessions that no longer have a matching app session.
     private func restoreTmuxSessions() {
         guard tmuxAvailable else { return }
-        let sessionsSnapshot = sessions.map { session -> (name: String, cwd: String, shellCommand: String?) in
+        let sessionsSnapshot = sessions.compactMap { session -> (name: String, cwd: String, shellCommand: String?)? in
             let cwd = session.worktreePath ?? session.workingDirectory
+            if session.worktreePath != nil, !FileManager.default.fileExists(atPath: cwd) {
+                return nil
+            }
             let shellCommand: String? = if let sandboxName = session.sandboxName {
                 SbxService.execCommand(
                     sandboxName: sandboxName,
@@ -1492,7 +1758,7 @@ final class AppState {
             }
             return (name: session.tmuxSessionName, cwd: cwd, shellCommand: shellCommand)
         }
-        let knownNames = Set(sessionsSnapshot.map(\.name))
+        let knownNames = Set(sessions.map(\.tmuxSessionName))
         Task.detached {
             let existingSessions = Set(TmuxService.listSessions())
 
@@ -1608,6 +1874,18 @@ final class AppState {
                 // not identify a tracked repository. The watcher already limits
                 // this to changes below one of the tracked paths.
                 self.refreshGitStatuses(for: affectedPaths.isEmpty ? self.trackedGitPaths() : affectedPaths)
+                let affectedFolderIDs: Set<UUID> = Set(self.folders.compactMap { folder -> UUID? in
+                    guard folder.isGitRepo else { return nil }
+                    let watchPaths = self.gitWatchPathsByTrackedPath[folder.path] ?? [folder.path]
+                    return watchPaths.contains(where: { watchedPath in
+                        changedPaths.contains(where: {
+                            $0 == watchedPath || $0.hasPrefix(watchedPath + "/")
+                        })
+                    }) ? folder.id : nil
+                })
+                self.scheduleWorktreeRefresh(
+                    folderIDs: affectedFolderIDs.isEmpty ? nil : affectedFolderIDs
+                )
                 if self.currentDetailTab == .gitDiff,
                    let currentPath = self.selectedSessionGitPath,
                    (affectedPaths.isEmpty || affectedPaths.contains(currentPath)) {
@@ -1703,7 +1981,7 @@ final class AppState {
         return affected
     }
 
-    private func trackedGitPaths() -> [String] {
+    func trackedGitPaths() -> [String] {
         var seen: Set<String> = []
         var paths: [String] = []
 
@@ -1713,10 +1991,11 @@ final class AppState {
             }
         }
 
-        for session in sessions {
-            if let worktreePath = session.worktreePath,
-               seen.insert(worktreePath).inserted {
-                paths.append(worktreePath)
+        for worktrees in worktreesByFolderID.values {
+            for worktree in worktrees where FileManager.default.fileExists(atPath: worktree.path) {
+                if seen.insert(worktree.path).inserted {
+                    paths.append(worktree.path)
+                }
             }
         }
 
@@ -1757,6 +2036,8 @@ final class AppState {
         saveState()
         refreshGitStatuses(for: changedPaths)
         updateGitFileWatcher()
+        let changedFolderIDs = Set(folders.filter { changedPaths.contains($0.path) }.map(\.id))
+        refreshWorktrees(folderIDs: changedFolderIDs)
     }
 
     /// Detects git repo status for folders that don't have it persisted yet.

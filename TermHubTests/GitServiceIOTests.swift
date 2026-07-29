@@ -202,6 +202,22 @@ struct GitServiceIOTests {
 
     // MARK: - addWorktree
 
+    @Test("listWorktrees uses stable porcelain command")
+    func listWorktreesCommand() throws {
+        mock.enqueueSuccess("""
+        worktree /tmp/repo
+        HEAD abc1234
+        branch refs/heads/main
+        """)
+
+        let worktrees = try GitService.listWorktrees(repoPath: "/tmp/repo", folderID: UUID())
+
+        #expect(worktrees.count == 1)
+        #expect(mock.lastCall?.arguments == [
+            "-C", "/tmp/repo", "worktree", "list", "--porcelain",
+        ])
+    }
+
     @Test("addWorktree runs correct git command")
     func addWorktreeCommand() throws {
         mock.enqueueSuccess()
@@ -223,6 +239,32 @@ struct GitServiceIOTests {
         } throws: { error in
             (error as? GitServiceError) == .worktreeAlreadyExists
         }
+    }
+
+    @Test("normal worktree removal does not force")
+    func removeWorktreeNormally() throws {
+        mock.enqueueSuccess()
+
+        try GitService.removeWorktree(repoPath: "/tmp/repo", worktreePath: "/tmp/worktree")
+
+        #expect(mock.lastCall?.arguments == [
+            "-C", "/tmp/repo", "worktree", "remove", "/tmp/worktree",
+        ])
+    }
+
+    @Test("forced worktree removal includes force flag")
+    func removeWorktreeForced() throws {
+        mock.enqueueSuccess()
+
+        try GitService.removeWorktree(
+            repoPath: "/tmp/repo",
+            worktreePath: "/tmp/worktree",
+            force: true
+        )
+
+        #expect(mock.lastCall?.arguments == [
+            "-C", "/tmp/repo", "worktree", "remove", "--force", "/tmp/worktree",
+        ])
     }
 
     @Test("addWorktreeTrackingRemote uses track and local branch name")
@@ -294,7 +336,7 @@ struct GitServiceIOTests {
         let call = mock.lastCall!
         #expect(call.arguments.contains("worktree"))
         #expect(call.arguments.contains("remove"))
-        #expect(call.arguments.contains("--force"))
+        #expect(!call.arguments.contains("--force"))
     }
 
     // MARK: - deleteLocalBranch

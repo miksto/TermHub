@@ -8,14 +8,28 @@ enum MCPTools {
         toolDef(
             name: "get_workspace_overview",
             description: """
-                Get a complete snapshot of the TermHub workspace: all managed folders, terminal sessions, \
-                and Docker sandboxes in a single call. This is the best starting point to understand the \
+                Get a complete snapshot of the TermHub workspace: all managed folders, discovered git \
+                worktrees, terminal sessions, and Docker sandboxes in a single call. This is the best starting point to understand the \
                 current state before taking any action. Returns folders (with id, name, path, git status), \
-                sessions (with id, title, folder, branch, worktree, sandbox, selection state), and \
+                worktrees (including zero-session worktrees), sessions (with id, title, folder, branch, worktree, sandbox, selection state), and \
                 sandboxes (with name, agent, status, workspaces). Use the returned IDs with other tools \
                 like send_keys, select_session, or create_worktree.
                 """,
             properties: [:],
+            required: [],
+            readOnly: true
+        ),
+
+        toolDef(
+            name: "list_worktrees",
+            description: """
+                List active git worktrees discovered by TermHub, including worktrees with no terminal \
+                sessions. Returns folderID, path, branch, head, detached and locked state, lock reason, \
+                and attachedSessionIDs. Optionally filter by folderId.
+                """,
+            properties: [
+                "folderId": propString("Optional UUID of a managed folder to filter worktrees by."),
+            ],
             required: [],
             readOnly: true
         ),
@@ -25,7 +39,7 @@ enum MCPTools {
             name: "list_sessions",
             description: """
                 List terminal sessions managed by TermHub. Returns id, title, folderID, workingDirectory, \
-                worktreePath, branchName, sandboxName, tmuxSessionName, and isSelected for each session. \
+                worktreePath, worktreeMissing, branchName, sandboxName, tmuxSessionName, and isSelected for each session. \
                 Sessions with non-null worktreePath are git worktree sessions. Use get_workspace_overview \
                 instead if you also need folder and sandbox information. Optionally filter by folderId to \
                 get sessions for a specific folder only.
@@ -57,8 +71,8 @@ enum MCPTools {
         toolDef(
             name: "remove_session",
             description: """
-                Remove a terminal session from TermHub. This kills the associated tmux session and, if \
-                the session is a worktree session, removes the git worktree directory. Use list_sessions \
+                Remove a terminal session from TermHub. This kills the associated tmux session but never \
+                removes its git worktree. Use list_sessions \
                 or get_workspace_overview to find the session UUID.
                 """,
             properties: [
@@ -118,7 +132,7 @@ enum MCPTools {
             name: "remove_folder",
             description: """
                 Remove a managed folder and all its sessions from TermHub. This kills all tmux sessions \
-                and removes any worktrees associated with the folder's sessions. Use list_folders or \
+                but leaves git worktrees intact. Use list_folders or \
                 get_workspace_overview to find the folder UUID.
                 """,
             properties: [
@@ -242,6 +256,7 @@ enum MCPTools {
         // IPC operations (through TermHub app)
         case "get_workspace_overview",
              "list_sessions",
+             "list_worktrees",
              "add_session",
              "remove_session",
              "select_session",

@@ -60,7 +60,7 @@ struct MCPToolsTests {
     func allToolsContainsExpected() {
         let expectedNames = [
             "list_sessions", "add_session", "remove_session", "select_session", "rename_session",
-            "list_folders", "add_folder", "remove_folder",
+            "list_folders", "add_folder", "remove_folder", "list_worktrees",
             "create_worktree", "create_branch", "send_keys",
             "list_sandboxes", "create_sandbox", "stop_sandbox", "remove_sandbox",
         ]
@@ -89,6 +89,16 @@ struct MCPToolsTests {
             #expect(schema?["properties"]?.objectValue != nil, "inputSchema missing properties")
             #expect(schema?["required"]?.arrayValue != nil, "inputSchema missing required")
         }
+    }
+
+    @Test("list_worktrees is read-only")
+    func listWorktreesIsReadOnly() {
+        let tool = MCPTools.allTools.first {
+            $0.objectValue?["name"]?.stringValue == "list_worktrees"
+        }
+
+        #expect(tool?.objectValue?["annotations"]?.objectValue?["readOnlyHint"] == .bool(true))
+        #expect(tool?.objectValue?["annotations"]?.objectValue?["destructiveHint"] == .bool(false))
     }
 
     @Test("tool required fields are subset of properties")

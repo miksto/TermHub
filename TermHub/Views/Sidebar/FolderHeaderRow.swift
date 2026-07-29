@@ -98,6 +98,11 @@ struct FolderHeaderRow: View {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(folder.path, forType: .string)
             }
+            if folder.isGitRepo {
+                Button("Refresh Worktrees") {
+                    appState.refreshWorktrees(folderIDs: [folder.id])
+                }
+            }
             if isInsideGroup {
                 Button("Remove from Group") {
                     appState.moveFolderOutOfGroup(folderID: folder.id)

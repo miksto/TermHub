@@ -129,16 +129,17 @@ Make sure `~/.local/bin` is in your `PATH`, or use the full path to the binary.
 
 | Tool | Description |
 |------|-------------|
-| `get_workspace_overview` | Get a complete snapshot of folders, sessions, and sandboxes in one call |
+| `get_workspace_overview` | Get a complete snapshot of folders, worktrees, sessions, and sandboxes |
 | `list_sessions` | List all terminal sessions with details |
 | `add_session` | Create a new session in a managed folder |
-| `remove_session` | Remove a session (cleans up tmux/worktree) |
+| `remove_session` | Remove a session and its tmux endpoint (leaves worktrees intact) |
 | `select_session` | Focus a session in TermHub |
 | `rename_session` | Rename a session |
 | `list_folders` | List all managed folders |
 | `add_folder` | Add a folder to TermHub |
 | `remove_folder` | Remove a managed folder and its sessions |
 | `create_worktree` | Create a worktree and open it as a session |
+| `list_worktrees` | List Git-discovered worktrees, including zero-session worktrees |
 | `send_keys` | Send keystrokes to a session's tmux |
 | `list_sandboxes` | List Docker sandboxes |
 | `create_sandbox` | Create a new Docker sandbox |

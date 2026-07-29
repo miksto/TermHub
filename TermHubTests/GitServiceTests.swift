@@ -113,6 +113,63 @@ struct GitServiceTests {
         #expect(GitService.parseWorktreeList(output, branch: "main") == "/Users/dev/my-repo")
         #expect(GitService.parseWorktreeList(output, branch: "detached") == nil)
     }
+
+    @Test("all-record parser preserves porcelain worktree metadata")
+    func parseAllWorktreeRecords() {
+        let folderID = UUID()
+        let output = """
+        worktree /Users/dev/repo
+        HEAD 1111111111111111111111111111111111111111
+        branch refs/heads/main
+
+        worktree /tmp/path with spaces
+        HEAD 2222222222222222222222222222222222222222
+        branch refs/heads/feature/nested/name
+        locked maintenance
+
+        worktree /tmp/detached
+        HEAD abcdef0123456789
+        detached
+
+        worktree /tmp/prunable
+        HEAD 4444444
+        prunable gitdir file points to non-existent location
+
+        worktree /tmp/malformed
+        branch refs/heads/missing-head
+
+        """
+
+        let worktrees = GitService.parseWorktreeList(output, folderID: folderID)
+
+        #expect(worktrees.count == 4)
+        #expect(worktrees[1].path == "/tmp/path with spaces")
+        #expect(worktrees[1].branch == "feature/nested/name")
+        #expect(worktrees[1].isLocked)
+        #expect(worktrees[1].lockReason == "maintenance")
+        #expect(worktrees[2].displayName == "Detached @ abcdef0")
+        #expect(worktrees[3].isPrunable)
+        #expect(worktrees[3].prunableReason == "gitdir file points to non-existent location")
+    }
+
+    @Test("all-record parser handles bare and reasonless locked records")
+    func parseBareAndReasonlessLockedRecords() {
+        let worktrees = GitService.parseWorktreeList(
+            """
+            worktree /tmp/bare.git
+            HEAD abc1234
+            bare
+            locked
+
+            """,
+            folderID: UUID()
+        )
+
+        #expect(worktrees.count == 1)
+        #expect(worktrees[0].isBare)
+        #expect(worktrees[0].isLocked)
+        #expect(worktrees[0].lockReason == nil)
+    }
 }
 
 @Suite("BranchInfo Tests")

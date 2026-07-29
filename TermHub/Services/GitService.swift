@@ -363,36 +363,84 @@ enum GitService {
         try? fm.copyItem(atPath: source, toPath: dest)
     }
 
-    static func removeWorktree(repoPath: String, worktreePath: String) throws {
-        try run(["-C", repoPath, "worktree", "remove", "--force", worktreePath])
+    static func removeWorktree(repoPath: String, worktreePath: String, force: Bool = false) throws {
+        var arguments = ["-C", repoPath, "worktree", "remove"]
+        if force {
+            arguments.append("--force")
+        }
+        arguments.append(worktreePath)
+        try run(arguments)
+    }
+
+    static func listWorktrees(repoPath: String, folderID: UUID) throws -> [GitWorktree] {
+        let output = try run(["-C", repoPath, "worktree", "list", "--porcelain"])
+        return parseWorktreeList(output, folderID: folderID)
+    }
+
+    static func parseWorktreeList(_ output: String, folderID: UUID) -> [GitWorktree] {
+        output.components(separatedBy: "\n\n").compactMap { block in
+            var path: String?
+            var head: String?
+            var branch: String?
+            var isDetached = false
+            var isBare = false
+            var isLocked = false
+            var lockReason: String?
+            var isPrunable = false
+            var prunableReason: String?
+
+            for line in block.components(separatedBy: "\n") {
+                if line.hasPrefix("worktree ") {
+                    path = String(line.dropFirst("worktree ".count))
+                } else if line.hasPrefix("HEAD ") {
+                    head = String(line.dropFirst("HEAD ".count))
+                } else if line.hasPrefix("branch refs/heads/") {
+                    branch = String(line.dropFirst("branch refs/heads/".count))
+                } else if line == "detached" {
+                    isDetached = true
+                } else if line == "bare" {
+                    isBare = true
+                } else if line == "locked" || line.hasPrefix("locked ") {
+                    isLocked = true
+                    let reason = line == "locked" ? "" : String(line.dropFirst("locked ".count))
+                    lockReason = reason.isEmpty ? nil : reason
+                } else if line == "prunable" || line.hasPrefix("prunable ") {
+                    isPrunable = true
+                    let reason = line == "prunable" ? "" : String(line.dropFirst("prunable ".count))
+                    prunableReason = reason.isEmpty ? nil : reason
+                }
+            }
+
+            guard let path, !path.isEmpty, let head, !head.isEmpty else { return nil }
+            return GitWorktree(
+                folderID: folderID,
+                path: path,
+                normalizedPath: GitWorktree.normalizePath(path),
+                head: head,
+                branch: branch,
+                isDetached: isDetached || branch == nil,
+                isBare: isBare,
+                isLocked: isLocked,
+                lockReason: lockReason,
+                isPrunable: isPrunable,
+                prunableReason: prunableReason
+            )
+        }
     }
 
     /// Finds the path of an existing worktree checked out on the given branch.
     /// Returns `nil` if no worktree is checked out on that branch.
     static func findExistingWorktree(repoPath: String, branch: String) throws -> String? {
-        let output = try run(["-C", repoPath, "worktree", "list", "--porcelain"])
-        return parseWorktreeList(output, branch: branch)
+        try listWorktrees(repoPath: repoPath, folderID: UUID())
+            .first(where: { $0.branch == branch })?
+            .path
     }
 
     /// Parses `git worktree list --porcelain` output to find the path for a given branch.
     static func parseWorktreeList(_ output: String, branch: String) -> String? {
-        let blocks = output.components(separatedBy: "\n\n")
-        for block in blocks {
-            let lines = block.components(separatedBy: "\n")
-            var path: String?
-            var blockBranch: String?
-            for line in lines {
-                if line.hasPrefix("worktree ") {
-                    path = String(line.dropFirst("worktree ".count))
-                } else if line.hasPrefix("branch refs/heads/") {
-                    blockBranch = String(line.dropFirst("branch refs/heads/".count))
-                }
-            }
-            if blockBranch == branch, let path {
-                return path
-            }
-        }
-        return nil
+        parseWorktreeList(output, folderID: UUID())
+            .first(where: { $0.branch == branch })?
+            .path
     }
 
     static func deleteLocalBranch(repoPath: String, branch: String) throws {
