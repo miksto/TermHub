@@ -173,6 +173,38 @@ struct WorktreeDiscoveryTests {
         #expect(state.worktreeDiscoveryErrors[folder.id] != nil)
     }
 
+    @Test("duplicate refresh is coalesced while discovery is in progress")
+    @MainActor
+    func duplicateRefreshIsCoalesced() async throws {
+        let paths = try makePaths()
+        defer { try? FileManager.default.removeItem(atPath: paths.root) }
+        let folder = ManagedFolder(path: paths.root, isGitRepo: true)
+        let callCount = LockedBox(0)
+        let release = DispatchSemaphore(value: 0)
+        let state = AppState(
+            persistence: NullPersistence(),
+            worktreeDiscoveryService: WorktreeDiscoveryService(
+                listWorktrees: { _, _ in
+                    callCount.update { $0 += 1 }
+                    release.wait()
+                    return []
+                },
+                liveTmuxSessionNames: { [] }
+            )
+        )
+        state.folders = [folder]
+
+        state.refreshWorktrees()
+        while callCount.read() == 0 {
+            await Task.yield()
+        }
+        state.refreshWorktrees()
+
+        #expect(callCount.read() == 1)
+        release.signal()
+        await waitForDiscovery(state, folderID: folder.id)
+    }
+
     @Test("missing worktree retains a live tmux session")
     @MainActor
     func missingWorktreeRetainsLiveSession() async throws {

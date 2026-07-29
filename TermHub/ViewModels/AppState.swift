@@ -337,6 +337,8 @@ final class AppState {
     @ObservationIgnored private var worktreeRefreshGenerationByFolderID: [UUID: UInt64] = [:]
     @ObservationIgnored private var foldersWithSuccessfulWorktreeDiscovery: Set<UUID> = []
     @ObservationIgnored private var worktreeRefreshDebounce: DispatchWorkItem?
+    @ObservationIgnored private var worktreeTrackingReconciliationNeeded = false
+    @ObservationIgnored private var pendingWorktreeStatusRefreshPaths: Set<String> = []
     private var lastBellTime: [UUID: Date] = [:]
     private var isLoading = false
     private var loadFailed = false
@@ -996,7 +998,11 @@ final class AppState {
         }
     }
 
-    private func removeSessionRecord(id: UUID, save: Bool) {
+    private func removeSessionRecord(
+        id: UUID,
+        save: Bool,
+        updateGitTracking: Bool = true
+    ) {
         guard let session = sessions.first(where: { $0.id == id }) else { return }
         if selectedSessionID == id {
             selectedSessionID = nextSessionID(after: id, inFolderOf: session)
@@ -1019,7 +1025,7 @@ final class AppState {
 
         sessionListVersion += 1
         if save { saveState() }
-        if session.worktreePath != nil {
+        if updateGitTracking, session.worktreePath != nil {
             updateGitFileWatcher()
         }
     }
@@ -1534,7 +1540,10 @@ final class AppState {
 
     func refreshWorktrees(folderIDs: Set<UUID>? = nil) {
         let requestedFolders = folders.filter {
-            $0.isGitRepo && $0.pathExists && (folderIDs == nil || folderIDs!.contains($0.id))
+            $0.isGitRepo
+                && $0.pathExists
+                && !worktreeDiscoveryInProgress.contains($0.id)
+                && (folderIDs == nil || folderIDs!.contains($0.id))
         }
         guard !requestedFolders.isEmpty else { return }
 
@@ -1633,27 +1642,53 @@ final class AppState {
             worktreeDiscoveryErrors[folderID] = error.localizedDescription
         case .success(let payload):
             let (worktrees, liveMissingSessionIDs) = payload
+            let previousPaths = Set((worktreesByFolderID[folderID] ?? []).map(\.normalizedPath))
+            let currentPaths = Set(worktrees.map(\.normalizedPath))
             worktreesByFolderID[folderID] = worktrees
             worktreeDiscoveryErrors.removeValue(forKey: folderID)
             foldersWithSuccessfulWorktreeDiscovery.insert(folderID)
 
-            let activePaths = Set(worktrees.map(\.normalizedPath))
             let staleSessionIDs = sessions.compactMap { session -> UUID? in
                 guard session.folderID == folderID,
                       let path = session.worktreePath,
-                      !activePaths.contains(GitWorktree.normalizePath(path)),
+                      !currentPaths.contains(GitWorktree.normalizePath(path)),
                       !liveMissingSessionIDs.contains(session.id)
                 else { return nil }
                 return session.id
             }
             for sessionID in staleSessionIDs {
-                removeSessionRecord(id: sessionID, save: false)
+                removeSessionRecord(
+                    id: sessionID,
+                    save: false,
+                    updateGitTracking: false
+                )
             }
             if !staleSessionIDs.isEmpty {
                 saveState()
             }
+
+            if previousPaths != currentPaths {
+                worktreeTrackingReconciliationNeeded = true
+                let addedPaths = currentPaths.subtracting(previousPaths)
+                pendingWorktreeStatusRefreshPaths.formUnion(
+                    worktrees
+                        .filter { addedPaths.contains($0.normalizedPath) }
+                        .map(\.path)
+                )
+            }
+        }
+
+        // A refresh can cover many folders. Rebuilding the watcher path cache and
+        // refreshing every Git status for each individual result makes startup
+        // quadratic in the number of repositories. Reconcile once after the whole
+        // in-flight batch has completed, and only fetch status for newly tracked
+        // worktrees.
+        if worktreeDiscoveryInProgress.isEmpty, worktreeTrackingReconciliationNeeded {
+            let statusPaths = Array(pendingWorktreeStatusRefreshPaths)
+            worktreeTrackingReconciliationNeeded = false
+            pendingWorktreeStatusRefreshPaths.removeAll()
             updateGitFileWatcher()
-            refreshGitStatuses()
+            refreshGitStatuses(for: statusPaths)
         }
     }
 
