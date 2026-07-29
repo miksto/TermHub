@@ -229,9 +229,9 @@ struct AppStateExtendedTests {
         #expect(state.selectedSessionID == firstSessionID)
     }
 
-    @Test("selectMostRecentInputSession moves older from a middle history entry")
+    @Test("selectMostRecentInputSession starts at newest from a normally selected middle entry")
     @MainActor
-    func selectMostRecentInputMovesOlderFromMiddle() {
+    func selectMostRecentInputStartsNewestFromMiddle() {
         let state = makeCleanAppState()
         state.addFolder(path: "/tmp")
         let folderID = state.folders[0].id
@@ -247,8 +247,57 @@ struct AppStateExtendedTests {
         state.selectedSessionID = secondSessionID
 
         state.selectMostRecentInputSession()
-
+        #expect(state.selectedSessionID == thirdSessionID)
+        state.selectMostRecentInputSession()
         #expect(state.selectedSessionID == firstSessionID)
+    }
+
+    @Test("normal session selection resets input history traversal")
+    @MainActor
+    func normalSelectionResetsInputTraversal() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let firstSessionID = state.sessions[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let secondSessionID = state.sessions[1].id
+        state.addSession(folderID: folderID, title: "Shell 3", cwd: "/tmp")
+        let thirdSessionID = state.sessions[2].id
+
+        state.recordSessionKeyboardInput(sessionID: firstSessionID)
+        state.recordSessionKeyboardInput(sessionID: secondSessionID)
+        state.recordSessionKeyboardInput(sessionID: thirdSessionID)
+
+        state.selectMostRecentInputSession()
+        #expect(state.selectedSessionID == secondSessionID)
+
+        state.selectedSessionID = firstSessionID
+        state.selectMostRecentInputSession()
+        #expect(state.selectedSessionID == thirdSessionID)
+    }
+
+    @Test("new keyboard input resets input history traversal")
+    @MainActor
+    func keyboardInputResetsInputTraversal() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let firstSessionID = state.sessions[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let secondSessionID = state.sessions[1].id
+        state.addSession(folderID: folderID, title: "Shell 3", cwd: "/tmp")
+        let thirdSessionID = state.sessions[2].id
+
+        state.recordSessionKeyboardInput(sessionID: firstSessionID)
+        state.recordSessionKeyboardInput(sessionID: secondSessionID)
+        state.recordSessionKeyboardInput(sessionID: thirdSessionID)
+
+        state.selectMostRecentInputSession()
+        #expect(state.selectedSessionID == secondSessionID)
+
+        state.recordSessionKeyboardInput(sessionID: secondSessionID)
+        state.selectMostRecentInputSession()
+        #expect(state.selectedSessionID == thirdSessionID)
     }
 
     @Test("selectMostRecentInputSession stays at oldest input history entry")

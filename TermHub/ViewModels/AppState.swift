@@ -240,6 +240,9 @@ final class AppState {
     }
     var selectedSessionID: UUID? {
         didSet {
+            if oldValue != selectedSessionID, !isSelectingInputSessionFromTraversal {
+                resetInputSessionTraversal()
+            }
             if let id = selectedSessionID, NSApp?.isActive == true {
                 sessionsNeedingAttention.remove(id)
             }
@@ -254,6 +257,9 @@ final class AppState {
     private(set) var sidebarRevealSessionID: UUID?
     private(set) var sessionMRUOrder: [UUID] = []
     private(set) var sessionInputMRUOrder: [UUID] = []
+    @ObservationIgnored private var inputSessionTraversal: [UUID] = []
+    @ObservationIgnored private var inputSessionTraversalIndex: Int?
+    @ObservationIgnored private var isSelectingInputSessionFromTraversal = false
     var isSessionSwitcherActive = false
     var switcherSelectedIndex: Int = 0
     var revealSelectedSessionInSidebarOnCtrlTab: Bool {
@@ -1398,6 +1404,7 @@ final class AppState {
 
     func recordSessionKeyboardInput(sessionID: UUID) {
         guard sessions.contains(where: { $0.id == sessionID }) else { return }
+        resetInputSessionTraversal()
         guard sessionInputMRUOrder.first != sessionID else { return }
         sessionInputMRUOrder.removeAll { $0 == sessionID }
         sessionInputMRUOrder.insert(sessionID, at: 0)
@@ -1405,25 +1412,27 @@ final class AppState {
     }
 
     func selectMostRecentInputSession() {
-        let validIDs = sessionInputMRUOrder.filter { id in
-            sessions.contains { $0.id == id }
-        }
-        guard !validIDs.isEmpty else { return }
-
         let nextIndex: Int
-        if let selectedSessionID,
-           let currentIndex = validIDs.firstIndex(of: selectedSessionID) {
-            // Move one step toward older input history. Stay at the oldest entry
-            // instead of wrapping back to the newest session.
-            nextIndex = currentIndex + 1
+        if let inputSessionTraversalIndex {
+            nextIndex = inputSessionTraversalIndex + 1
         } else {
-            // If the selected session has not received keyboard input, begin at
-            // the most recently interacted session.
+            inputSessionTraversal = sessionInputMRUOrder.filter { id in
+                id != selectedSessionID && sessions.contains { $0.id == id }
+            }
             nextIndex = 0
         }
 
-        guard validIDs.indices.contains(nextIndex) else { return }
-        selectedSessionID = validIDs[nextIndex]
+        guard inputSessionTraversal.indices.contains(nextIndex) else { return }
+        inputSessionTraversalIndex = nextIndex
+
+        isSelectingInputSessionFromTraversal = true
+        selectedSessionID = inputSessionTraversal[nextIndex]
+        isSelectingInputSessionFromTraversal = false
+    }
+
+    private func resetInputSessionTraversal() {
+        inputSessionTraversal.removeAll(keepingCapacity: true)
+        inputSessionTraversalIndex = nil
     }
 
     /// Sessions in MRU order with display info for the switcher overlay.
