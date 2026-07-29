@@ -40,6 +40,13 @@ struct SessionSwitcherOverlay: View {
                                         }
                                     }
                                     Spacer()
+                                    if let sandboxName = item.sandboxName {
+                                        Label(sandboxName, systemImage: "shippingbox")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .help("Sandbox: \(sandboxName)")
+                                    }
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)

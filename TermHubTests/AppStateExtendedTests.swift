@@ -146,6 +146,27 @@ struct AppStateExtendedTests {
         #expect(items[1].id == secondSessionID)
     }
 
+    @Test("sessionSwitcherItems includes each session's sandbox name")
+    @MainActor
+    func switcherItemsIncludeSandboxName() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let plainSessionID = state.sessions[0].id
+
+        state.addSession(
+            folderID: folderID,
+            title: "Sandbox Shell",
+            cwd: "/tmp",
+            sandboxName: "development"
+        )
+        let sandboxSessionID = state.sessions[1].id
+
+        let items = state.sessionSwitcherItems
+        #expect(items.first { $0.id == plainSessionID }?.sandboxName == nil)
+        #expect(items.first { $0.id == sandboxSessionID }?.sandboxName == "development")
+    }
+
     @Test("recordSessionKeyboardInput moves session to front of input MRU")
     @MainActor
     func keyboardInputMovesSessionToFront() {
