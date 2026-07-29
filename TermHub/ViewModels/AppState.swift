@@ -1411,6 +1411,17 @@ final class AppState {
         scheduleSave()
     }
 
+    /// Zero-based keyboard interaction rank for the sessions whose recency is
+    /// visualized in the session switcher.
+    var recentInputSessionRanks: [UUID: Int] {
+        Dictionary(
+            uniqueKeysWithValues: sessionInputMRUOrder
+                .prefix(10)
+                .enumerated()
+                .map { ($0.element, $0.offset) }
+        )
+    }
+
     func selectMostRecentInputSession() {
         let nextIndex: Int
         if let inputSessionTraversalIndex {

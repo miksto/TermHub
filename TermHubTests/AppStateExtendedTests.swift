@@ -183,6 +183,28 @@ struct AppStateExtendedTests {
         #expect(state.sessionInputMRUOrder == [secondSessionID, firstSessionID])
     }
 
+    @Test("recent input ranks include only the ten newest keyboard-interacted sessions")
+    @MainActor
+    func recentInputRanksLimitedToTen() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+
+        for index in 2...11 {
+            state.addSession(folderID: folderID, title: "Shell \(index)", cwd: "/tmp")
+        }
+
+        for session in state.sessions {
+            state.recordSessionKeyboardInput(sessionID: session.id)
+        }
+
+        let ranks = state.recentInputSessionRanks
+        #expect(ranks.count == 10)
+        #expect(ranks[state.sessions[10].id] == 0)
+        #expect(ranks[state.sessions[1].id] == 9)
+        #expect(ranks[state.sessions[0].id] == nil)
+    }
+
     @Test("selectMostRecentInputSession excludes currently selected session")
     @MainActor
     func selectMostRecentInputExcludesCurrent() {

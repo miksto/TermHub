@@ -6,6 +6,7 @@ struct SessionSwitcherOverlay: View {
     var body: some View {
         let items = appState.sessionSwitcherItems
         let selectedIndex = appState.switcherSelectedIndex
+        let inputRecencyRanks = appState.recentInputSessionRanks
 
         ZStack {
             Color.black.opacity(0.3)
@@ -50,11 +51,21 @@ struct SessionSwitcherOverlay: View {
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(
-                                    index == selectedIndex
-                                        ? Color.accentColor.opacity(0.3)
-                                        : Color.clear
-                                )
+                                .background {
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(
+                                            rowBackground(
+                                                inputRecencyRank: inputRecencyRanks[item.id],
+                                                isSelected: index == selectedIndex
+                                            )
+                                        )
+                                }
+                                .overlay {
+                                    if index == selectedIndex {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(Color.accentColor.opacity(0.8), lineWidth: 1)
+                                    }
+                                }
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                                 .id(index)
                             }
@@ -74,5 +85,19 @@ struct SessionSwitcherOverlay: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
         }
+    }
+
+    private func rowBackground(inputRecencyRank: Int?, isSelected: Bool) -> Color {
+        guard let rank = inputRecencyRank else {
+            return isSelected ? Color.primary.opacity(0.1) : Color.clear
+        }
+
+        // Keep brightness consistent while progressively removing saturation.
+        // Rank 0 is the most recently typed-in session; rank 9 is the oldest
+        // session that receives an interaction-recency color.
+        let progress = Double(rank) / 9.0
+        let desaturation = progress * 0.9
+        let recencyColor = Color.accentColor.mix(with: .gray, by: desaturation)
+        return recencyColor.opacity(isSelected ? 0.38 : 0.28)
     }
 }
