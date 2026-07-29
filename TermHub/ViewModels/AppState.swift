@@ -257,11 +257,13 @@ final class AppState {
     private(set) var sidebarRevealSessionID: UUID?
     private(set) var sessionMRUOrder: [UUID] = []
     private(set) var sessionInputMRUOrder: [UUID] = []
+    @ObservationIgnored private(set) var sessionLastInputAt: [UUID: Date] = [:]
     @ObservationIgnored private var inputSessionTraversal: [UUID] = []
     @ObservationIgnored private var inputSessionTraversalIndex: Int?
     @ObservationIgnored private var isSelectingInputSessionFromTraversal = false
     var isSessionSwitcherActive = false
     var switcherSelectedIndex: Int = 0
+    private(set) var sessionSwitcherReferenceDate = Date()
     var revealSelectedSessionInSidebarOnCtrlTab: Bool {
         didSet {
             UserDefaults.standard.set(
@@ -1023,6 +1025,7 @@ final class AppState {
         detailTabBySession.removeValue(forKey: id)
         sessionMRUOrder.removeAll { $0 == id }
         sessionInputMRUOrder.removeAll { $0 == id }
+        sessionLastInputAt.removeValue(forKey: id)
         sessions.removeAll { $0.id == id }
 
         for i in folders.indices {
@@ -1402,24 +1405,26 @@ final class AppState {
         sessionMRUOrder.insert(selectedID, at: 0)
     }
 
-    func recordSessionKeyboardInput(sessionID: UUID) {
+    func recordSessionKeyboardInput(sessionID: UUID, at date: Date = Date()) {
         guard sessions.contains(where: { $0.id == sessionID }) else { return }
         resetInputSessionTraversal()
-        guard sessionInputMRUOrder.first != sessionID else { return }
-        sessionInputMRUOrder.removeAll { $0 == sessionID }
-        sessionInputMRUOrder.insert(sessionID, at: 0)
-        scheduleSave()
-    }
 
-    /// Zero-based keyboard interaction rank for the sessions whose recency is
-    /// visualized in the session switcher.
-    var recentInputSessionRanks: [UUID: Int] {
-        Dictionary(
-            uniqueKeysWithValues: sessionInputMRUOrder
-                .prefix(10)
-                .enumerated()
-                .map { ($0.element, $0.offset) }
-        )
+        let shouldRefreshTimestamp = sessionLastInputAt[sessionID].map {
+            date.timeIntervalSince($0) >= 1
+        } ?? true
+        if shouldRefreshTimestamp {
+            sessionLastInputAt[sessionID] = date
+        }
+
+        let orderChanged = sessionInputMRUOrder.first != sessionID
+        if orderChanged {
+            sessionInputMRUOrder.removeAll { $0 == sessionID }
+            sessionInputMRUOrder.insert(sessionID, at: 0)
+        }
+
+        if shouldRefreshTimestamp || orderChanged {
+            scheduleSave()
+        }
     }
 
     func selectMostRecentInputSession() {
@@ -1463,9 +1468,10 @@ final class AppState {
         }
     }
 
-    func beginSessionSwitcher() {
+    func beginSessionSwitcher(at date: Date = Date()) {
         let items = sessionSwitcherItems
         guard items.count >= 2 else { return }
+        sessionSwitcherReferenceDate = date
         isSessionSwitcherActive = true
         switcherSelectedIndex = 1
     }
@@ -2223,6 +2229,9 @@ final class AppState {
             let missing = allSessionIDsOrdered.filter { !persisted.contains($0) }
             sessionMRUOrder = persisted + missing
             sessionInputMRUOrder = (state.sessionInputMRUOrder ?? []).filter { validSessionIDs.contains($0) }
+            sessionLastInputAt = (state.sessionLastInputAt ?? [:]).filter {
+                validSessionIDs.contains($0.key)
+            }
             selectedSessionID = state.selectedSessionID
             sandboxEnvironmentKeys = state.sandboxEnvironmentKeys ?? [:]
             assistantMessages = state.assistantMessages ?? []
@@ -2282,6 +2291,7 @@ final class AppState {
             selectedSessionID: selectedSessionID,
             sessionMRUOrder: sessionMRUOrder,
             sessionInputMRUOrder: sessionInputMRUOrder,
+            sessionLastInputAt: sessionLastInputAt,
             sandboxEnvironmentKeys: sandboxEnvironmentKeys.isEmpty ? nil : sandboxEnvironmentKeys,
             assistantMessages: assistantMessages.isEmpty ? nil : assistantMessages,
             assistantSessionId: assistantService.sessionID(for: .claude),

@@ -100,15 +100,18 @@ struct PersistenceServiceExtendedTests {
 
         let id1 = UUID()
         let id2 = UUID()
+        let lastInputAt = Date(timeIntervalSince1970: 1_700_000_000)
 
         try PersistenceService.save(
             folders: [],
             sessions: [],
             sessionInputMRUOrder: [id1, id2],
+            sessionLastInputAt: [id1: lastInputAt],
             to: url
         )
         let loaded = try PersistenceService.load(from: url)
         #expect(loaded.sessionInputMRUOrder == [id1, id2])
+        #expect(loaded.sessionLastInputAt[id1] == lastInputAt)
     }
 
     @Test("load returns empty MRU order when not present in JSON")
@@ -127,6 +130,7 @@ struct PersistenceServiceExtendedTests {
         let loaded = try PersistenceService.load(from: url)
         #expect(loaded.sessionMRUOrder.isEmpty)
         #expect(loaded.sessionInputMRUOrder.isEmpty)
+        #expect(loaded.sessionLastInputAt.isEmpty)
     }
 
     // MARK: - Directory creation
@@ -166,6 +170,7 @@ struct PersistenceServiceExtendedTests {
             selectedSessionID: session.id,
             sessionMRUOrder: [session.id],
             sessionInputMRUOrder: [session.id],
+            sessionLastInputAt: [session.id: Date(timeIntervalSince1970: 1_700_000_000)],
             assistantSessionIdsByProvider: ["claude": UUID()],
             assistantAllowedToolsByProvider: ["claude": "WebFetch,mcp__termhub__*", "copilot": "WebFetch"]
         )
@@ -179,6 +184,7 @@ struct PersistenceServiceExtendedTests {
         #expect(decoded.selectedSessionID == session.id)
         #expect(decoded.sessionMRUOrder == [session.id])
         #expect(decoded.sessionInputMRUOrder == [session.id])
+        #expect(decoded.sessionLastInputAt?[session.id] == Date(timeIntervalSince1970: 1_700_000_000))
         #expect(decoded.assistantSessionIdsByProvider?["claude"] != nil)
         #expect(decoded.assistantAllowedToolsByProvider?["claude"] == "WebFetch,mcp__termhub__*")
         #expect(decoded.assistantAllowedToolsByProvider?["copilot"] == "WebFetch")

@@ -49,6 +49,7 @@ struct PersistedState: Codable {
     var selectedSessionID: UUID?
     var sessionMRUOrder: [UUID]?
     var sessionInputMRUOrder: [UUID]? = nil
+    var sessionLastInputAt: [UUID: Date]? = nil
     /// Per-sandbox environment variable names to forward from the host. Keyed by sandbox name.
     var sandboxEnvironmentKeys: [String: [String]]?
     var assistantMessages: [AssistantMessage]? = nil
@@ -97,6 +98,7 @@ final class DiskPersistence: StatePersistence {
             selectedSessionID: result.selectedSessionID,
             sessionMRUOrder: result.sessionMRUOrder,
             sessionInputMRUOrder: result.sessionInputMRUOrder,
+            sessionLastInputAt: result.sessionLastInputAt,
             sandboxEnvironmentKeys: result.sandboxEnvironmentKeys,
             assistantMessages: result.assistantMessages,
             assistantSessionId: result.assistantSessionId,
@@ -122,6 +124,7 @@ final class NullPersistence: StatePersistence {
             selectedSessionID: nil,
             sessionMRUOrder: nil,
             sessionInputMRUOrder: nil,
+            sessionLastInputAt: nil,
             sandboxEnvironmentKeys: nil,
             assistantMessages: nil,
             assistantSessionId: nil,
@@ -169,6 +172,7 @@ enum PersistenceService {
         selectedSessionID: UUID? = nil,
         sessionMRUOrder: [UUID] = [],
         sessionInputMRUOrder: [UUID] = [],
+        sessionLastInputAt: [UUID: Date] = [:],
         to url: URL
     ) throws {
         let state = PersistedState(
@@ -176,7 +180,8 @@ enum PersistenceService {
             sessions: sessions,
             selectedSessionID: selectedSessionID,
             sessionMRUOrder: sessionMRUOrder,
-            sessionInputMRUOrder: sessionInputMRUOrder
+            sessionInputMRUOrder: sessionInputMRUOrder,
+            sessionLastInputAt: sessionLastInputAt
         )
         try save(state: state, to: url)
     }
@@ -189,6 +194,7 @@ enum PersistenceService {
         selectedSessionID: UUID?,
         sessionMRUOrder: [UUID],
         sessionInputMRUOrder: [UUID],
+        sessionLastInputAt: [UUID: Date],
         sandboxEnvironmentKeys: [String: [String]],
         assistantMessages: [AssistantMessage],
         assistantSessionId: UUID?,
@@ -204,6 +210,7 @@ enum PersistenceService {
                 selectedSessionID: nil,
                 sessionMRUOrder: [],
                 sessionInputMRUOrder: [],
+                sessionLastInputAt: [:],
                 sandboxEnvironmentKeys: [:],
                 assistantMessages: [],
                 assistantSessionId: nil,
@@ -222,6 +229,7 @@ enum PersistenceService {
                 selectedSessionID: state.selectedSessionID,
                 sessionMRUOrder: state.sessionMRUOrder ?? [],
                 sessionInputMRUOrder: state.sessionInputMRUOrder ?? [],
+                sessionLastInputAt: state.sessionLastInputAt ?? [:],
                 sandboxEnvironmentKeys: state.sandboxEnvironmentKeys ?? [:],
                 assistantMessages: state.assistantMessages ?? [],
                 assistantSessionId: state.assistantSessionId,

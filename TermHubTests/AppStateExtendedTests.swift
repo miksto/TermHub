@@ -183,26 +183,36 @@ struct AppStateExtendedTests {
         #expect(state.sessionInputMRUOrder == [secondSessionID, firstSessionID])
     }
 
-    @Test("recent input ranks include only the ten newest keyboard-interacted sessions")
+    @Test("keyboard input refreshes the last input timestamp at most once per second")
     @MainActor
-    func recentInputRanksLimitedToTen() {
+    func keyboardInputRecordsTimestamp() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let sessionID = state.sessions[0].id
+        let firstInput = Date(timeIntervalSince1970: 1_700_000_000)
+        let secondInput = firstInput.addingTimeInterval(0.2)
+        let thirdInput = firstInput.addingTimeInterval(1.2)
+
+        state.recordSessionKeyboardInput(sessionID: sessionID, at: firstInput)
+        state.recordSessionKeyboardInput(sessionID: sessionID, at: secondInput)
+        #expect(state.sessionLastInputAt[sessionID] == firstInput)
+
+        state.recordSessionKeyboardInput(sessionID: sessionID, at: thirdInput)
+        #expect(state.sessionLastInputAt[sessionID] == thirdInput)
+    }
+
+    @Test("session switcher captures a fixed relative-time reference when opened")
+    @MainActor
+    func switcherCapturesReferenceDate() {
         let state = makeCleanAppState()
         state.addFolder(path: "/tmp")
         let folderID = state.folders[0].id
+        state.addSession(folderID: folderID, title: "Shell 2", cwd: "/tmp")
+        let referenceDate = Date(timeIntervalSince1970: 1_700_000_000)
 
-        for index in 2...11 {
-            state.addSession(folderID: folderID, title: "Shell \(index)", cwd: "/tmp")
-        }
+        state.beginSessionSwitcher(at: referenceDate)
 
-        for session in state.sessions {
-            state.recordSessionKeyboardInput(sessionID: session.id)
-        }
-
-        let ranks = state.recentInputSessionRanks
-        #expect(ranks.count == 10)
-        #expect(ranks[state.sessions[10].id] == 0)
-        #expect(ranks[state.sessions[1].id] == 9)
-        #expect(ranks[state.sessions[0].id] == nil)
+        #expect(state.sessionSwitcherReferenceDate == referenceDate)
     }
 
     @Test("selectMostRecentInputSession excludes currently selected session")
@@ -402,12 +412,17 @@ struct AppStateExtendedTests {
             sessions: [session],
             selectedSessionID: session.id,
             sessionMRUOrder: [session.id],
-            sessionInputMRUOrder: [staleID, session.id]
+            sessionInputMRUOrder: [staleID, session.id],
+            sessionLastInputAt: [
+                staleID: Date(timeIntervalSince1970: 1_600_000_000),
+                session.id: Date(timeIntervalSince1970: 1_700_000_000),
+            ]
         )
 
         let state = AppState(persistence: AppStateExtendedInMemoryPersistence(state: persisted))
 
         #expect(state.sessionInputMRUOrder == [session.id])
+        #expect(Set(state.sessionLastInputAt.keys) == [session.id])
     }
 
     // MARK: - selectSessionByIndex
