@@ -27,20 +27,20 @@ struct SessionSwitcherOverlay: View {
                     ScrollView {
                         VStack(spacing: 0) {
                             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                                HStack {
-                                    Image(systemName: "terminal")
-                                        .foregroundStyle(.secondary)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(item.title)
-                                            .lineLimit(1)
-                                        if let folder = item.folderName {
-                                            Text(folder)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack {
+                                        Image(systemName: "terminal")
+                                            .foregroundStyle(.secondary)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(item.title)
+                                                .lineLimit(1)
+                                            if let folder = item.folderName {
+                                                Text(folder)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
                                         }
-                                    }
-                                    Spacer()
-                                    VStack(alignment: .trailing, spacing: 3) {
+                                        Spacer()
                                         if let lastInputAt = appState.sessionLastInputAt[item.id] {
                                             Text(
                                                 relativeInputTimeLabel(
@@ -60,20 +60,20 @@ struct SessionSwitcherOverlay: View {
                                                 .foregroundStyle(.tertiary)
                                                 .help("No terminal input recorded")
                                         }
-                                        if let branchName = item.branchName {
-                                            Label(branchName, systemImage: "arrow.triangle.branch")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                                .help("Git branch: \(branchName)")
-                                        }
-                                        if let sandboxName = item.sandboxName {
-                                            Label(sandboxName, systemImage: "shippingbox")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                                .help("Sandbox: \(sandboxName)")
-                                        }
+                                    }
+                                    if let branchName = item.branchName {
+                                        Label(branchName, systemImage: "arrow.triangle.branch")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .help("Git branch: \(branchName)")
+                                    }
+                                    if let sandboxName = item.sandboxName {
+                                        Label(sandboxName, systemImage: "shippingbox")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .help("Sandbox: \(sandboxName)")
                                     }
                                 }
                                 .padding(.horizontal, 12)
