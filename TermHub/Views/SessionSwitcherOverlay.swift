@@ -41,6 +41,11 @@ struct SessionSwitcherOverlay: View {
                                             }
                                         }
                                         Spacer()
+                                        if appState.sessionsNeedingAttention.contains(item.id) {
+                                            Circle()
+                                                .fill(.red)
+                                                .frame(width: 12, height: 12)
+                                        }
                                         if let lastInputAt = appState.sessionLastInputAt[item.id] {
                                             Text(
                                                 relativeInputTimeLabel(
