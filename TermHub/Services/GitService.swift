@@ -242,6 +242,97 @@ enum GitService {
         return currentBranch(repoPath: repoPath)
     }
 
+    /// Returns the comparison branch used to identify commits introduced by a
+    /// non-primary branch. This deliberately does not fall back to the current
+    /// branch: doing so would make a feature branch appear to have no commits.
+    static func commitHistoryBaseBranch(repoPath: String) -> String? {
+        if let output = try? run([
+            "-C", repoPath,
+            "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD",
+        ]), !output.isEmpty {
+            return output
+        }
+
+        for branch in ["main", "master", "develop"] {
+            if (try? run([
+                "-C", repoPath,
+                "rev-parse", "--verify", "--quiet", "refs/heads/\(branch)",
+            ])) != nil {
+                return branch
+            }
+        }
+        return nil
+    }
+
+    /// Loads commit history for the currently checked-out branch.
+    /// Primary branches are capped to the latest 20 commits. Other branches
+    /// include every commit reachable from HEAD but not the resolved base branch.
+    static func commitHistory(path: String) -> GitCommitHistory {
+        guard let branch = currentBranch(repoPath: path) else {
+            return .unavailable("Commit history is unavailable for a detached HEAD.")
+        }
+
+        do {
+            if ["main", "master", "develop"].contains(branch) {
+                return .loaded(try commits(path: path, revisionRange: "HEAD", limit: 20))
+            }
+
+            guard let baseBranch = commitHistoryBaseBranch(repoPath: path) else {
+                return .unavailable(
+                    "Couldn't determine a base branch. Expected origin/HEAD, main, master, or develop."
+                )
+            }
+            return .loaded(try commits(path: path, revisionRange: "\(baseBranch)..HEAD"))
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    /// Returns the raw patch for a committed change. `--first-parent` makes
+    /// merge commits inspectable by comparing them with their first parent.
+    static func commitDiff(path: String, commitHash: String) throws -> String {
+        try run([
+            "-C", path,
+            "show", "--format=", "--find-renames", "--first-parent", commitHash,
+        ])
+    }
+
+    private static func commits(path: String, revisionRange: String, limit: Int? = nil) throws -> [GitCommit] {
+        var arguments = [
+            "-C", path,
+            "log",
+            "--format=%H%x00%an%x00%aI%x00%B%x00",
+        ]
+        if let limit {
+            arguments.append("-\(limit)")
+        }
+        arguments.append(revisionRange)
+        return parseCommits(try run(arguments))
+    }
+
+    /// Parses the NUL-separated fields emitted by `commits`. Git commit
+    /// messages cannot contain NUL bytes, so multiline bodies remain intact
+    /// without requiring fragile line-based parsing.
+    static func parseCommits(_ output: String) -> [GitCommit] {
+        let dateFormatter = ISO8601DateFormatter()
+
+        var fields = output.components(separatedBy: "\0")
+        if fields.last == "" {
+            fields.removeLast()
+        }
+        guard fields.count.isMultiple(of: 4) else { return [] }
+
+        return stride(from: 0, to: fields.count, by: 4).compactMap { index in
+            guard let date = dateFormatter.date(from: fields[index + 2]) else { return nil }
+            return GitCommit(
+                hash: fields[index],
+                authorName: fields[index + 1],
+                authoredDate: date,
+                message: fields[index + 3].trimmingCharacters(in: .newlines)
+            )
+        }
+    }
+
     static func listBranchesWithDates(repoPath: String) throws -> [(branch: String, date: Date)] {
         let output = try run([
             "-C", repoPath,

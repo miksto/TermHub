@@ -111,6 +111,98 @@ struct GitServiceIOTests {
         #expect(GitService.currentBranch(repoPath: "/tmp/repo") == nil)
     }
 
+    // MARK: - Commit history
+
+    @Test("commit history base prefers the remote default branch")
+    func commitHistoryBasePrefersRemoteDefault() {
+        mock.enqueueSuccess("origin/develop")
+
+        #expect(GitService.commitHistoryBaseBranch(repoPath: "/tmp/repo") == "origin/develop")
+        #expect(mock.lastCall?.arguments == [
+            "-C", "/tmp/repo", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD",
+        ])
+    }
+
+    @Test("commit history base falls back through local primary branches")
+    func commitHistoryBaseFallsBackToLocalBranches() {
+        mock.enqueueFailure()
+        mock.enqueueFailure()
+        mock.enqueueSuccess("abc123")
+
+        #expect(GitService.commitHistoryBaseBranch(repoPath: "/tmp/repo") == "master")
+        #expect(mock.calls.last?.arguments.last == "refs/heads/master")
+    }
+
+    @Test("primary branch history is limited to twenty commits")
+    func primaryBranchHistoryIsLimited() {
+        mock.enqueueSuccess("main")
+        mock.enqueueSuccess(commitLogOutput())
+
+        let history = GitService.commitHistory(path: "/tmp/repo")
+
+        guard case .loaded(let commits) = history else {
+            Issue.record("Expected loaded commit history")
+            return
+        }
+        #expect(commits.count == 1)
+        #expect(mock.lastCall?.arguments.contains("-20") == true)
+        #expect(mock.lastCall?.arguments.last == "HEAD")
+    }
+
+    @Test("feature branch history uses only commits outside its base branch")
+    func featureBranchHistoryUsesBaseRange() {
+        mock.enqueueSuccess("feature/login")
+        mock.enqueueSuccess("origin/main")
+        mock.enqueueSuccess(commitLogOutput())
+
+        let history = GitService.commitHistory(path: "/tmp/repo")
+
+        guard case .loaded(let commits) = history else {
+            Issue.record("Expected loaded commit history")
+            return
+        }
+        #expect(commits[0].message == "Add login\n\nBody line")
+        #expect(commits[0].messagePreview == "Add login\n\nBody line")
+        #expect(mock.lastCall?.arguments.contains("-20") == false)
+        #expect(mock.lastCall?.arguments.last == "origin/main..HEAD")
+    }
+
+    @Test("commit history is unavailable for detached HEAD")
+    func commitHistoryDetachedHead() {
+        mock.enqueueFailure("fatal: ref HEAD is not a symbolic ref")
+
+        #expect(GitService.commitHistory(path: "/tmp/repo") == .unavailable("Commit history is unavailable for a detached HEAD."))
+        #expect(mock.callCount == 1)
+    }
+
+    @Test("commit parser preserves multiline messages and caps previews at five lines")
+    func commitParserPreservesMultilineMessages() {
+        let separator = "\0"
+        let raw = "deadbeef\(separator)Ada Lovelace\(separator)2025-02-03T04:05:06Z\(separator)one\ntwo\nthree\nfour\nfive\nsix\(separator)"
+
+        let commits = GitService.parseCommits(raw)
+
+        #expect(commits.count == 1)
+        #expect(commits[0].authorName == "Ada Lovelace")
+        #expect(commits[0].messagePreview == "one\ntwo\nthree\nfour\nfive")
+    }
+
+    @Test("commit diff uses a read-only first-parent show command")
+    func commitDiffCommand() throws {
+        mock.enqueueSuccess("diff --git a/a b/a")
+
+        _ = try GitService.commitDiff(path: "/tmp/repo", commitHash: "deadbeef")
+
+        #expect(mock.lastCall?.arguments == [
+            "-C", "/tmp/repo", "show", "--format=", "--find-renames", "--first-parent", "deadbeef",
+        ])
+    }
+
+    private func commitLogOutput() -> String {
+        let separator = "\0"
+        return "deadbeef\(separator)Ada Lovelace\(separator)2025-02-03T04:05:06Z\(separator)Add login\n\nBody line\(separator)"
+    }
+
     // MARK: - status
 
     @Test("status returns branch and diff statistics")

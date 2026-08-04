@@ -532,7 +532,7 @@ struct AppStateExtendedTests {
         #expect(state.detailTabBySession[sessionID] == .gitDiff)
     }
 
-    @Test("toggleDetailTab switches between terminal and gitDiff")
+    @Test("toggleDetailTab cycles through terminal, gitDiff, and gitCommits")
     @MainActor
     func toggleDetailTab() {
         let state = makeCleanAppState()
@@ -545,6 +545,8 @@ struct AppStateExtendedTests {
         #expect(state.currentDetailTab == .terminal)
         state.toggleDetailTab()
         #expect(state.currentDetailTab == .gitDiff)
+        state.toggleDetailTab()
+        #expect(state.currentDetailTab == .gitCommits)
         state.toggleDetailTab()
         #expect(state.currentDetailTab == .terminal)
     }

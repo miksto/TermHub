@@ -343,6 +343,11 @@ final class AppState {
     private var sandboxRefreshInProgress = false
     var currentDiff: GitDiff?
     var isDiffLoading = false
+    var currentCommitHistory: GitCommitHistory = .idle
+    var isCommitHistoryLoading = false
+    var selectedCommit: GitCommit?
+    var selectedCommitDiff: String?
+    var isSelectedCommitDiffLoading = false
     @ObservationIgnored private let gitFileWatcher = GitFileWatcher()
     @ObservationIgnored private var gitWatchPathsByTrackedPath: [String: [String]] = [:]
     @ObservationIgnored private var gitStatusRefreshSequence: UInt64 = 0
@@ -360,6 +365,8 @@ final class AppState {
     @ObservationIgnored private let worktreeDiscoveryService: WorktreeDiscoveryService
     @ObservationIgnored private let pullRequestLookupService: PullRequestLookupService
     @ObservationIgnored private var pullRequestRefreshSequence: UInt64 = 0
+    @ObservationIgnored private var commitHistoryRefreshSequence: UInt64 = 0
+    @ObservationIgnored private var commitDiffRefreshSequence: UInt64 = 0
     @ObservationIgnored private var ipcServer: IPCServer?
     @ObservationIgnored private let assistantService = AssistantService()
     @ObservationIgnored private var activeAssistantMessageID: UUID?
@@ -1922,6 +1929,8 @@ final class AppState {
         detailTabBySession[sessionID] = tab
         if tab == .gitDiff {
             loadDiffForCurrentSession()
+        } else if tab == .gitCommits {
+            loadCommitHistoryForCurrentSession()
         }
     }
 
@@ -1929,7 +1938,14 @@ final class AppState {
         guard let id = selectedSessionID,
               folderForSelectedSession?.isGitRepo == true else { return }
         let current = detailTabBySession[id] ?? .terminal
-        setDetailTab(current == .terminal ? .gitDiff : .terminal, for: id)
+        switch current {
+        case .terminal:
+            setDetailTab(.gitDiff, for: id)
+        case .gitDiff:
+            setDetailTab(.gitCommits, for: id)
+        case .gitCommits:
+            setDetailTab(.terminal, for: id)
+        }
     }
 
     func selectPreviousDetailTab() {
@@ -1937,6 +1953,8 @@ final class AppState {
         let current = detailTabBySession[id] ?? .terminal
         if current == .gitDiff {
             setDetailTab(.terminal, for: id)
+        } else if current == .gitCommits {
+            setDetailTab(.gitDiff, for: id)
         }
     }
 
@@ -1946,6 +1964,8 @@ final class AppState {
         let current = detailTabBySession[id] ?? .terminal
         if current == .terminal {
             setDetailTab(.gitDiff, for: id)
+        } else if current == .gitDiff {
+            setDetailTab(.gitCommits, for: id)
         }
     }
 
@@ -1963,6 +1983,72 @@ final class AppState {
                 self?.currentDiff = diff
                 self?.isDiffLoading = false
                 NotificationCenter.default.post(name: .diffDataDidChange, object: nil)
+            }
+        }
+    }
+
+    func loadCommitHistoryForCurrentSession() {
+        guard let sessionID = selectedSessionID,
+              let workingDir = selectedSessionGitPath
+        else {
+            currentCommitHistory = .idle
+            isCommitHistoryLoading = false
+            return
+        }
+
+        commitHistoryRefreshSequence &+= 1
+        let sequence = commitHistoryRefreshSequence
+        currentCommitHistory = .idle
+        selectedCommit = nil
+        selectedCommitDiff = nil
+        isSelectedCommitDiffLoading = false
+        isCommitHistoryLoading = true
+
+        Task.detached {
+            let history = GitService.commitHistory(path: workingDir)
+            await MainActor.run { [weak self] in
+                guard let self,
+                      self.commitHistoryRefreshSequence == sequence,
+                      self.selectedSessionID == sessionID,
+                      self.selectedSessionGitPath == workingDir
+                else { return }
+                self.currentCommitHistory = history
+                self.isCommitHistoryLoading = false
+            }
+        }
+    }
+
+    func refreshCommitHistory() {
+        loadCommitHistoryForCurrentSession()
+    }
+
+    func selectCommit(_ commit: GitCommit) {
+        guard let sessionID = selectedSessionID,
+              let workingDir = selectedSessionGitPath
+        else { return }
+
+        commitDiffRefreshSequence &+= 1
+        let sequence = commitDiffRefreshSequence
+        selectedCommit = commit
+        selectedCommitDiff = nil
+        isSelectedCommitDiffLoading = true
+
+        Task.detached {
+            let result = Result { try GitService.commitDiff(path: workingDir, commitHash: commit.hash) }
+            await MainActor.run { [weak self] in
+                guard let self,
+                      self.commitDiffRefreshSequence == sequence,
+                      self.selectedSessionID == sessionID,
+                      self.selectedSessionGitPath == workingDir,
+                      self.selectedCommit?.hash == commit.hash
+                else { return }
+                self.isSelectedCommitDiffLoading = false
+                switch result {
+                case .success(let diff):
+                    self.selectedCommitDiff = diff
+                case .failure(let error):
+                    self.selectedCommitDiff = "Unable to load diff: \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -1999,6 +2085,11 @@ final class AppState {
                    let currentPath = self.selectedSessionGitPath,
                    (affectedPaths.isEmpty || affectedPaths.contains(currentPath)) {
                     self.loadDiffForCurrentSession()
+                }
+                if self.currentDetailTab == .gitCommits,
+                   let currentPath = self.selectedSessionGitPath,
+                   (affectedPaths.isEmpty || affectedPaths.contains(currentPath)) {
+                    self.loadCommitHistoryForCurrentSession()
                 }
             }
         }

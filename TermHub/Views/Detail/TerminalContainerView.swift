@@ -39,6 +39,7 @@ class TerminalContainerViewController: NSViewController {
     private let tabBarView: DetailTabBarNSView
     private let terminalContainer = NSView()
     private let diffContainer = NSView()
+    private let commitContainer = NSView()
     private let appState: AppState
     private var lastSessionListVersion = -1
     private var lastSelectedID: UUID?
@@ -49,6 +50,7 @@ class TerminalContainerViewController: NSViewController {
     private var diffEmptyStateView: NSTextField?
     private var wrapToggleButton: NSButton?
     private var lastDetailTab: DetailTab = .terminal
+    private var lastTabSessionID: UUID?
     private var contentTopToTabBar: NSLayoutConstraint!
     private var contentTopToRoot: NSLayoutConstraint!
 
@@ -91,6 +93,17 @@ class TerminalContainerViewController: NSViewController {
         diffContainer.isHidden = true
         rootView.addSubview(diffContainer)
 
+        // Commit history is rendered in SwiftUI because it is a data-oriented
+        // list/detail view, unlike the terminal and high-performance diff table.
+        commitContainer.wantsLayer = true
+        commitContainer.layer?.backgroundColor = bgColor.cgColor
+        commitContainer.translatesAutoresizingMaskIntoConstraints = false
+        commitContainer.isHidden = true
+        let commitHistoryView = NSHostingView(rootView: GitCommitHistoryView().environment(appState))
+        commitHistoryView.translatesAutoresizingMaskIntoConstraints = false
+        commitContainer.addSubview(commitHistoryView)
+        rootView.addSubview(commitContainer)
+
         contentTopToTabBar = terminalContainer.topAnchor.constraint(equalTo: tabBarView.bottomAnchor)
         contentTopToRoot = terminalContainer.topAnchor.constraint(equalTo: rootView.topAnchor)
 
@@ -109,6 +122,16 @@ class TerminalContainerViewController: NSViewController {
             diffContainer.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
             diffContainer.topAnchor.constraint(equalTo: tabBarView.bottomAnchor),
             diffContainer.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
+
+            commitContainer.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            commitContainer.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+            commitContainer.topAnchor.constraint(equalTo: tabBarView.bottomAnchor),
+            commitContainer.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
+
+            commitHistoryView.leadingAnchor.constraint(equalTo: commitContainer.leadingAnchor),
+            commitHistoryView.trailingAnchor.constraint(equalTo: commitContainer.trailingAnchor),
+            commitHistoryView.topAnchor.constraint(equalTo: commitContainer.topAnchor),
+            commitHistoryView.bottomAnchor.constraint(equalTo: commitContainer.bottomAnchor),
         ])
 
         setupDiffTableView()
@@ -277,13 +300,17 @@ class TerminalContainerViewController: NSViewController {
         }
 
         let tabChanged = tab != lastDetailTab
+        let tabSessionChanged = selectedID != lastTabSessionID
         lastDetailTab = tab
+        lastTabSessionID = selectedID
 
         let showDiff = tab == .gitDiff
+        let showCommits = tab == .gitCommits
         diffContainer.isHidden = !showDiff
+        commitContainer.isHidden = !showCommits
 
-        // Suppress terminal interaction when diff tab is active or command palette is open
-        let fullSuppress = suppressInteraction || showDiff
+        // Suppress terminal interaction when a Git detail tab or overlay is active.
+        let fullSuppress = suppressInteraction || showDiff || showCommits
         for subview in terminalContainer.subviews {
             if let hubTerminal = subview as? TermHubTerminalView {
                 hubTerminal.blockScrollEvents = fullSuppress
@@ -291,8 +318,11 @@ class TerminalContainerViewController: NSViewController {
         }
 
         // Load diff when switching to diff tab or when session changes while on diff tab
-        if showDiff && (tabChanged || selectedID != lastSelectedID) {
+        if showDiff && (tabChanged || tabSessionChanged) {
             loadDiff()
+        }
+        if showCommits && (tabChanged || tabSessionChanged) {
+            appState.loadCommitHistoryForCurrentSession()
         }
 
         // Manage first responder
@@ -446,14 +476,18 @@ class TerminalContainerViewController: NSViewController {
 class DetailTabBarNSView: NSView {
     private let terminalButton = NSButton()
     private let diffButton = NSButton()
+    private let commitsButton = NSButton()
     private weak var appState: AppState?
     private var sessionID: UUID?
     private var selectedTab: DetailTab = .terminal
 
-    // Switchable constraints for single-tab vs two-tab layout
+    // Switchable constraints for single-tab vs three-tab layout.
     private var terminalTrailingAlone: NSLayoutConstraint!
-    private var terminalTrailingWithDiff: NSLayoutConstraint!
-    private var equalWidthConstraint: NSLayoutConstraint!
+    private var terminalTrailingWithTabs: NSLayoutConstraint!
+    private var diffTrailingWithCommits: NSLayoutConstraint!
+    private var commitsTrailing: NSLayoutConstraint!
+    private var terminalDiffEqualWidth: NSLayoutConstraint!
+    private var diffCommitsEqualWidth: NSLayoutConstraint!
 
     init(appState: AppState) {
         self.appState = appState
@@ -472,17 +506,23 @@ class DetailTabBarNSView: NSView {
         diffButton.target = self
         diffButton.action = #selector(diffTapped)
 
+        configureButton(commitsButton, title: "Commits", font: font)
+        commitsButton.target = self
+        commitsButton.action = #selector(commitsTapped)
+
         let border = NSView()
         border.wantsLayer = true
         border.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
         border.translatesAutoresizingMaskIntoConstraints = false
         addSubview(border)
 
-        // When diff is hidden, terminal button fills the full width
+        // When Git tabs are hidden, Terminal fills the full width.
         terminalTrailingAlone = terminalButton.trailingAnchor.constraint(equalTo: trailingAnchor)
-        // When both tabs shown, terminal trailing connects to diff leading
-        terminalTrailingWithDiff = diffButton.leadingAnchor.constraint(equalTo: terminalButton.trailingAnchor)
-        equalWidthConstraint = terminalButton.widthAnchor.constraint(equalTo: diffButton.widthAnchor)
+        terminalTrailingWithTabs = diffButton.leadingAnchor.constraint(equalTo: terminalButton.trailingAnchor)
+        diffTrailingWithCommits = commitsButton.leadingAnchor.constraint(equalTo: diffButton.trailingAnchor)
+        commitsTrailing = commitsButton.trailingAnchor.constraint(equalTo: trailingAnchor)
+        terminalDiffEqualWidth = terminalButton.widthAnchor.constraint(equalTo: diffButton.widthAnchor)
+        diffCommitsEqualWidth = diffButton.widthAnchor.constraint(equalTo: commitsButton.widthAnchor)
 
         NSLayoutConstraint.activate([
             terminalButton.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -491,7 +531,9 @@ class DetailTabBarNSView: NSView {
 
             diffButton.topAnchor.constraint(equalTo: topAnchor),
             diffButton.bottomAnchor.constraint(equalTo: bottomAnchor),
-            diffButton.trailingAnchor.constraint(equalTo: trailingAnchor),
+
+            commitsButton.topAnchor.constraint(equalTo: topAnchor),
+            commitsButton.bottomAnchor.constraint(equalTo: bottomAnchor),
 
             border.leadingAnchor.constraint(equalTo: leadingAnchor),
             border.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -499,9 +541,12 @@ class DetailTabBarNSView: NSView {
             border.heightAnchor.constraint(equalToConstant: 1),
         ])
 
-        // Default to two-tab layout
-        terminalTrailingWithDiff.isActive = true
-        equalWidthConstraint.isActive = true
+        // Default to the Git tab layout.
+        terminalTrailingWithTabs.isActive = true
+        diffTrailingWithCommits.isActive = true
+        commitsTrailing.isActive = true
+        terminalDiffEqualWidth.isActive = true
+        diffCommitsEqualWidth.isActive = true
     }
 
     @available(*, unavailable)
@@ -523,20 +568,27 @@ class DetailTabBarNSView: NSView {
         self.sessionID = sessionID
         self.selectedTab = selectedTab
         diffButton.isHidden = !isGitRepo
+        commitsButton.isHidden = !isGitRepo
         if let sandboxName {
             terminalButton.title = "Terminal (Sandboxed: \(sandboxName))"
         } else {
             terminalButton.title = "Terminal"
         }
 
-        // Switch constraints based on whether diff tab is visible
+        // Switch constraints based on whether Git tabs are visible.
         if isGitRepo {
             terminalTrailingAlone.isActive = false
-            terminalTrailingWithDiff.isActive = true
-            equalWidthConstraint.isActive = true
+            terminalTrailingWithTabs.isActive = true
+            diffTrailingWithCommits.isActive = true
+            commitsTrailing.isActive = true
+            terminalDiffEqualWidth.isActive = true
+            diffCommitsEqualWidth.isActive = true
         } else {
-            terminalTrailingWithDiff.isActive = false
-            equalWidthConstraint.isActive = false
+            terminalTrailingWithTabs.isActive = false
+            diffTrailingWithCommits.isActive = false
+            commitsTrailing.isActive = false
+            terminalDiffEqualWidth.isActive = false
+            diffCommitsEqualWidth.isActive = false
             terminalTrailingAlone.isActive = true
         }
 
@@ -548,6 +600,9 @@ class DetailTabBarNSView: NSView {
 
         diffButton.layer?.backgroundColor = (selectedTab == .gitDiff ? activeColor : clearColor).cgColor
         diffButton.contentTintColor = selectedTab == .gitDiff ? .white : .secondaryLabelColor
+
+        commitsButton.layer?.backgroundColor = (selectedTab == .gitCommits ? activeColor : clearColor).cgColor
+        commitsButton.contentTintColor = selectedTab == .gitCommits ? .white : .secondaryLabelColor
     }
 
     @objc private func terminalTapped() {
@@ -564,6 +619,17 @@ class DetailTabBarNSView: NSView {
     @objc private func diffTapped() {
         guard let sessionID, let appState else { return }
         appState.setDetailTab(.gitDiff, for: sessionID)
+        if let controller = findController() {
+            controller.updateTabState(
+                selectedID: sessionID,
+                suppressInteraction: appState.showCommandPalette || appState.showSandboxManager || appState.showAssistant
+            )
+        }
+    }
+
+    @objc private func commitsTapped() {
+        guard let sessionID, let appState else { return }
+        appState.setDetailTab(.gitCommits, for: sessionID)
         if let controller = findController() {
             controller.updateTabState(
                 selectedID: sessionID,

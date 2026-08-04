@@ -89,6 +89,8 @@ targets:
         type: file
       - path: TermHub/Models/GitDiff.swift
         type: file
+      - path: TermHub/Models/GitCommit.swift
+        type: file
       - path: TermHub/Models/GitWorktree.swift
         type: file
       - path: TermHub/Models/SandboxInfo.swift
@@ -165,6 +167,8 @@ targets:
       - path: TermHub/Models/GitStatus.swift
         type: file
       - path: TermHub/Models/GitDiff.swift
+        type: file
+      - path: TermHub/Models/GitCommit.swift
         type: file
       - path: TermHub/Models/GitWorktree.swift
         type: file
