@@ -3,6 +3,7 @@ import SwiftUI
 
 struct GitCommitHistoryView: View {
     @Environment(AppState.self) private var appState
+    @FocusState private var isCommitListFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -95,6 +96,34 @@ struct GitCommitHistoryView: View {
             }
         }
         .listStyle(.plain)
+        .focusable()
+        .focused($isCommitListFocused)
+        .onAppear {
+            isCommitListFocused = true
+        }
+        .onKeyPress(.upArrow) {
+            selectCommit(in: commits, offset: -1)
+            return .handled
+        }
+        .onKeyPress(.downArrow) {
+            selectCommit(in: commits, offset: 1)
+            return .handled
+        }
+    }
+
+    private func selectCommit(in commits: [GitCommit], offset: Int) {
+        guard !commits.isEmpty else { return }
+
+        guard let selectedCommit = appState.selectedCommit,
+              let selectedIndex = commits.firstIndex(where: { $0.hash == selectedCommit.hash })
+        else {
+            appState.selectCommit(commits[0])
+            return
+        }
+
+        let nextIndex = selectedIndex + offset
+        guard commits.indices.contains(nextIndex) else { return }
+        appState.selectCommit(commits[nextIndex])
     }
 
     @ViewBuilder
