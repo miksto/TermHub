@@ -8,6 +8,7 @@ struct SidebarView: View {
     @State private var draggedSidebarItem: SidebarItem?
     @State private var dropTargetSidebarItem: SidebarItem?
     @State private var projectSearchText = ""
+    @FocusState private var isProjectSearchFocused: Bool
 
     private var isSearchingProjects: Bool {
         !projectSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -34,6 +35,7 @@ struct SidebarView: View {
 
                 TextField("Search projects", text: $projectSearchText)
                     .textFieldStyle(.plain)
+                    .focused($isProjectSearchFocused)
 
                 if !projectSearchText.isEmpty {
                     Button("Clear search", systemImage: "xmark.circle.fill") {
@@ -130,6 +132,9 @@ struct SidebarView: View {
                 NSEvent.removeMonitor(monitor)
                 flagsMonitor = nil
             }
+        }
+        .onChange(of: appState.projectSearchFocusRequest) {
+            isProjectSearchFocused = true
         }
         .sheet(
             isPresented: Binding(

@@ -282,6 +282,7 @@ final class AppState {
     var errorMessage: String?
     var pendingRemoveFolderID: UUID?
     var showKeyboardShortcuts = false
+    private(set) var projectSearchFocusRequest = 0
     var showSettings = false
     var pendingSandboxPickerContext: SandboxPickerContext?
     var pendingWorktreeSandbox: String?
@@ -766,6 +767,10 @@ final class AppState {
 
         guard selectedFolder != nil else { return }
         showAssistant = true
+    }
+
+    func requestProjectSearchFocus() {
+        projectSearchFocusRequest += 1
     }
 
     func appendAssistantSystemMessage(_ content: String) {

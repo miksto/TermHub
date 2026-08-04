@@ -6,6 +6,7 @@ struct KeyboardShortcutsSheet: View {
     private let shortcuts: [(description: String, keys: String)] = [
         ("Assistant", "⌃Space"),
         ("Command Palette", "⌘P"),
+        ("Search Projects", "⌘F"),
         ("New Shell in Current Folder", "⌘T"),
         ("New Sandboxed Shell", "⌥⌘T"),
         ("Add Folder", "⌘O"),
