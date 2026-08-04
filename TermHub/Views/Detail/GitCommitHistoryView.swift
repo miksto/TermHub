@@ -48,11 +48,11 @@ struct GitCommitHistoryView: View {
                 if commits.isEmpty {
                     ContentUnavailableView("No Commits", systemImage: "clock", description: Text("This branch has no commits to display."))
                 } else {
-                    VSplitView {
-                        commitList(commits)
-                            .frame(minHeight: 180)
+                    HSplitView {
                         commitDiff
-                            .frame(minHeight: 180)
+                            .frame(minWidth: 180)
+                        commitList(commits)
+                            .frame(minWidth: 180)
                     }
                 }
             }
@@ -109,14 +109,10 @@ struct GitCommitHistoryView: View {
                 if appState.isSelectedCommitDiffLoading {
                     ProgressView("Loading diff…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let diff = appState.selectedCommitDiff, !diff.isEmpty {
-                    ScrollView([.horizontal, .vertical]) {
-                        Text(diff)
-                            .font(.system(.body, design: .monospaced))
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                    }
+                } else if let error = appState.selectedCommitDiffError {
+                    ContentUnavailableView("Couldn't Load Diff", systemImage: "exclamationmark.triangle", description: Text(error))
+                } else if let diff = appState.selectedCommitDiff, !diff.files.isEmpty {
+                    DiffTableView(diff: diff)
                 } else {
                     ContentUnavailableView("No File Changes", systemImage: "doc", description: Text("This commit has no diff to display."))
                 }

@@ -325,7 +325,9 @@ enum GitService {
         return stride(from: 0, to: fields.count, by: 4).compactMap { index in
             guard let date = dateFormatter.date(from: fields[index + 2]) else { return nil }
             return GitCommit(
-                hash: fields[index],
+                // `git log --format` appends a newline after every record, so
+                // the next record's hash begins with that newline.
+                hash: fields[index].trimmingCharacters(in: .whitespacesAndNewlines),
                 authorName: fields[index + 1],
                 authoredDate: date,
                 message: fields[index + 3].trimmingCharacters(in: .newlines)

@@ -187,6 +187,16 @@ struct GitServiceIOTests {
         #expect(commits[0].messagePreview == "one\ntwo\nthree\nfour\nfive")
     }
 
+    @Test("commit parser removes Git's record-separator newline from subsequent hashes")
+    func commitParserNormalizesSubsequentHashes() {
+        let separator = "\0"
+        let raw = "firsthash\(separator)Ada Lovelace\(separator)2025-02-03T04:05:06Z\(separator)First commit\n\(separator)\nsecondhash\(separator)Grace Hopper\(separator)2025-02-04T04:05:06Z\(separator)Second commit\n\(separator)"
+
+        let commits = GitService.parseCommits(raw)
+
+        #expect(commits.map(\.hash) == ["firsthash", "secondhash"])
+    }
+
     @Test("commit diff uses a read-only first-parent show command")
     func commitDiffCommand() throws {
         mock.enqueueSuccess("diff --git a/a b/a")

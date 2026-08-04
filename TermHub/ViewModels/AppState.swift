@@ -346,7 +346,8 @@ final class AppState {
     var currentCommitHistory: GitCommitHistory = .idle
     var isCommitHistoryLoading = false
     var selectedCommit: GitCommit?
-    var selectedCommitDiff: String?
+    var selectedCommitDiff: GitDiff?
+    var selectedCommitDiffError: String?
     var isSelectedCommitDiffLoading = false
     @ObservationIgnored private let gitFileWatcher = GitFileWatcher()
     @ObservationIgnored private var gitWatchPathsByTrackedPath: [String: [String]] = [:]
@@ -2001,6 +2002,7 @@ final class AppState {
         currentCommitHistory = .idle
         selectedCommit = nil
         selectedCommitDiff = nil
+        selectedCommitDiffError = nil
         isSelectedCommitDiffLoading = false
         isCommitHistoryLoading = true
 
@@ -2014,6 +2016,10 @@ final class AppState {
                 else { return }
                 self.currentCommitHistory = history
                 self.isCommitHistoryLoading = false
+                if case .loaded(let commits) = history,
+                   let newestCommit = commits.first {
+                    self.selectCommit(newestCommit)
+                }
             }
         }
     }
@@ -2031,10 +2037,13 @@ final class AppState {
         let sequence = commitDiffRefreshSequence
         selectedCommit = commit
         selectedCommitDiff = nil
+        selectedCommitDiffError = nil
         isSelectedCommitDiffLoading = true
 
         Task.detached {
-            let result = Result { try GitService.commitDiff(path: workingDir, commitHash: commit.hash) }
+            let result = Result {
+                GitService.parseDiff(try GitService.commitDiff(path: workingDir, commitHash: commit.hash))
+            }
             await MainActor.run { [weak self] in
                 guard let self,
                       self.commitDiffRefreshSequence == sequence,
@@ -2047,7 +2056,7 @@ final class AppState {
                 case .success(let diff):
                     self.selectedCommitDiff = diff
                 case .failure(let error):
-                    self.selectedCommitDiff = "Unable to load diff: \(error.localizedDescription)"
+                    self.selectedCommitDiffError = "Unable to load diff: \(error.localizedDescription)"
                 }
             }
         }
