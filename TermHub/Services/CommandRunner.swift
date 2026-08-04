@@ -27,17 +27,39 @@ enum CommandLogger {
 }
 
 protocol CommandRunner: Sendable {
-    func run(executablePath: String, arguments: [String], environment: [String: String]?) -> CommandResult
+    func run(
+        executablePath: String,
+        arguments: [String],
+        environment: [String: String]?,
+        currentDirectoryURL: URL?
+    ) -> CommandResult
+}
+
+extension CommandRunner {
+    func run(executablePath: String, arguments: [String], environment: [String: String]?) -> CommandResult {
+        run(
+            executablePath: executablePath,
+            arguments: arguments,
+            environment: environment,
+            currentDirectoryURL: nil
+        )
+    }
 }
 
 struct ProcessCommandRunner: CommandRunner {
-    func run(executablePath: String, arguments: [String], environment: [String: String]?) -> CommandResult {
+    func run(
+        executablePath: String,
+        arguments: [String],
+        environment: [String: String]?,
+        currentDirectoryURL: URL?
+    ) -> CommandResult {
         CommandLogger.log(executablePath: executablePath, arguments: arguments)
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executablePath)
         process.arguments = arguments
         if let environment { process.environment = environment }
+        process.currentDirectoryURL = currentDirectoryURL
 
         let pipe = Pipe()
         let errorPipe = Pipe()

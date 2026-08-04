@@ -11,6 +11,10 @@ struct ContentView: View {
         mainContent
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
+                    PullRequestToolbarButton()
+                }
+
+                ToolbarItem(placement: .primaryAction) {
                     Button {
                         appState.showSettings = true
                     } label: {
@@ -233,6 +237,23 @@ private struct ContentViewAlerts: ViewModifier {
                 let sessionCount = appState.sessions.filter { $0.folderID == folder.id }.count
                 Text("This will close \(sessionCount) tmux session(s) for \"\(folder.name)\". Git worktrees will not be removed.")
             }
+    }
+}
+
+// MARK: - Pull Request Toolbar Button
+
+struct PullRequestToolbarButton: View {
+    @Environment(AppState.self) private var appState
+
+    var body: some View {
+        if let url = appState.selectedSessionPullRequestURL {
+            Button {
+                NSWorkspace.shared.open(url)
+            } label: {
+                Image(systemName: "arrow.up.right.square")
+            }
+            .help("Open pull request on GitHub")
+        }
     }
 }
 

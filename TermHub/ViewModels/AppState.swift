@@ -252,6 +252,9 @@ final class AppState {
             if !isLoading, selectedSessionID != nil {
                 saveState()
             }
+            if !isLoading, oldValue != selectedSessionID {
+                refreshSelectedSessionPullRequest()
+            }
         }
     }
     private(set) var sidebarRevealSessionID: UUID?
@@ -322,6 +325,8 @@ final class AppState {
         }
     }
     var gitStatuses: [String: GitStatus] = [:]
+    private(set) var selectedSessionPullRequestURL: URL?
+    private(set) var isSelectedSessionPullRequestLoading = false
     private(set) var worktreesByFolderID: [UUID: [GitWorktree]] = [:]
     private(set) var worktreeDiscoveryErrors: [UUID: String] = [:]
     private(set) var worktreeDiscoveryInProgress: Set<UUID> = []
@@ -353,6 +358,8 @@ final class AppState {
     @ObservationIgnored private var debouncedSaveWorkItem: DispatchWorkItem?
     @ObservationIgnored private let persistence: StatePersistence
     @ObservationIgnored private let worktreeDiscoveryService: WorktreeDiscoveryService
+    @ObservationIgnored private let pullRequestLookupService: PullRequestLookupService
+    @ObservationIgnored private var pullRequestRefreshSequence: UInt64 = 0
     @ObservationIgnored private var ipcServer: IPCServer?
     @ObservationIgnored private let assistantService = AssistantService()
     @ObservationIgnored private var activeAssistantMessageID: UUID?
@@ -543,11 +550,14 @@ final class AppState {
 
     init(
         persistence: StatePersistence? = nil,
-        worktreeDiscoveryService: WorktreeDiscoveryService = .live
+        worktreeDiscoveryService: WorktreeDiscoveryService = .live,
+        pullRequestLookupService: PullRequestLookupService? = nil
     ) {
         let isTestHost = ProcessInfo.processInfo.isRunningTests
         self.persistence = persistence ?? (isTestHost ? NullPersistence() : DiskPersistence())
         self.worktreeDiscoveryService = worktreeDiscoveryService
+        self.pullRequestLookupService = pullRequestLookupService
+            ?? (isTestHost ? .unavailable : .live)
         if UserDefaults.standard.bool(forKey: "optionAsMetaKeyIsSet") {
             optionAsMetaKey = UserDefaults.standard.bool(forKey: "optionAsMetaKey")
         } else {
@@ -603,6 +613,7 @@ final class AppState {
                     self?.sessionsNeedingAttention.remove(id)
                 }
                 self?.refreshWorktrees()
+                self?.refreshSelectedSessionPullRequest()
             }
         }
 
@@ -617,6 +628,7 @@ final class AppState {
         if !isTestHost {
             refreshGitStatuses()
             updateGitFileWatcher()
+            refreshSelectedSessionPullRequest()
             refreshSandboxes()
             startSandboxPolling()
 
@@ -1864,6 +1876,36 @@ final class AppState {
         return gitStatuses[folder.path]
     }
 
+    func refreshSelectedSessionPullRequest() {
+        pullRequestRefreshSequence &+= 1
+        let sequence = pullRequestRefreshSequence
+
+        guard let sessionID = selectedSessionID,
+              let repositoryPath = selectedSessionGitPath,
+              folderForSelectedSession?.isGitRepo == true
+        else {
+            selectedSessionPullRequestURL = nil
+            isSelectedSessionPullRequestLoading = false
+            return
+        }
+
+        selectedSessionPullRequestURL = nil
+        isSelectedSessionPullRequestLoading = true
+        let lookup = pullRequestLookupService.openPullRequestURL
+
+        Task.detached {
+            let url = lookup(repositoryPath)
+            await MainActor.run { [weak self] in
+                guard let self,
+                      self.pullRequestRefreshSequence == sequence,
+                      self.selectedSessionID == sessionID
+                else { return }
+                self.selectedSessionPullRequestURL = url
+                self.isSelectedSessionPullRequestLoading = false
+            }
+        }
+    }
+
     var folderForSelectedSession: ManagedFolder? {
         guard let session = selectedSession,
               let folder = folders.first(where: { $0.id == session.folderID })
@@ -1995,6 +2037,7 @@ final class AppState {
             await MainActor.run { @MainActor [weak self] in
                 guard let self else { return }
                 let currentlyTracked = Set(self.trackedGitPaths())
+                var selectedBranchChanged = false
                 for (path, result) in results {
                     // Ignore a result if a newer refresh was started for this path,
                     // or if the folder/worktree was removed while git was running.
@@ -2002,6 +2045,10 @@ final class AppState {
                           currentlyTracked.contains(path) else { continue }
                     switch result {
                     case .success(let status):
+                        if path == self.selectedSessionGitPath,
+                           self.gitStatuses[path]?.currentBranch != status.currentBranch {
+                            selectedBranchChanged = true
+                        }
                         if self.gitStatuses[path] != status {
                             self.gitStatuses[path] = status
                         }
@@ -2012,6 +2059,9 @@ final class AppState {
                 // A targeted refresh is only a partial snapshot. Remove entries
                 // based on the actual tracked paths, never based on this result set.
                 self.pruneUntrackedGitStatuses(trackedPaths: currentlyTracked)
+                if selectedBranchChanged {
+                    self.refreshSelectedSessionPullRequest()
+                }
             }
         }
     }

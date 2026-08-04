@@ -5,6 +5,7 @@ final class MockCommandRunner: CommandRunner, @unchecked Sendable {
     struct Call: Sendable {
         let executablePath: String
         let arguments: [String]
+        let currentDirectoryURL: URL?
     }
 
     private let lock = NSLock()
@@ -49,9 +50,18 @@ final class MockCommandRunner: CommandRunner, @unchecked Sendable {
         enqueue(errorOutput: errorOutput, exitCode: exitCode)
     }
 
-    func run(executablePath: String, arguments: [String], environment: [String: String]?) -> CommandResult {
+    func run(
+        executablePath: String,
+        arguments: [String],
+        environment: [String: String]?,
+        currentDirectoryURL: URL?
+    ) -> CommandResult {
         lock.lock()
-        callsStorage.append(Call(executablePath: executablePath, arguments: arguments))
+        callsStorage.append(Call(
+            executablePath: executablePath,
+            arguments: arguments,
+            currentDirectoryURL: currentDirectoryURL
+        ))
         let handler = handlerStorage
         let result: CommandResult?
         if handler == nil, callIndex < results.count {
