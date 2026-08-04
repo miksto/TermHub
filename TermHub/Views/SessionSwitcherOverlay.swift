@@ -60,6 +60,13 @@ struct SessionSwitcherOverlay: View {
                                                 .foregroundStyle(.tertiary)
                                                 .help("No terminal input recorded")
                                         }
+                                        if let branchName = item.branchName {
+                                            Label(branchName, systemImage: "arrow.triangle.branch")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                                .help("Git branch: \(branchName)")
+                                        }
                                         if let sandboxName = item.sandboxName {
                                             Label(sandboxName, systemImage: "shippingbox")
                                                 .font(.caption)

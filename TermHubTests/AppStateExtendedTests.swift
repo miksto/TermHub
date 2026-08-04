@@ -167,6 +167,30 @@ struct AppStateExtendedTests {
         #expect(items.first { $0.id == sandboxSessionID }?.sandboxName == "development")
     }
 
+    @Test("sessionSwitcherItems includes each session's git branch")
+    @MainActor
+    func switcherItemsIncludeGitBranch() {
+        let state = makeCleanAppState()
+        state.addFolder(path: "/tmp")
+        let folderID = state.folders[0].id
+        let plainSessionID = state.sessions[0].id
+
+        state.addSession(
+            folderID: folderID,
+            title: "Worktree Shell",
+            cwd: "/tmp/worktree",
+            worktreePath: "/tmp/worktree",
+            branchName: "feature/session-switcher"
+        )
+        let worktreeSessionID = state.sessions[1].id
+
+        #expect(state.sessionSwitcherItems.first { $0.id == plainSessionID }?.branchName == nil)
+        #expect(
+            state.sessionSwitcherItems.first { $0.id == worktreeSessionID }?.branchName
+                == "feature/session-switcher"
+        )
+    }
+
     @Test("recordSessionKeyboardInput moves session to front of input MRU")
     @MainActor
     func keyboardInputMovesSessionToFront() {

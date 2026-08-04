@@ -1452,7 +1452,7 @@ final class AppState {
     }
 
     /// Sessions in MRU order with display info for the switcher overlay.
-    var sessionSwitcherItems: [(id: UUID, title: String, folderName: String?, sandboxName: String?)] {
+    var sessionSwitcherItems: [(id: UUID, title: String, folderName: String?, branchName: String?, sandboxName: String?)] {
         let sessionByID = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
         let folderByID = Dictionary(uniqueKeysWithValues: folders.map { ($0.id, $0) })
         let validIDs = sessionMRUOrder.filter { sessionByID[$0] != nil }
@@ -1463,6 +1463,7 @@ final class AppState {
                 id: id,
                 title: displayState(for: id)?.title ?? session.title,
                 folderName: folder?.name,
+                branchName: gitStatus(forSession: session)?.currentBranch ?? session.branchName,
                 sandboxName: session.sandboxName
             )
         }
