@@ -8,6 +8,7 @@ struct FolderSectionView: View {
     @Binding var draggedSidebarItem: SidebarItem?
     @Binding var dropTargetSidebarItem: SidebarItem?
     var isInsideGroup: Bool = false
+    var forceExpanded: Bool = false
 
     private var plainSessionIDs: [UUID] {
         folder.sessionIDs.filter { id in
@@ -27,12 +28,13 @@ struct FolderSectionView: View {
             onRequestRemoveFolder: onRequestRemoveFolder,
             draggedSidebarItem: $draggedSidebarItem,
             dropTargetSidebarItem: $dropTargetSidebarItem,
-            isInsideGroup: isInsideGroup
+            isInsideGroup: isInsideGroup,
+            isExpanded: forceExpanded || folder.isExpanded
         )
         .selectionDisabled()
         .listRowInsets(EdgeInsets(top: 4, leading: baseLeading, bottom: 2, trailing: 0))
 
-        if folder.isExpanded {
+        if forceExpanded || folder.isExpanded {
             // Plain shell sessions
             ForEach(plainSessionIDs, id: \.self) { sessionID in
                 SessionRowView(sessionID: sessionID, onRemove: {

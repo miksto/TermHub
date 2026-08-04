@@ -5,6 +5,21 @@ import Testing
 @Suite("FuzzyMatch Tests")
 struct FuzzyMatchTests {
 
+    @Test("project search uses normalized project names")
+    func projectNameSearchNormalizesSeparators() {
+        #expect(ProjectNameSearch.matches(query: "mux manager", projectName: "mux-manager"))
+    }
+
+    @Test("project search tolerates small typos with trigrams")
+    func projectNameSearchToleratesTypo() {
+        #expect(ProjectNameSearch.matches(query: "proejct", projectName: "project"))
+    }
+
+    @Test("project search does not match unrelated names")
+    func projectNameSearchRejectsUnrelatedName() {
+        #expect(!ProjectNameSearch.matches(query: "server", projectName: "Terminal Hub"))
+    }
+
     @Test("empty query matches everything with score 0")
     func emptyQuery() {
         #expect(FuzzyMatch.score(query: "", candidate: "anything") == 0)

@@ -8,6 +8,11 @@ struct FolderHeaderRow: View {
     @Binding var draggedSidebarItem: SidebarItem?
     @Binding var dropTargetSidebarItem: SidebarItem?
     var isInsideGroup: Bool = false
+    var isExpanded: Bool? = nil
+
+    private var effectiveIsExpanded: Bool {
+        isExpanded ?? folder.isExpanded
+    }
 
     private func aheadBehindText(_ status: GitStatus) -> String {
         var parts: [String] = []
@@ -44,8 +49,8 @@ struct FolderHeaderRow: View {
                 Image(systemName: "chevron.right")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.secondary)
-                    .rotationEffect(.degrees(folder.isExpanded ? 90 : 0))
-                    .animation(.easeInOut(duration: 0.15), value: folder.isExpanded)
+                    .rotationEffect(.degrees(effectiveIsExpanded ? 90 : 0))
+                    .animation(.easeInOut(duration: 0.15), value: effectiveIsExpanded)
 
                 Label(folder.name, systemImage: "folder")
                     .font(.headline)

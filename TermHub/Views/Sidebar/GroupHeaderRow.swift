@@ -6,8 +6,13 @@ struct GroupHeaderRow: View {
     var onRequestRemoveGroup: () -> Void
     @Binding var draggedSidebarItem: SidebarItem?
     @Binding var dropTargetSidebarItem: SidebarItem?
+    var isExpanded: Bool? = nil
     @State private var isRenaming = false
     @State private var renameText = ""
+
+    private var effectiveIsExpanded: Bool {
+        isExpanded ?? group.isExpanded
+    }
 
     private var isDragSource: Bool {
         draggedSidebarItem == .group(group.id)
@@ -41,8 +46,8 @@ struct GroupHeaderRow: View {
                 Image(systemName: "chevron.right")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.secondary)
-                    .rotationEffect(.degrees(group.isExpanded ? 90 : 0))
-                    .animation(.easeInOut(duration: 0.15), value: group.isExpanded)
+                    .rotationEffect(.degrees(effectiveIsExpanded ? 90 : 0))
+                    .animation(.easeInOut(duration: 0.15), value: effectiveIsExpanded)
 
                 if isRenaming {
                     TextField("Group Name", text: $renameText, onCommit: {

@@ -27,6 +27,7 @@
 		1DFA7A473FE2E0CBFEEB2636 /* DetailTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1013B2E11F22771C770C920 /* DetailTab.swift */; };
 		21A01C29E06AD7CE85298D59 /* SourceCodePro-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 87F22B8F211122C504007981 /* SourceCodePro-Medium.otf */; };
 		21E8FE21B4A9CEB20CA876BD /* NewBranchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53CF21FE35A1AFF2D3BF1668 /* NewBranchSheet.swift */; };
+		23968661F93D655AB1104BFF /* ProjectNameSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28A5A43C285A3BD5A49376B /* ProjectNameSearch.swift */; };
 		26B3CE119D9422059C4CB11F /* ShellSplitButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E489949573E3CE4774C1757 /* ShellSplitButton.swift */; };
 		27DB07BF564DA1F9F6E61287 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D913661F1C9DB3AB387FCF2B /* CommandRunner.swift */; };
 		2832583ADD370008E1D81F99 /* IPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEEB378B454E996FC3266EB0 /* IPCProtocol.swift */; };
@@ -211,6 +212,7 @@
 		B0366166774513CC87948DE2 /* SettingsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsOverlay.swift; sourceTree = "<group>"; };
 		B0BA908CA8A5AC4DE3CA9F79 /* SessionSwitcherOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSwitcherOverlay.swift; sourceTree = "<group>"; };
 		B21234BF901A88F7C762DE3E /* TerminalSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSessionManager.swift; sourceTree = "<group>"; };
+		B28A5A43C285A3BD5A49376B /* ProjectNameSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNameSearch.swift; sourceTree = "<group>"; };
 		B78850034F1F4AB68C28F9C5 /* SandboxPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SandboxPickerSheet.swift; sourceTree = "<group>"; };
 		B80290449765DD56337BC111 /* SessionDisplayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDisplayState.swift; sourceTree = "<group>"; };
 		B859B3D7ED3968E9EF4FFD27 /* GitHubServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubServiceTests.swift; sourceTree = "<group>"; };
@@ -430,6 +432,7 @@
 			isa = PBXGroup;
 			children = (
 				4B36A08544BDCA24B09F7F72 /* FuzzyMatch.swift */,
+				B28A5A43C285A3BD5A49376B /* ProjectNameSearch.swift */,
 				7F3949FA374894F3DD12A156 /* ShellEnvironment.swift */,
 			);
 			path = Utilities;
@@ -690,6 +693,7 @@
 				54C04030545ACD76203F4E45 /* ManagedFolder.swift in Sources */,
 				21E8FE21B4A9CEB20CA876BD /* NewBranchSheet.swift in Sources */,
 				443357AA0C540DE186E4003B /* PersistenceService.swift in Sources */,
+				23968661F93D655AB1104BFF /* ProjectNameSearch.swift in Sources */,
 				DF329A05696DA897A6979706 /* SandboxInfo.swift in Sources */,
 				14DE91FA5EE1F434A6FCF007 /* SandboxManagerOverlay.swift in Sources */,
 				66671B886CB1BF42A3C2C098 /* SandboxManagerPanel.swift in Sources */,
