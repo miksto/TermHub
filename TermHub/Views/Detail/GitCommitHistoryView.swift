@@ -112,7 +112,7 @@ struct GitCommitHistoryView: View {
                 } else if let error = appState.selectedCommitDiffError {
                     ContentUnavailableView("Couldn't Load Diff", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else if let diff = appState.selectedCommitDiff, !diff.files.isEmpty {
-                    DiffTableView(diff: diff)
+                    DiffTableView(diff: diff, workingDirectory: appState.selectedSessionGitPath ?? "")
                 } else {
                     ContentUnavailableView("No File Changes", systemImage: "doc", description: Text("This commit has no diff to display."))
                 }

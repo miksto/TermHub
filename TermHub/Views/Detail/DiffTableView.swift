@@ -206,6 +206,7 @@ enum DiffRowBuilder {
 
 struct DiffTableView: NSViewRepresentable {
     let diff: GitDiff
+    let workingDirectory: String
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
@@ -233,6 +234,7 @@ struct DiffTableView: NSViewRepresentable {
         let delegate = DiffTableDelegate()
         delegate.diff = diff
         delegate.lastDiff = diff
+        delegate.workingDir = workingDirectory
         delegate.rebuildRows(for: scrollView.frame.width, clearExpandState: true)
         delegate.tableView = tableView
         context.coordinator.delegate = delegate
@@ -252,6 +254,8 @@ struct DiffTableView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let tableView = scrollView.documentView as? NSTableView,
               let delegate = context.coordinator.delegate else { return }
+
+        delegate.workingDir = workingDirectory
 
         // Only rebuild if the diff data changed
         guard delegate.lastDiff != diff else { return }

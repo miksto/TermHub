@@ -2173,7 +2173,7 @@ final class AppState {
         }
     }
 
-    private var selectedSessionGitPath: String? {
+    var selectedSessionGitPath: String? {
         guard let session = selectedSession else { return nil }
         return session.worktreePath
             ?? folders.first(where: { $0.id == session.folderID })?.path
