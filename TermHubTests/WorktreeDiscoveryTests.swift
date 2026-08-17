@@ -57,6 +57,14 @@ struct WorktreeDiscoveryTests {
         )
     }
 
+    private func waitFor(_ condition: @escaping @Sendable () -> Bool) async {
+        for _ in 0..<1_000 {
+            if condition() { return }
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        Issue.record("Timed out waiting for asynchronous work")
+    }
+
     @MainActor
     private func waitForDiscovery(_ state: AppState, folderID: UUID) async {
         for _ in 0..<10_000 {
@@ -316,5 +324,93 @@ struct WorktreeDiscoveryTests {
         )
 
         #expect(filtered == [active])
+    }
+
+    @Test("a new worktree session is tracked before discovery completes")
+    @MainActor
+    func newWorktreeSessionIsTrackedImmediately() throws {
+        let paths = try makePaths()
+        defer { try? FileManager.default.removeItem(atPath: paths.root) }
+        let folder = ManagedFolder(path: paths.root, isGitRepo: true)
+        let record = worktree(folderID: folder.id, path: paths.child)
+        let state = AppState(
+            persistence: NullPersistence(),
+            worktreeDiscoveryService: WorktreeDiscoveryService(
+                listWorktrees: { _, _ in [record] },
+                liveTmuxSessionNames: { [] }
+            ),
+            gitWatchPathResolver: GitWatchPathResolver(resolve: { paths in
+                Dictionary(uniqueKeysWithValues: paths.map { ($0, [$0]) })
+            })
+        )
+        state.folders = [folder]
+
+        state.addSession(
+            folderID: folder.id,
+            title: "Feature",
+            cwd: paths.child,
+            worktreePath: paths.child,
+            branchName: "feature/test"
+        )
+
+        // Status refresh and watch setup must not wait for `git worktree list`.
+        #expect(state.trackedGitPaths().contains(paths.child))
+    }
+
+    @Test("stale watch metadata is discarded when a worktree path is recreated")
+    @MainActor
+    func staleWatchMetadataIsDiscarded() async throws {
+        let paths = try makePaths()
+        defer { try? FileManager.default.removeItem(atPath: paths.root) }
+        let folder = ManagedFolder(path: paths.root, isGitRepo: true)
+        let record = worktree(folderID: folder.id, path: paths.child)
+        let resolverCalls = LockedBox(0)
+        let firstResolutionCanFinish = DispatchSemaphore(value: 0)
+        let secondResolutionCanFinish = DispatchSemaphore(value: 0)
+        let resolver = GitWatchPathResolver { trackedPaths in
+            let call = resolverCalls.read()
+            resolverCalls.update { $0 += 1 }
+            if call == 0 {
+                firstResolutionCanFinish.wait()
+            } else {
+                secondResolutionCanFinish.wait()
+            }
+            return Dictionary(uniqueKeysWithValues: trackedPaths.map { ($0, [$0, "\($0)/.git"]) })
+        }
+        let state = AppState(
+            persistence: NullPersistence(),
+            worktreeDiscoveryService: WorktreeDiscoveryService(
+                listWorktrees: { _, _ in [record] },
+                liveTmuxSessionNames: { [] }
+            ),
+            gitWatchPathResolver: resolver
+        )
+        state.folders = [folder]
+
+        state.addSession(
+            folderID: folder.id,
+            title: "First",
+            cwd: paths.child,
+            worktreePath: paths.child
+        )
+        await waitFor { resolverCalls.read() == 1 }
+
+        let firstSessionID = try #require(state.sessions.first?.id)
+        state.removeSession(id: firstSessionID)
+        state.addSession(
+            folderID: folder.id,
+            title: "Recreated",
+            cwd: paths.child,
+            worktreePath: paths.child
+        )
+
+        firstResolutionCanFinish.signal()
+        await waitFor { resolverCalls.read() == 2 }
+        secondResolutionCanFinish.signal()
+        await waitForDiscovery(state, folderID: folder.id)
+
+        #expect(state.trackedGitPaths().contains(paths.child))
+        #expect(state.sessions.count == 1)
+        #expect(state.sessions.first?.title == "Recreated")
     }
 }

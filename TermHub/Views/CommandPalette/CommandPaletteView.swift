@@ -211,18 +211,31 @@ struct CommandPaletteView: View {
             appState.renameSession(id: sessionID, newTitle: text)
             dismiss()
         case .newBranch(let folder):
-            do {
-                let worktreePath = try GitService.addWorktreeNewBranch(repoPath: folder.path, newBranch: text)
-                appState.addSession(
-                    folderID: folder.id,
-                    title: "\(folder.name) / \(text)",
-                    cwd: worktreePath,
-                    worktreePath: worktreePath,
-                    branchName: text,
-                    ownsBranch: true
-                )
-            } catch {
-                appState.errorMessage = error.localizedDescription
+            let copySettings = appState.copyClaudeSettingsToWorktrees
+            Task.detached {
+                do {
+                    let worktreePath = try GitService.addWorktreeNewBranch(
+                        repoPath: folder.path,
+                        newBranch: text
+                    )
+                    if copySettings {
+                        GitService.copyClaudeLocalSettings(from: folder.path, to: worktreePath)
+                    }
+                    await MainActor.run {
+                        appState.addSession(
+                            folderID: folder.id,
+                            title: "\(folder.name) / \(text)",
+                            cwd: worktreePath,
+                            worktreePath: worktreePath,
+                            branchName: text,
+                            ownsBranch: true
+                        )
+                    }
+                } catch {
+                    await MainActor.run {
+                        appState.errorMessage = error.localizedDescription
+                    }
+                }
             }
             dismiss()
         }

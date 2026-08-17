@@ -118,8 +118,9 @@ enum GitService {
         }
 
         appendPath(path)
-        appendPath(absoluteGitDir(path: path))
-        appendPath(gitCommonDir(path: path))
+        for metadataPath in gitMetadataDirectories(path: path) {
+            appendPath(metadataPath)
+        }
 
         return paths
     }
@@ -711,25 +712,35 @@ enum GitService {
         return GitStatus(linesAdded: added, linesDeleted: deleted, ahead: ahead, behind: behind, currentBranch: branch)
     }
 
-    private static func absoluteGitDir(path: String) -> String? {
-        guard let output = try? run(["-C", path, "rev-parse", "--absolute-git-dir"]),
-              !output.isEmpty else {
-            return nil
-        }
-        return output
-    }
-
-    private static func gitCommonDir(path: String) -> String? {
-        guard let output = try? run(["-C", path, "rev-parse", "--git-common-dir"]),
-              !output.isEmpty else {
-            return nil
+    /// Resolves both Git administrative directories in one subprocess. This is
+    /// deliberately kept synchronous because `GitService` is a blocking service;
+    /// callers must use it only from a background task.
+    private static func gitMetadataDirectories(path: String) -> [String] {
+        guard let output = try? run([
+            "-C", path,
+            "rev-parse", "--absolute-git-dir", "--git-common-dir",
+        ]) else {
+            return []
         }
 
-        if (output as NSString).isAbsolutePath {
-            return output
-        }
+        let lines = output.components(separatedBy: "\n")
+        guard let gitDir = lines.first, !gitDir.isEmpty else { return [] }
 
-        return ((path as NSString).appendingPathComponent(output) as NSString).standardizingPath
+        var directories = [gitDir]
+        if lines.count > 1 {
+            let commonDir = lines[1]
+            if !commonDir.isEmpty {
+                if (commonDir as NSString).isAbsolutePath {
+                    directories.append(commonDir)
+                } else {
+                    directories.append(
+                        ((path as NSString).appendingPathComponent(commonDir) as NSString)
+                            .standardizingPath
+                    )
+                }
+            }
+        }
+        return directories
     }
 
     /// Returns a list of untracked file paths (relative to the repo root), excluding ignored files.

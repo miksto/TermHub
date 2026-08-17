@@ -95,8 +95,18 @@ final class GitFileWatcher: @unchecked Sendable {
     // MARK: - Private
 
     private func handleEvent(paths: [String]) {
+        // FSEvents may report thousands of paths for a checkout or a worktree
+        // deletion. Consumers only need to know which watched roots changed, so
+        // compact the batch on the watcher queue before crossing to the main actor.
         for path in paths {
-            pendingChangedPaths.insert(path)
+            let matchingRoots = watchedPaths.filter {
+                path == $0 || path.hasPrefix($0 + "/")
+            }
+            if matchingRoots.isEmpty {
+                pendingChangedPaths.insert(path)
+            } else {
+                pendingChangedPaths.formUnion(matchingRoots)
+            }
         }
         debounceWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in

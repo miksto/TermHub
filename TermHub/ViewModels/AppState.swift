@@ -36,6 +36,19 @@ struct WorktreeDiscoveryService: Sendable {
     )
 }
 
+/// Resolves the filesystem paths that must be watched for Git changes. The
+/// live implementation performs blocking Git subprocess work and is therefore
+/// always invoked from a detached task.
+struct GitWatchPathResolver: Sendable {
+    var resolve: @Sendable (_ trackedPaths: [String]) -> [String: [String]]
+
+    static let live = GitWatchPathResolver { trackedPaths in
+        Dictionary(uniqueKeysWithValues: trackedPaths.map { path in
+            (path, GitService.gitMetadataWatchPaths(path: path))
+        })
+    }
+}
+
 @Observable
 @MainActor
 final class AppState {
@@ -352,6 +365,8 @@ final class AppState {
     var isSelectedCommitDiffLoading = false
     @ObservationIgnored private let gitFileWatcher = GitFileWatcher()
     @ObservationIgnored private var gitWatchPathsByTrackedPath: [String: [String]] = [:]
+    @ObservationIgnored private var gitWatchPathResolutionInProgress = false
+    @ObservationIgnored private var gitWatchPathMetadataGeneration: UInt64 = 0
     @ObservationIgnored private var gitStatusRefreshSequence: UInt64 = 0
     @ObservationIgnored private var latestGitStatusRefreshByPath: [String: UInt64] = [:]
     @ObservationIgnored private var worktreeRefreshGenerationByFolderID: [UUID: UInt64] = [:]
@@ -365,6 +380,7 @@ final class AppState {
     @ObservationIgnored private var debouncedSaveWorkItem: DispatchWorkItem?
     @ObservationIgnored private let persistence: StatePersistence
     @ObservationIgnored private let worktreeDiscoveryService: WorktreeDiscoveryService
+    @ObservationIgnored private let gitWatchPathResolver: GitWatchPathResolver
     @ObservationIgnored private let pullRequestLookupService: PullRequestLookupService
     @ObservationIgnored private var pullRequestRefreshSequence: UInt64 = 0
     @ObservationIgnored private var commitHistoryRefreshSequence: UInt64 = 0
@@ -560,11 +576,13 @@ final class AppState {
     init(
         persistence: StatePersistence? = nil,
         worktreeDiscoveryService: WorktreeDiscoveryService = .live,
+        gitWatchPathResolver: GitWatchPathResolver = .live,
         pullRequestLookupService: PullRequestLookupService? = nil
     ) {
         let isTestHost = ProcessInfo.processInfo.isRunningTests
         self.persistence = persistence ?? (isTestHost ? NullPersistence() : DiskPersistence())
         self.worktreeDiscoveryService = worktreeDiscoveryService
+        self.gitWatchPathResolver = gitWatchPathResolver
         self.pullRequestLookupService = pullRequestLookupService
             ?? (isTestHost ? .unavailable : .live)
         if UserDefaults.standard.bool(forKey: "optionAsMetaKeyIsSet") {
@@ -1014,7 +1032,10 @@ final class AppState {
         sessionListVersion += 1
         saveState()
         if let worktreePath {
-            updateGitFileWatcher()
+            // A newly created worktree is immediately usable, before the
+            // background discovery pass has added it to the inventory. Track it
+            // now so its first status snapshot cannot be silently skipped.
+            updateGitFileWatcher(invalidating: [worktreePath])
             refreshGitStatuses(for: [worktreePath])
             refreshWorktrees(folderIDs: [folderID])
         }
@@ -1796,14 +1817,21 @@ final class AppState {
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 for session in sessionSnapshots {
-                    self.removeSessionRecord(id: session.id, save: false)
+                    // Reconcile Git tracking once below. Rebuilding the watcher
+                    // for every attached terminal was both redundant and could
+                    // block the UI while Git metadata was resolved.
+                    self.removeSessionRecord(
+                        id: session.id,
+                        save: false,
+                        updateGitTracking: false
+                    )
                 }
                 if !sessionSnapshots.isEmpty {
                     self.saveState()
                 }
                 self.worktreeRemovalInProgress.remove(worktreeID)
                 self.refreshWorktrees(folderIDs: [folderID])
-                self.updateGitFileWatcher()
+                self.updateGitFileWatcher(invalidating: [worktree.path])
                 self.refreshGitStatuses()
             }
         }
@@ -2069,10 +2097,69 @@ final class AppState {
 
     /// Updates the set of `.git` directories being watched for filesystem changes.
     /// Call this whenever folders or worktree sessions are added/removed.
-    func updateGitFileWatcher() {
-        let watchPathsByTrackedPath = refreshGitWatchPathCache()
-        let watchedPaths = Array(Set(watchPathsByTrackedPath.values.flatMap { $0 })).sorted()
+    func updateGitFileWatcher(invalidating invalidatedPaths: Set<String> = []) {
+        if !invalidatedPaths.isEmpty {
+            for path in invalidatedPaths {
+                gitWatchPathsByTrackedPath.removeValue(forKey: path)
+            }
+            // Do not apply a resolver result that started before a worktree at
+            // one of these paths was removed or recreated.
+            gitWatchPathMetadataGeneration &+= 1
+        }
+
+        let trackedPaths = trackedGitPaths()
+        let trackedPathSet = Set(trackedPaths)
+        gitWatchPathsByTrackedPath = gitWatchPathsByTrackedPath.filter {
+            trackedPathSet.contains($0.key)
+        }
         pruneUntrackedGitStatuses()
+
+        let unresolvedPaths = trackedPaths.filter {
+            gitWatchPathsByTrackedPath[$0] == nil
+        }
+        if !unresolvedPaths.isEmpty {
+            resolveGitWatchPaths(unresolvedPaths)
+            return
+        }
+
+        startGitFileWatcher(with: gitWatchPathsByTrackedPath)
+    }
+
+    private func resolveGitWatchPaths(_ paths: [String]) {
+        guard !gitWatchPathResolutionInProgress else { return }
+        gitWatchPathResolutionInProgress = true
+        let generation = gitWatchPathMetadataGeneration
+        let resolver = gitWatchPathResolver
+
+        Task.detached { [weak self] in
+            let resolved = resolver.resolve(paths)
+            await MainActor.run {
+                guard let self else { return }
+                self.gitWatchPathResolutionInProgress = false
+
+                // A worktree may have been removed and recreated while Git was
+                // resolving its administrative paths. Discard that stale result
+                // and resolve from the current state instead.
+                guard self.gitWatchPathMetadataGeneration == generation else {
+                    self.updateGitFileWatcher()
+                    return
+                }
+
+                let currentlyTracked = Set(self.trackedGitPaths())
+                for path in paths where currentlyTracked.contains(path) {
+                    // A resolver failure must not leave this working tree
+                    // unwatched forever. Its root is still sufficient to catch
+                    // ordinary worktree changes; the next reconciliation can
+                    // retry metadata resolution if needed.
+                    self.gitWatchPathsByTrackedPath[path] = resolved[path] ?? [path]
+                }
+                self.updateGitFileWatcher()
+            }
+        }
+    }
+
+    private func startGitFileWatcher(with watchPathsByTrackedPath: [String: [String]]) {
+        let watchedPaths = Array(Set(watchPathsByTrackedPath.values.flatMap { $0 })).sorted()
 
         gitFileWatcher.start(paths: watchedPaths) { [weak self] changedPaths in
             Task { @MainActor [weak self] in
@@ -2221,25 +2308,25 @@ final class AppState {
             }
         }
 
+        // A newly created worktree session is valid before the asynchronous
+        // `git worktree list` reconciliation completes. Include it here so its
+        // watcher and status refresh begin immediately rather than leaving a
+        // stale or absent sidebar status until discovery catches up.
+        for session in sessions {
+            guard let worktreePath = session.worktreePath,
+                  FileManager.default.fileExists(atPath: worktreePath)
+            else { continue }
+            if seen.insert(worktreePath).inserted {
+                paths.append(worktreePath)
+            }
+        }
+
         return paths
     }
 
     private func currentGitWatchPathsByTrackedPath(for trackedPaths: [String]) -> [String: [String]] {
         let trackedPathSet = Set(trackedPaths)
-        if !gitWatchPathsByTrackedPath.isEmpty, Set(gitWatchPathsByTrackedPath.keys) == trackedPathSet {
-            return gitWatchPathsByTrackedPath
-        }
-        return refreshGitWatchPathCache(for: trackedPaths)
-    }
-
-    @discardableResult
-    private func refreshGitWatchPathCache(for trackedPaths: [String]? = nil) -> [String: [String]] {
-        let trackedPaths = trackedPaths ?? trackedGitPaths()
-        let mapping = Dictionary(uniqueKeysWithValues: trackedPaths.map { path in
-            (path, GitService.gitMetadataWatchPaths(path: path))
-        })
-        gitWatchPathsByTrackedPath = mapping
-        return mapping
+        return gitWatchPathsByTrackedPath.filter { trackedPathSet.contains($0.key) }
     }
 
     func applyDetectedGitRepos(atPaths detectedPaths: [String]) {

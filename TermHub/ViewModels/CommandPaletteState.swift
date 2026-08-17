@@ -433,29 +433,36 @@ final class CommandPaletteState {
                 title: branch.name,
                 subtitle: branch.remoteName
             ) { [weak appState] in
-                do {
-                    let worktreePath: String
-                    if let remoteStartPoint = branch.remoteStartPoint {
-                        worktreePath = try GitService.addWorktreeTrackingRemote(
-                            repoPath: folder.path,
-                            branch: branch.name,
-                            remoteStartPoint: remoteStartPoint
-                        )
-                    } else {
-                        worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch.name)
+                let copySettings = appState?.copyClaudeSettingsToWorktrees ?? true
+                Task.detached {
+                    do {
+                        let worktreePath: String
+                        if let remoteStartPoint = branch.remoteStartPoint {
+                            worktreePath = try GitService.addWorktreeTrackingRemote(
+                                repoPath: folder.path,
+                                branch: branch.name,
+                                remoteStartPoint: remoteStartPoint
+                            )
+                        } else {
+                            worktreePath = try GitService.addWorktree(repoPath: folder.path, branch: branch.name)
+                        }
+                        if copySettings {
+                            GitService.copyClaudeLocalSettings(from: folder.path, to: worktreePath)
+                        }
+                        await MainActor.run {
+                            appState?.addSession(
+                                folderID: folder.id,
+                                title: "\(folder.name) / \(branch.name)",
+                                cwd: worktreePath,
+                                worktreePath: worktreePath,
+                                branchName: branch.name
+                            )
+                        }
+                    } catch {
+                        await MainActor.run {
+                            appState?.errorMessage = error.localizedDescription
+                        }
                     }
-                    if appState?.copyClaudeSettingsToWorktrees ?? true {
-                        GitService.copyClaudeLocalSettings(from: folder.path, to: worktreePath)
-                    }
-                    appState?.addSession(
-                        folderID: folder.id,
-                        title: "\(folder.name) / \(branch.name)",
-                        cwd: worktreePath,
-                        worktreePath: worktreePath,
-                        branchName: branch.name
-                    )
-                } catch {
-                    appState?.errorMessage = error.localizedDescription
                 }
                 dismiss()
             }
