@@ -208,4 +208,43 @@ struct GitDiffParserTests {
         #expect(lines[6].oldLineNumber == 8)
         #expect(lines[6].newLineNumber == 9)
     }
+
+    @Test("Diff rows show every file until that file is minimized")
+    func diffFileMinimization() {
+        let firstFile = DiffFile(
+            oldPath: "first.txt",
+            newPath: "first.txt",
+            isBinary: false,
+            hunks: [DiffHunk(
+                header: "@@ -1 +1 @@",
+                oldStart: 1,
+                newStart: 1,
+                lines: [DiffLine(type: .added, content: "first", oldLineNumber: nil, newLineNumber: 1)]
+            )]
+        )
+        let secondFile = DiffFile(
+            oldPath: "second.txt",
+            newPath: "second.txt",
+            isBinary: false,
+            hunks: [DiffHunk(
+                header: "@@ -1 +1 @@",
+                oldStart: 1,
+                newStart: 1,
+                lines: [DiffLine(type: .added, content: "second", oldLineNumber: nil, newLineNumber: 1)]
+            )]
+        )
+        let diff = GitDiff(files: [firstFile, secondFile])
+
+        let defaultRows = DiffRowBuilder.buildRows(from: diff, sideBySide: false)
+        #expect(defaultRows.count == 8)
+
+        let minimizedRows = DiffRowBuilder.buildRows(
+            from: diff,
+            sideBySide: false,
+            collapsedFiles: [firstFile.newPath]
+        )
+        #expect(minimizedRows.count == 6)
+        #expect(minimizedRows.filter { $0.fileIndex == 0 }.count == 2)
+        #expect(minimizedRows.filter { $0.fileIndex == 1 }.count == 4)
+    }
 }

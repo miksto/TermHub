@@ -61,6 +61,7 @@ enum DiffRowBuilder {
         from diff: GitDiff,
         sideBySide: Bool,
         expandedFiles: Set<String> = [],
+        collapsedFiles: Set<String> = [],
         fileContentsCache: [String: [String]] = [:]
     ) -> [DiffRow] {
         var rows: [DiffRow] = []
@@ -68,31 +69,33 @@ enum DiffRowBuilder {
             rows.append(DiffRow(kind: .fileHeader(file), hunkIndex: nil, fileIndex: fileIdx))
 
             let filePath = file.newPath
-            if expandedFiles.contains(filePath), let fileLines = fileContentsCache[filePath] {
-                rows += buildExpandedRows(for: file, fileLines: fileLines, sideBySide: sideBySide, fileIndex: fileIdx)
-            } else if !file.isBinary {
-                for (hunkIdx, hunk) in file.hunks.enumerated() {
-                    rows.append(DiffRow(
-                        kind: .hunkHeader(hunk: hunk, file: file),
-                        hunkIndex: hunkIdx,
-                        fileIndex: fileIdx
-                    ))
+            if !collapsedFiles.contains(filePath) {
+                if expandedFiles.contains(filePath), let fileLines = fileContentsCache[filePath] {
+                    rows += buildExpandedRows(for: file, fileLines: fileLines, sideBySide: sideBySide, fileIndex: fileIdx)
+                } else if !file.isBinary {
+                    for (hunkIdx, hunk) in file.hunks.enumerated() {
+                        rows.append(DiffRow(
+                            kind: .hunkHeader(hunk: hunk, file: file),
+                            hunkIndex: hunkIdx,
+                            fileIndex: fileIdx
+                        ))
 
-                    if sideBySide {
-                        for pair in pairLines(hunk.lines) {
-                            rows.append(DiffRow(
-                                kind: .sideBySideLine(old: pair.old, new: pair.new),
-                                hunkIndex: hunkIdx,
-                                fileIndex: fileIdx
-                            ))
-                        }
-                    } else {
-                        for line in hunk.lines {
-                            rows.append(DiffRow(
-                                kind: .unifiedLine(line),
-                                hunkIndex: hunkIdx,
-                                fileIndex: fileIdx
-                            ))
+                        if sideBySide {
+                            for pair in pairLines(hunk.lines) {
+                                rows.append(DiffRow(
+                                    kind: .sideBySideLine(old: pair.old, new: pair.new),
+                                    hunkIndex: hunkIdx,
+                                    fileIndex: fileIdx
+                                ))
+                            }
+                        } else {
+                            for line in hunk.lines {
+                                rows.append(DiffRow(
+                                    kind: .unifiedLine(line),
+                                    hunkIndex: hunkIdx,
+                                    fileIndex: fileIdx
+                                ))
+                            }
                         }
                     }
                 }
@@ -328,6 +331,8 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     /// The hunk index (within its file) currently hovered, or nil.
     var hoveredHunkIndex: Int?
     private var expandedFiles: Set<String> = []
+    /// Files whose diff rows are hidden. An empty set means every file is visible.
+    private var collapsedFiles: Set<String> = []
     private var fileContentsCache: [String: [String]] = [:]
     /// Cached row heights keyed by row index, invalidated on width/row changes.
     private var heightCache: [Int: CGFloat] = [:]
@@ -497,6 +502,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     func rebuildRows(for width: CGFloat, clearExpandState: Bool = false) {
         if clearExpandState {
             expandedFiles.removeAll()
+            collapsedFiles.removeAll()
             fileContentsCache.removeAll()
         }
         lastWidth = width
@@ -505,6 +511,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
             from: diff,
             sideBySide: isSideBySide,
             expandedFiles: expandedFiles,
+            collapsedFiles: collapsedFiles,
             fileContentsCache: fileContentsCache
         )
         heightCache.removeAll(keepingCapacity: true)
@@ -549,6 +556,31 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
     func isFileExpanded(_ file: DiffFile) -> Bool {
         expandedFiles.contains(file.newPath)
+    }
+
+    func isFileCollapsed(_ file: DiffFile) -> Bool {
+        collapsedFiles.contains(file.newPath)
+    }
+
+    func toggleCollapsed(for file: DiffFile) {
+        let anchor = rows.firstIndex { row in
+            guard case .fileHeader(let headerFile) = row.kind else { return false }
+            return headerFile.newPath == file.newPath
+        }.flatMap { buildAnchor(forRow: $0) }
+
+        let path = file.newPath
+        if collapsedFiles.contains(path) {
+            collapsedFiles.remove(path)
+        } else {
+            collapsedFiles.insert(path)
+        }
+
+        rebuildRows(for: lastWidth)
+        tableView?.reloadData()
+
+        if let anchor {
+            restoreScrollAnchor(anchor)
+        }
     }
 
     func toggleExpand(for file: DiffFile, fromHunk hunk: DiffHunk? = nil) {
@@ -844,8 +876,10 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
                 ?? FileHeaderDrawView(identifier: id)
             cell.file = file
             cell.isExpanded = isFileExpanded(file)
+            cell.isCollapsed = isFileCollapsed(file)
             cell.showDiscard = hoveredFileIndex == diffRow.fileIndex
             cell.onCollapse = { [weak self] in self?.toggleExpand(for: file) }
+            cell.onToggleCollapsed = { [weak self] in self?.toggleCollapsed(for: file) }
             cell.onDiscard = { [weak self] in self?.onDiscardFile?(file) }
             cell.needsDisplay = true
             return cell
@@ -1188,23 +1222,38 @@ private class FileHeaderDrawView: NSView {
     var file: DiffFile?
     var isExpanded: Bool = false {
         didSet {
-            collapseButton.isHidden = !isExpanded
+            updateFullFileToggleVisibility()
             needsDisplay = true
         }
     }
     var showDiscard: Bool = false {
         didSet { discardButton.isHidden = !showDiscard && !isConfirmingDiscard }
     }
+    var isCollapsed: Bool = false {
+        didSet {
+            minimizeButton.title = isCollapsed ? "Show diff" : "Minimize"
+            minimizeButton.toolTip = isCollapsed ? "Show this file's diff" : "Hide this file's diff"
+            updateFullFileToggleVisibility()
+            needsDisplay = true
+        }
+    }
     var onCollapse: (() -> Void)?
+    var onToggleCollapsed: (() -> Void)?
     var onDiscard: (() -> Void)?
     private let collapseButton: ArrowCursorButton
+    private let minimizeButton: ArrowCursorButton
     private let discardButton: ArrowCursorButton
     private var isConfirmingDiscard = false
     private var confirmResetTimer: Timer?
     private let discardWidthConstraint: NSLayoutConstraint
 
+    private func updateFullFileToggleVisibility() {
+        collapseButton.isHidden = !isExpanded || isCollapsed
+    }
+
     init(identifier: NSUserInterfaceItemIdentifier) {
         collapseButton = ArrowCursorButton()
+        minimizeButton = ArrowCursorButton()
         discardButton = ArrowCursorButton()
         discardWidthConstraint = discardButton.widthAnchor.constraint(equalToConstant: 80)
         super.init(frame: .zero)
@@ -1222,6 +1271,19 @@ private class FileHeaderDrawView: NSView {
         collapseButton.action = #selector(collapseTapped)
         collapseButton.translatesAutoresizingMaskIntoConstraints = false
         addSubview(collapseButton)
+
+        minimizeButton.title = "Minimize"
+        minimizeButton.font = .systemFont(ofSize: 11)
+        minimizeButton.isBordered = false
+        minimizeButton.wantsLayer = true
+        minimizeButton.layer?.cornerRadius = 3
+        minimizeButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
+        minimizeButton.contentTintColor = NSColor.white.withAlphaComponent(0.85)
+        minimizeButton.toolTip = "Hide this file's diff"
+        minimizeButton.target = self
+        minimizeButton.action = #selector(minimizeTapped)
+        minimizeButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(minimizeButton)
 
         discardButton.title = "Discard File"
         discardButton.font = .systemFont(ofSize: 11)
@@ -1242,8 +1304,13 @@ private class FileHeaderDrawView: NSView {
             discardWidthConstraint,
             discardButton.heightAnchor.constraint(equalToConstant: 20),
 
+            minimizeButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            minimizeButton.trailingAnchor.constraint(equalTo: discardButton.leadingAnchor, constant: -4),
+            minimizeButton.widthAnchor.constraint(equalToConstant: 66),
+            minimizeButton.heightAnchor.constraint(equalToConstant: 20),
+
             collapseButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            collapseButton.trailingAnchor.constraint(equalTo: discardButton.leadingAnchor, constant: -4),
+            collapseButton.trailingAnchor.constraint(equalTo: minimizeButton.leadingAnchor, constant: -4),
             collapseButton.widthAnchor.constraint(equalToConstant: 66),
             collapseButton.heightAnchor.constraint(equalToConstant: 20),
         ])
@@ -1254,6 +1321,10 @@ private class FileHeaderDrawView: NSView {
 
     @objc private func collapseTapped() {
         onCollapse?()
+    }
+
+    @objc private func minimizeTapped() {
+        onToggleCollapsed?()
     }
 
     @objc private func discardTapped() {
@@ -1295,14 +1366,13 @@ private class FileHeaderDrawView: NSView {
         ]
         let pathSize = (file.displayPath as NSString).size(withAttributes: pathAttrs)
         let pathY = bounds.midY - pathSize.height / 2
-        // Right margin accounts for the discard button (80pt + 8pt trailing)
-        let rightMargin: CGFloat = 96
+        // Right margin accounts for the minimize and discard buttons.
+        let rightMargin: CGFloat = 166
         let pathRect = NSRect(x: 12, y: pathY, width: bounds.width - 120 - rightMargin, height: pathSize.height)
         (file.displayPath as NSString).draw(with: pathRect, options: [.truncatesLastVisibleLine, .usesLineFragmentOrigin], attributes: pathAttrs)
 
-        // Stats — when expanded, also reserve space for the "Show diff" button (66pt + 4pt gap)
-        // chained to the left of the discard button.
-        let statsRightMargin: CGFloat = isExpanded ? 142 : rightMargin
+        // When showing the full file, reserve room for the extra "Show diff" button.
+        let statsRightMargin: CGFloat = isExpanded && !isCollapsed ? 236 : rightMargin
         if file.isBinary {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: DiffFonts.monoSmall,
