@@ -51,6 +51,11 @@ struct DiffFile: Sendable, Identifiable, Equatable {
         hunks.flatMap(\.lines).filter { $0.type == .removed }.count
     }
 
+    /// The number of lines changed in this file, excluding unchanged context.
+    var changedLineCount: Int {
+        linesAdded + linesDeleted
+    }
+
     var displayPath: String {
         if oldPath == newPath || oldPath == "/dev/null" {
             return newPath

@@ -247,4 +247,40 @@ struct GitDiffParserTests {
         #expect(minimizedRows.filter { $0.fileIndex == 0 }.count == 2)
         #expect(minimizedRows.filter { $0.fileIndex == 1 }.count == 4)
     }
+
+    @Test("Default diff file minimization applies only above the threshold")
+    func defaultDiffFileMinimizationThreshold() {
+        func file(path: String, changedLineCount: Int) -> DiffFile {
+            DiffFile(
+                oldPath: path,
+                newPath: path,
+                isBinary: false,
+                hunks: [DiffHunk(
+                    header: "@@ -0,0 +1,\(changedLineCount) @@",
+                    oldStart: 0,
+                    newStart: 1,
+                    lines: (1...changedLineCount).map { lineNumber in
+                        DiffLine(
+                            type: .added,
+                            content: "line \(lineNumber)",
+                            oldLineNumber: nil,
+                            newLineNumber: lineNumber
+                        )
+                    }
+                )]
+            )
+        }
+
+        let atThreshold = file(path: "at-threshold.txt", changedLineCount: 750)
+        let aboveThreshold = file(path: "above-threshold.txt", changedLineCount: 751)
+        let diff = GitDiff(files: [atThreshold, aboveThreshold])
+
+        let collapsed = DiffRowBuilder.defaultCollapsedFiles(in: diff, threshold: 750)
+        #expect(!collapsed.contains(atThreshold.newPath))
+        #expect(collapsed.contains(aboveThreshold.newPath))
+
+        let rows = DiffRowBuilder.buildRows(from: diff, sideBySide: false, collapsedFiles: collapsed)
+        #expect(rows.filter { $0.fileIndex == 0 }.count == 753)
+        #expect(rows.filter { $0.fileIndex == 1 }.count == 2)
+    }
 }

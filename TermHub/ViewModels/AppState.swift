@@ -58,6 +58,8 @@ final class AppState {
     private static let assistantEffortByProviderUserDefaultsKey = "assistantEffortByProvider"
     private static let assistantCLIPathsUserDefaultsKey = "assistantCLIPaths"
     private static let revealSelectedSessionInSidebarOnCtrlTabUserDefaultsKey = "revealSelectedSessionInSidebarOnCtrlTab"
+    private static let diffFileMinimizationThresholdUserDefaultsKey = "diffFileMinimizationThreshold"
+    static let defaultDiffFileMinimizationThreshold = 750
 
     private static func defaultAssistantAllowedTools(for provider: AssistantProvider) -> String {
         switch provider {
@@ -417,6 +419,18 @@ final class AppState {
         }
     }
 
+    var diffFileMinimizationThreshold: Int {
+        didSet {
+            if diffFileMinimizationThreshold < 0 {
+                diffFileMinimizationThreshold = 0
+            }
+            UserDefaults.standard.set(
+                diffFileMinimizationThreshold,
+                forKey: Self.diffFileMinimizationThresholdUserDefaultsKey
+            )
+        }
+    }
+
     var assistantAllowedToolsByProvider: [String: String] {
         didSet {
             UserDefaults.standard.set(
@@ -595,6 +609,11 @@ final class AppState {
         revealSelectedSessionInSidebarOnCtrlTab = UserDefaults.standard.object(
             forKey: Self.revealSelectedSessionInSidebarOnCtrlTabUserDefaultsKey
         ) as? Bool ?? true
+        diffFileMinimizationThreshold = max(
+            0,
+            UserDefaults.standard.object(forKey: Self.diffFileMinimizationThresholdUserDefaultsKey) as? Int
+                ?? Self.defaultDiffFileMinimizationThreshold
+        )
         assistantProvider = AssistantProvider(rawValue: UserDefaults.standard.string(forKey: "assistantProvider") ?? "") ?? .claude
         assistantAllowedToolsByProvider = Self.loadAssistantAllowedToolsByProviderFromUserDefaults()
         assistantModelByProvider = Self.normalizedAssistantModelByProvider(

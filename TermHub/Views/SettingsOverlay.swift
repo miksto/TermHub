@@ -62,6 +62,26 @@ struct SettingsOverlay: View {
                                 isOn: $appState.sendTTYSizeToSandboxTerminals,
                                 caption: "Sends the current rows and columns to sandbox terminals when they start and when the terminal view is resized."
                             )
+
+                            Divider()
+
+                            formRow(
+                                "Minimize diff files",
+                                caption: "Files with more than this many changed lines start minimized. Set to 0 to minimize every non-empty diff."
+                            ) {
+                                HStack(spacing: 6) {
+                                    TextField(
+                                        "750",
+                                        value: $appState.diffFileMinimizationThreshold,
+                                        format: .number
+                                    )
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 80)
+                                    Text("lines")
+                                        .font(.callout)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
                     }
 

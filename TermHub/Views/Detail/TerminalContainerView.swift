@@ -24,12 +24,14 @@ struct TerminalContainerView: NSViewControllerRepresentable {
         let suppressInteraction = appState.showCommandPalette || appState.showAssistant
         let sessionListVersion = appState.sessionListVersion
         let tmuxAvailable = appState.tmuxAvailable
+        let diffFileMinimizationThreshold = appState.diffFileMinimizationThreshold
 
         controller.updateTerminals(
             selectedID: selectedID,
             tmuxAvailable: tmuxAvailable,
             suppressInteraction: suppressInteraction,
-            sessionListVersion: sessionListVersion
+            sessionListVersion: sessionListVersion,
+            diffFileMinimizationThreshold: diffFileMinimizationThreshold
         )
     }
 }
@@ -45,6 +47,7 @@ class TerminalContainerViewController: NSViewController {
     private var lastSelectedID: UUID?
     private var lastTmuxAvailable: Bool?
     private var lastSuppressInteraction: Bool?
+    private var lastDiffFileMinimizationThreshold = AppState.defaultDiffFileMinimizationThreshold
     private var diffScrollView: NSScrollView?
     private var diffDelegate: DiffTableDelegate?
     private var diffEmptyStateView: NSTextField?
@@ -145,7 +148,8 @@ class TerminalContainerViewController: NSViewController {
             selectedID: lastSelectedID,
             tmuxAvailable: lastTmuxAvailable ?? false,
             suppressInteraction: lastSuppressInteraction ?? false,
-            sessionListVersion: savedVersion
+            sessionListVersion: savedVersion,
+            diffFileMinimizationThreshold: appState.diffFileMinimizationThreshold
         )
     }
 
@@ -340,6 +344,7 @@ class TerminalContainerViewController: NSViewController {
     private func loadDiff() {
         guard let delegate = diffDelegate, let scrollView = diffScrollView else { return }
         let tableView = scrollView.documentView as? NSTableView
+        delegate.defaultCollapseThreshold = appState.diffFileMinimizationThreshold
 
         // Update working dir for file expansion
         if let session = appState.selectedSession {
@@ -404,12 +409,15 @@ class TerminalContainerViewController: NSViewController {
         selectedID: UUID?,
         tmuxAvailable: Bool,
         suppressInteraction: Bool = false,
-        sessionListVersion: Int
+        sessionListVersion: Int,
+        diffFileMinimizationThreshold: Int
     ) {
+        let thresholdChanged = diffFileMinimizationThreshold != lastDiffFileMinimizationThreshold
         let stateChanged = sessionListVersion != lastSessionListVersion
             || selectedID != lastSelectedID
             || tmuxAvailable != lastTmuxAvailable
             || suppressInteraction != lastSuppressInteraction
+            || thresholdChanged
         guard stateChanged else {
             updateTabState(selectedID: selectedID, suppressInteraction: suppressInteraction)
             return
@@ -418,6 +426,11 @@ class TerminalContainerViewController: NSViewController {
         lastSelectedID = selectedID
         lastTmuxAvailable = tmuxAvailable
         lastSuppressInteraction = suppressInteraction
+        lastDiffFileMinimizationThreshold = diffFileMinimizationThreshold
+
+        if thresholdChanged && appState.currentDetailTab == .gitDiff {
+            loadDiff()
+        }
 
         let sessions = appState.sessions
         let manager = appState.terminalManager

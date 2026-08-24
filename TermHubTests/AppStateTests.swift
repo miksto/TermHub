@@ -46,6 +46,19 @@ struct AppStateTests {
         #expect(state.revealSelectedSessionInSidebarOnCtrlTab == true)
     }
 
+    @Test("diff file minimization threshold defaults to 750 and persists")
+    @MainActor
+    func diffFileMinimizationThresholdDefaultsAndPersists() {
+        removeUserDefaultIfPresent("diffFileMinimizationThreshold")
+        defer { removeUserDefaultIfPresent("diffFileMinimizationThreshold") }
+
+        let state = makeCleanAppState()
+        #expect(state.diffFileMinimizationThreshold == 750)
+
+        state.diffFileMinimizationThreshold = 1200
+        #expect(UserDefaults.standard.integer(forKey: "diffFileMinimizationThreshold") == 1200)
+    }
+
     @Test("addFolder with non-existent path sets error message")
     @MainActor
     func addFolderNonExistentPath() {

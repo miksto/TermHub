@@ -57,6 +57,14 @@ enum DiffMetrics {
 // MARK: - Row Builder
 
 enum DiffRowBuilder {
+    static func defaultCollapsedFiles(in diff: GitDiff, threshold: Int) -> Set<String> {
+        Set(
+            diff.files
+                .filter { $0.changedLineCount > threshold }
+                .map(\.newPath)
+        )
+    }
+
     static func buildRows(
         from diff: GitDiff,
         sideBySide: Bool,
@@ -210,6 +218,7 @@ enum DiffRowBuilder {
 struct DiffTableView: NSViewRepresentable {
     let diff: GitDiff
     let workingDirectory: String
+    let defaultCollapseThreshold: Int
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
@@ -238,6 +247,7 @@ struct DiffTableView: NSViewRepresentable {
         delegate.diff = diff
         delegate.lastDiff = diff
         delegate.workingDir = workingDirectory
+        delegate.defaultCollapseThreshold = defaultCollapseThreshold
         delegate.rebuildRows(for: scrollView.frame.width, clearExpandState: true)
         delegate.tableView = tableView
         context.coordinator.delegate = delegate
@@ -260,8 +270,11 @@ struct DiffTableView: NSViewRepresentable {
 
         delegate.workingDir = workingDirectory
 
-        // Only rebuild if the diff data changed
-        guard delegate.lastDiff != diff else { return }
+        let thresholdChanged = delegate.defaultCollapseThreshold != defaultCollapseThreshold
+        delegate.defaultCollapseThreshold = defaultCollapseThreshold
+
+        // Rebuild when the diff data or the default minimization setting changes.
+        guard delegate.lastDiff != diff || thresholdChanged else { return }
 
         delegate.diff = diff
         delegate.lastDiff = diff
@@ -326,6 +339,7 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     weak var tableView: NSTableView?
     var onDiscardFile: ((DiffFile) -> Void)?
     var onDiscardHunk: ((DiffFile, DiffHunk) -> Void)?
+    var defaultCollapseThreshold: Int = AppState.defaultDiffFileMinimizationThreshold
     /// The file index currently hovered by the mouse, or nil when the mouse is outside.
     var hoveredFileIndex: Int?
     /// The hunk index (within its file) currently hovered, or nil.
@@ -502,7 +516,10 @@ class DiffTableDelegate: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     func rebuildRows(for width: CGFloat, clearExpandState: Bool = false) {
         if clearExpandState {
             expandedFiles.removeAll()
-            collapsedFiles.removeAll()
+            collapsedFiles = DiffRowBuilder.defaultCollapsedFiles(
+                in: diff,
+                threshold: defaultCollapseThreshold
+            )
             fileContentsCache.removeAll()
         }
         lastWidth = width
